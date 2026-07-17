@@ -6,6 +6,7 @@ import {
     FolderPlus,
     MoreHorizontal,
     Plus,
+    Settings2,
     Trash2,
 } from '@lucide/vue';
 import { ref } from 'vue';
@@ -25,15 +26,31 @@ import {
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { api } from '@/lib/api';
 import { confirmDialog, promptDialog } from '@/lib/dialogs';
 import { cn } from '@/lib/utils';
-import type { ApiRequest, CollectionNode } from '@/types/workspace';
+import type {
+    ApiRequest,
+    AuthType,
+    CollectionNode,
+    KeyValuePair,
+    RequestAuth,
+} from '@/types/workspace';
+import AuthEditor from './AuthEditor.vue';
+import KeyValueEditor from './KeyValueEditor.vue';
 
 const props = defineProps<{
     node: CollectionNode;
@@ -139,6 +156,37 @@ async function removeRequest(request: ApiRequest) {
     reload();
 }
 
+const settingsOpen = ref(false);
+const settingsHeaders = ref<KeyValuePair[]>([]);
+const settingsAuthType = ref<AuthType | null>(null);
+const settingsAuth = ref<RequestAuth>(null);
+const savingSettings = ref(false);
+
+function openSettings() {
+    settingsHeaders.value = props.node.headers ? [...props.node.headers] : [];
+    settingsAuthType.value = props.node.auth_type;
+    settingsAuth.value = props.node.auth;
+    settingsOpen.value = true;
+}
+
+async function saveSettings() {
+    savingSettings.value = true;
+
+    try {
+        await api.patch(updateCollection.url(props.node.id), {
+            headers: settingsHeaders.value.length
+                ? settingsHeaders.value
+                : null,
+            auth_type: settingsAuthType.value,
+            auth: settingsAuth.value,
+        });
+        settingsOpen.value = false;
+        reload();
+    } finally {
+        savingSettings.value = false;
+    }
+}
+
 const methodColor: Record<string, string> = {
     GET: 'text-blue-600 dark:text-blue-400',
     POST: 'text-green-600 dark:text-green-400',
@@ -187,6 +235,9 @@ const methodColor: Record<string, string> = {
                         <FolderPlus class="size-3.5" /> New folder
                     </DropdownMenuItem>
                     <DropdownMenuItem @click="rename">Rename</DropdownMenuItem>
+                    <DropdownMenuItem @click="openSettings">
+                        <Settings2 class="size-3.5" /> Headers &amp; Auth
+                    </DropdownMenuItem>
                     <DropdownMenuItem variant="destructive" @click="remove">
                         <Trash2 class="size-3.5" /> Delete
                     </DropdownMenuItem>
@@ -241,4 +292,44 @@ const methodColor: Record<string, string> = {
             />
         </CollapsibleContent>
     </Collapsible>
+
+    <Dialog v-model:open="settingsOpen">
+        <DialogContent class="sm:max-w-xl">
+            <DialogHeader>
+                <DialogTitle>{{ node.name }} — Headers &amp; Auth</DialogTitle>
+            </DialogHeader>
+
+            <Tabs default-value="headers">
+                <TabsList>
+                    <TabsTrigger value="headers">Default headers</TabsTrigger>
+                    <TabsTrigger value="auth">Auth</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="headers" class="pt-3">
+                    <p class="mb-2 text-xs text-muted-foreground">
+                        Sent with every request in this collection and its
+                        subfolders, unless overridden by a more specific header.
+                    </p>
+                    <KeyValueEditor v-model="settingsHeaders" />
+                </TabsContent>
+
+                <TabsContent value="auth" class="pt-3">
+                    <AuthEditor
+                        v-model:auth-type="settingsAuthType"
+                        v-model:auth="settingsAuth"
+                        inherit-label="Uses the auth configured on the parent collection, if any."
+                    />
+                </TabsContent>
+            </Tabs>
+
+            <DialogFooter class="gap-2">
+                <Button variant="secondary" @click="settingsOpen = false"
+                    >Cancel</Button
+                >
+                <Button :disabled="savingSettings" @click="saveSettings"
+                    >Save</Button
+                >
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
 </template>

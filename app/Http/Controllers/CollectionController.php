@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Actions\ImportCollectionAction;
+use App\Enums\AuthType;
 use App\Models\Collection;
 use App\Models\Workspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CollectionController extends Controller
 {
@@ -38,6 +40,9 @@ class CollectionController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'parent_id' => ['nullable', 'integer', 'exists:collections,id'],
             'variables' => ['nullable', 'array'],
+            'headers' => ['nullable', 'array'],
+            'auth_type' => ['nullable', Rule::enum(AuthType::class)],
+            'auth' => ['nullable', 'array'],
         ]);
 
         if (! empty($data['parent_id'])) {
@@ -49,6 +54,9 @@ class CollectionController extends Controller
             'name' => $data['name'],
             'parent_id' => $data['parent_id'] ?? null,
             'variables' => $data['variables'] ?? null,
+            'headers' => $data['headers'] ?? null,
+            'auth_type' => $data['auth_type'] ?? null,
+            'auth' => $data['auth'] ?? null,
             'order' => $workspace->collections()->where('parent_id', $data['parent_id'] ?? null)->count(),
         ]);
 
@@ -64,6 +72,9 @@ class CollectionController extends Controller
             'parent_id' => ['sometimes', 'nullable', 'integer', 'exists:collections,id'],
             'order' => ['sometimes', 'integer', 'min:0'],
             'variables' => ['sometimes', 'nullable', 'array'],
+            'headers' => ['sometimes', 'nullable', 'array'],
+            'auth_type' => ['sometimes', 'nullable', Rule::enum(AuthType::class)],
+            'auth' => ['sometimes', 'nullable', 'array'],
         ]);
 
         if (array_key_exists('parent_id', $data) && $data['parent_id'] === $collection->id) {

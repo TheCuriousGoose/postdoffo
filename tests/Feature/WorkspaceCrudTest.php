@@ -98,6 +98,24 @@ class WorkspaceCrudTest extends TestCase
         $this->assertSame(0, Request::count());
     }
 
+    public function test_a_request_can_be_created_with_a_blank_url(): void
+    {
+        // This is exactly what the "New request" button in CollectionTree.vue
+        // sends — the url is filled in afterwards in the editor.
+        $user = User::factory()->create();
+        $workspace = Workspace::factory()->create(['owner_id' => $user->id]);
+        $collection = Collection::factory()->create(['workspace_id' => $workspace->id]);
+
+        $this->actingAs($user)
+            ->postJson(route('api.requests.store', $collection), [
+                'name' => 'New Request',
+                'method' => 'GET',
+                'url' => '',
+            ])
+            ->assertOk()
+            ->assertJsonPath('url', '');
+    }
+
     public function test_activating_an_environment_deactivates_the_previous_one(): void
     {
         $user = User::factory()->create();

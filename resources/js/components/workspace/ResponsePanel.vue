@@ -58,6 +58,19 @@ const headerRows = computed(() => {
         value: values.join(', '),
     }));
 });
+
+const contentType = computed(() => {
+    const headers = response.value?.headers ?? {};
+    const key = Object.keys(headers).find(
+        (name) => name.toLowerCase() === 'content-type',
+    );
+
+    return key ? headers[key].join('; ') : '';
+});
+
+const isPreviewableHtml = computed(() =>
+    contentType.value.toLowerCase().includes('html'),
+);
 </script>
 
 <template>
@@ -109,6 +122,7 @@ const headerRows = computed(() => {
             <Tabs default-value="body" class="flex min-h-0 flex-1 flex-col">
                 <TabsList>
                     <TabsTrigger value="body">Body</TabsTrigger>
+                    <TabsTrigger value="preview">Preview</TabsTrigger>
                     <TabsTrigger value="headers"
                         >Headers ({{ headerRows.length }})</TabsTrigger
                     >
@@ -122,6 +136,24 @@ const headerRows = computed(() => {
                         <pre
                             class="overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs whitespace-pre-wrap"
                             >{{ prettyBody || '(empty body)' }}</pre>
+                    </TabsContent>
+
+                    <TabsContent value="preview" class="h-full">
+                        <iframe
+                            v-if="isPreviewableHtml"
+                            :srcdoc="response.body ?? ''"
+                            sandbox=""
+                            title="Response preview"
+                            class="h-[70vh] w-full rounded-md border bg-white"
+                        />
+                        <p v-else class="text-sm text-muted-foreground">
+                            Preview is only available for HTML responses.
+                            <template v-if="contentType">
+                                This response's Content-Type is
+                                <code class="font-mono">{{ contentType }}</code
+                                >.
+                            </template>
+                        </p>
                     </TabsContent>
 
                     <TabsContent value="headers">

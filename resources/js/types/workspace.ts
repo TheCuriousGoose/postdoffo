@@ -11,6 +11,17 @@ export type KeyValuePair = {
     enabled?: boolean;
 };
 
+export type AuthType = 'bearer' | 'basic' | 'apikey' | 'none';
+
+export type RequestAuth = {
+    token?: string;
+    username?: string;
+    password?: string;
+    key?: string;
+    value?: string;
+    in?: 'header' | 'query';
+} | null;
+
 export type RequestBody = {
     raw?: string;
     json?: unknown;
@@ -28,6 +39,8 @@ export type ApiRequest = {
     query_params: KeyValuePair[] | null;
     body: RequestBody;
     body_type: BodyType;
+    auth_type: AuthType | null;
+    auth: RequestAuth;
     pre_request_script: string | null;
     test_script: string | null;
     created_at: string;
@@ -40,6 +53,9 @@ export type CollectionNode = {
     parent_id: number | null;
     order: number;
     variables: Record<string, string> | null;
+    headers: KeyValuePair[] | null;
+    auth_type: AuthType | null;
+    auth: RequestAuth;
     requests: ApiRequest[];
     children: CollectionNode[];
 };
@@ -65,6 +81,22 @@ export type Workspace = {
     name: string;
     owner_id: number;
     collections_count?: number;
+};
+
+export type WorkspaceMemberRole = 'editor' | 'viewer';
+
+export type WorkspaceMember = {
+    id: number;
+    name: string;
+    email: string;
+    role: WorkspaceRole;
+};
+
+export type WorkspaceInvitation = {
+    id: number;
+    email: string;
+    role: WorkspaceMemberRole;
+    created_at: string;
 };
 
 export type TestResult = {

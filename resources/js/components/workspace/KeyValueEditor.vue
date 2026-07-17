@@ -3,8 +3,16 @@ import { Trash2 } from '@lucide/vue';
 import { computed } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import type { KeyValuePair } from '@/types/workspace';
+import VariableHighlightInput from './VariableHighlightInput.vue';
 
 const props = defineProps<{
     modelValue: KeyValuePair[] | null;
@@ -42,36 +50,58 @@ function removeRow(index: number) {
 
 <template>
     <div class="flex flex-col gap-2">
-        <div
-            v-for="(row, index) in rows"
-            :key="index"
-            class="flex items-center gap-2"
-        >
-            <Checkbox
-                :model-value="row.enabled !== false"
-                @update:model-value="(v) => update(index, { enabled: !!v })"
-            />
-            <Input
-                :model-value="row.key"
-                :placeholder="keyPlaceholder ?? 'Key'"
-                class="font-mono text-sm"
-                @update:model-value="(v) => update(index, { key: String(v) })"
-            />
-            <Input
-                :model-value="row.value"
-                :placeholder="valuePlaceholder ?? 'Value'"
-                class="font-mono text-sm"
-                @update:model-value="(v) => update(index, { value: String(v) })"
-            />
-            <Button
-                variant="ghost"
-                size="icon"
-                class="shrink-0"
-                @click="removeRow(index)"
-            >
-                <Trash2 class="size-4" />
-            </Button>
-        </div>
+        <Table v-if="rows.length">
+            <TableHeader>
+                <TableRow>
+                    <TableHead class="w-8"></TableHead>
+                    <TableHead>{{ keyPlaceholder ?? 'Key' }}</TableHead>
+                    <TableHead>{{ valuePlaceholder ?? 'Value' }}</TableHead>
+                    <TableHead class="w-8"></TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                <TableRow v-for="(row, index) in rows" :key="index">
+                    <TableCell>
+                        <Checkbox
+                            :model-value="row.enabled !== false"
+                            @update:model-value="
+                                (v) => update(index, { enabled: !!v })
+                            "
+                        />
+                    </TableCell>
+                    <TableCell>
+                        <VariableHighlightInput
+                            :model-value="row.key"
+                            :placeholder="keyPlaceholder ?? 'Key'"
+                            class="font-mono text-sm"
+                            @update:model-value="
+                                (v) => update(index, { key: v })
+                            "
+                        />
+                    </TableCell>
+                    <TableCell>
+                        <VariableHighlightInput
+                            :model-value="row.value"
+                            :placeholder="valuePlaceholder ?? 'Value'"
+                            class="font-mono text-sm"
+                            @update:model-value="
+                                (v) => update(index, { value: v })
+                            "
+                        />
+                    </TableCell>
+                    <TableCell>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            class="shrink-0"
+                            @click="removeRow(index)"
+                        >
+                            <Trash2 class="size-4" />
+                        </Button>
+                    </TableCell>
+                </TableRow>
+            </TableBody>
+        </Table>
 
         <Button variant="outline" size="sm" class="w-fit" @click="addRow"
             >Add</Button

@@ -7,3 +7,15 @@ export type FlashToast = {
     type: 'success' | 'info' | 'warning' | 'error';
     message: string;
 };
+
+export type AppNotification = {
+    id: string;
+    type: string;
+    data: {
+        message: string;
+        workspace_id?: number;
+        [key: string]: unknown;
+    };
+    read_at: string | null;
+    created_at: string;
+};

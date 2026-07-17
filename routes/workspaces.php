@@ -6,6 +6,8 @@ use App\Http\Controllers\EnvironmentVariableController;
 use App\Http\Controllers\RequestController;
 use App\Http\Controllers\RequestHistoryController;
 use App\Http\Controllers\WorkspaceController;
+use App\Http\Controllers\WorkspaceInvitationController;
+use App\Http\Controllers\WorkspaceMemberController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -14,6 +16,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('workspaces/{workspace}', [WorkspaceController::class, 'show'])->name('workspaces.show');
     Route::patch('workspaces/{workspace}', [WorkspaceController::class, 'update'])->name('workspaces.update');
     Route::delete('workspaces/{workspace}', [WorkspaceController::class, 'destroy'])->name('workspaces.destroy');
+
+    Route::get('invitations/{token}', [WorkspaceInvitationController::class, 'accept'])->name('invitations.accept');
 
     Route::prefix('api')->name('api.')->group(function () {
         Route::post('workspaces/{workspace}/collections/import', [CollectionController::class, 'import'])->name('collections.import');
@@ -38,5 +42,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('workspaces/{workspace}/history', [RequestHistoryController::class, 'index'])->name('history.index');
         Route::get('history/{requestHistory}', [RequestHistoryController::class, 'show'])->name('history.show');
         Route::delete('history/{requestHistory}', [RequestHistoryController::class, 'destroy'])->name('history.destroy');
+
+        Route::get('workspaces/{workspace}/members', [WorkspaceMemberController::class, 'index'])->name('members.index');
+        Route::post('workspaces/{workspace}/members', [WorkspaceMemberController::class, 'store'])->name('members.store');
+        Route::patch('workspaces/{workspace}/members/{member}', [WorkspaceMemberController::class, 'updateRole'])->name('members.update-role');
+        Route::delete('workspaces/{workspace}/members/{member}', [WorkspaceMemberController::class, 'destroy'])->name('members.destroy');
+        Route::delete('workspaces/{workspace}/invitations/{invitation}', [WorkspaceMemberController::class, 'destroyInvitation'])->name('invitations.destroy');
     });
 });

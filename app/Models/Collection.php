@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AuthType;
 use Database\Factories\CollectionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -19,10 +20,13 @@ use Illuminate\Support\Carbon;
  * @property string $name
  * @property int $order
  * @property array<string, string>|null $variables
+ * @property array<int, array{key: string, value: string, enabled?: bool}>|null $headers
+ * @property AuthType|null $auth_type
+ * @property array{token?: string, username?: string, password?: string, key?: string, value?: string, in?: string}|null $auth
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['workspace_id', 'parent_id', 'name', 'order', 'variables'])]
+#[Fillable(['workspace_id', 'parent_id', 'name', 'order', 'variables', 'headers', 'auth_type', 'auth'])]
 class Collection extends Model
 {
     /** @use HasFactory<CollectionFactory> */
@@ -32,6 +36,9 @@ class Collection extends Model
     {
         return [
             'variables' => 'array',
+            'headers' => 'array',
+            'auth_type' => AuthType::class,
+            'auth' => 'array',
         ];
     }
 

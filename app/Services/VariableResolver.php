@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Enums\AuthType;
 use App\Models\Collection;
 use App\Models\Environment;
+use App\Models\Request;
 
 /**
  * Resolves {{variable}} interpolation with collection -> environment -> runtime
@@ -36,6 +38,85 @@ class VariableResolver
         }
 
         return [...$variables, ...$runtimeOverrides];
+    }
+
+    /**
+     * Flatten the default headers set on a collection and its ancestors —
+     * root-first, so a folder's own header overrides one inherited from its
+     * parent. Disabled entries and blank keys are dropped, mirroring how
+     * request headers are read in RequestExecutorService.
+     *
+     * @return array<string, string>
+     */
+    public function resolveHeaders(?Collection $collection): array
+    {
+        $headers = [];
+
+        foreach ($this->collectionChain($collection) as $ancestor) {
+            foreach ($ancestor->headers ?? [] as $header) {
+                if (($header['enabled'] ?? true) === false || $header['key'] === '') {
+                    continue;
+                }
+
+                $headers[$header['key']] = $header['value'];
+            }
+        }
+
+        return $headers;
+    }
+
+    /**
+     * Resolve the Authorization a request should send: nearest-defined-wins
+     * down the collection chain (a folder's own auth overrides its parent's,
+     * an explicit "none" stops inheritance), then the request's own auth — if
+     * set — has final say. Credentials are interpolated against the already-
+     * resolved variable map before Basic auth is base64-encoded, so
+     * `{{username}}`/`{{password}}` produce a correct digest — unlike a
+     * plain header string, this is computed fresh on every send rather than
+     * baked in at import time.
+     *
+     * @param  array<string, string>  $variables
+     * @return array{location: 'header'|'query', key: string, value: string}|null
+     */
+    public function resolveAuth(Request $request, array $variables): ?array
+    {
+        $type = null;
+        $fields = [];
+
+        foreach ($this->collectionChain($request->collection) as $ancestor) {
+            if ($ancestor->auth_type !== null) {
+                $type = $ancestor->auth_type;
+                $fields = $ancestor->auth ?? [];
+            }
+        }
+
+        if ($request->auth_type !== null) {
+            $type = $request->auth_type;
+            $fields = $request->auth ?? [];
+        }
+
+        return match ($type) {
+            AuthType::Bearer => [
+                'location' => 'header',
+                'key' => 'Authorization',
+                'value' => 'Bearer '.$this->interpolate($fields['token'] ?? '', $variables),
+            ],
+            AuthType::Basic => [
+                'location' => 'header',
+                'key' => 'Authorization',
+                'value' => 'Basic '.base64_encode(
+                    $this->interpolate($fields['username'] ?? '', $variables).
+                    ':'.
+                    $this->interpolate($fields['password'] ?? '', $variables)
+                ),
+            ],
+            AuthType::ApiKey => [
+                'location' => ($fields['in'] ?? 'header') === 'query' ? 'query' : 'header',
+                'key' => $this->interpolate($fields['key'] ?? '', $variables),
+                'value' => $this->interpolate($fields['value'] ?? '', $variables),
+            ],
+            default => null,
+        };
     }
 
     /**

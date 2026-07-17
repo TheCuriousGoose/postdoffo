@@ -19,6 +19,7 @@ import EnvironmentSwitcher from '@/components/workspace/EnvironmentSwitcher.vue'
 import HistoryPanel from '@/components/workspace/HistoryPanel.vue';
 import RequestEditor from '@/components/workspace/RequestEditor.vue';
 import ResponsePanel from '@/components/workspace/ResponsePanel.vue';
+import ShareDialog from '@/components/workspace/ShareDialog.vue';
 import { api } from '@/lib/api';
 import { promptDialog } from '@/lib/dialogs';
 import { cn } from '@/lib/utils';
@@ -106,6 +107,7 @@ async function onImportFile(event: Event) {
         <div class="flex items-center justify-between border-b px-3 py-2">
             <h1 class="text-sm font-semibold">{{ workspace.name }}</h1>
             <div class="flex items-center gap-2">
+                <ShareDialog :workspace="workspace" :role="role" />
                 <EnvironmentSwitcher
                     :workspace-id="workspace.id"
                     :environments="environments"

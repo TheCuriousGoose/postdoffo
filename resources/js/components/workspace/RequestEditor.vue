@@ -19,8 +19,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { api } from '@/lib/api';
 import { useWorkspaceStore } from '@/stores/workspace';
-import type { BodyType, HttpMethod, KeyValuePair } from '@/types/workspace';
+import type {
+    AuthType,
+    BodyType,
+    HttpMethod,
+    KeyValuePair,
+    RequestAuth,
+} from '@/types/workspace';
+import AuthEditor from './AuthEditor.vue';
 import KeyValueEditor from './KeyValueEditor.vue';
+import VariableHighlightInput from './VariableHighlightInput.vue';
 
 const store = useWorkspaceStore();
 
@@ -106,6 +114,22 @@ function setQueryParams(query_params: KeyValuePair[]) {
     }
 
     store.updateDraft(tab.value.requestId, { query_params });
+}
+
+function setAuthType(auth_type: AuthType | null) {
+    if (!tab.value) {
+        return;
+    }
+
+    store.updateDraft(tab.value.requestId, { auth_type });
+}
+
+function setAuth(auth: RequestAuth) {
+    if (!tab.value) {
+        return;
+    }
+
+    store.updateDraft(tab.value.requestId, { auth });
 }
 
 function setBodyType(bodyType: string) {
@@ -196,6 +220,8 @@ async function save() {
             query_params: draft.query_params,
             body: draft.body,
             body_type: draft.body_type,
+            auth_type: draft.auth_type,
+            auth: draft.auth,
             pre_request_script: draft.pre_request_script,
             test_script: draft.test_script,
         });
@@ -260,11 +286,11 @@ async function send() {
                 </SelectContent>
             </Select>
 
-            <Input
+            <VariableHighlightInput
                 :model-value="tab.draft.url"
                 placeholder="https://api.example.com/users/{{userId}}"
                 class="flex-1 font-mono text-sm"
-                @update:model-value="(v) => setUrl(String(v))"
+                @update:model-value="setUrl"
             />
 
             <Button variant="outline" :disabled="tab.saving" @click="save">
@@ -284,6 +310,7 @@ async function send() {
             <TabsList>
                 <TabsTrigger value="params">Params</TabsTrigger>
                 <TabsTrigger value="headers">Headers</TabsTrigger>
+                <TabsTrigger value="auth">Auth</TabsTrigger>
                 <TabsTrigger value="body">Body</TabsTrigger>
                 <TabsTrigger value="scripts">Scripts</TabsTrigger>
                 <TabsTrigger value="tests">Tests</TabsTrigger>
@@ -303,6 +330,15 @@ async function send() {
                         :model-value="tab.draft.headers"
                         key-placeholder="Header"
                         @update:model-value="setHeaders"
+                    />
+                </TabsContent>
+
+                <TabsContent value="auth">
+                    <AuthEditor
+                        :auth-type="tab.draft.auth_type"
+                        :auth="tab.draft.auth"
+                        @update:auth-type="setAuthType"
+                        @update:auth="setAuth"
                     />
                 </TabsContent>
 

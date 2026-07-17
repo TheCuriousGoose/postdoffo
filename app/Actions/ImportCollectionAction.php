@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Enums\AuthType;
 use App\Enums\BodyType;
 use App\Enums\HttpMethod;
 use App\Models\Collection;
@@ -13,6 +14,16 @@ use App\Models\Workspace;
  * over verbatim as best-effort — Postman's full JS surface is far larger
  * than our sandboxed pm.* subset, so some imported scripts may need manual
  * rewriting before they'll run against ScriptRunner.
+ *
+ * Collection/folder/request-level `auth` is stored as structured auth_type +
+ * auth fields (see mapAuth()) rather than a pre-baked header — an explicit
+ * "noauth" maps to AuthType::None, which correctly stops inheritance the
+ * same way it does in Postman. VariableResolver::resolveAuth() walks the
+ * collection chain and computes the real header (or query param) at send
+ * time, after variable interpolation — so Basic auth credentials containing
+ * `{{variables}}` are encoded correctly, unlike a header baked in at import.
+ * Schemes we don't model (oauth2, digest, awsv4, hawk, ntlm, edgegrid) are
+ * skipped, same as scripts outside our pm.* subset.
  */
 class ImportCollectionAction
 {
@@ -22,11 +33,14 @@ class ImportCollectionAction
     public function handle(Workspace $workspace, array $postmanCollection, ?Collection $parent = null): Collection
     {
         $name = $postmanCollection['info']['name'] ?? 'Imported Collection';
+        [$authType, $auth] = $this->mapAuth($postmanCollection['auth'] ?? null);
 
         $collection = $workspace->collections()->create([
             'name' => $name,
             'parent_id' => $parent?->id,
             'variables' => $this->mapVariables($postmanCollection['variable'] ?? []),
+            'auth_type' => $authType,
+            'auth' => $auth,
             'order' => $workspace->collections()->where('parent_id', $parent?->id)->count(),
         ]);
 
@@ -44,10 +58,14 @@ class ImportCollectionAction
 
         foreach ($items as $item) {
             if (isset($item['item']) && is_array($item['item'])) {
+                [$authType, $auth] = $this->mapAuth($item['auth'] ?? null);
+
                 $folder = $workspace->collections()->create([
                     'name' => $item['name'] ?? 'Folder',
                     'parent_id' => $collection->id,
                     'variables' => $this->mapVariables($item['variable'] ?? []),
+                    'auth_type' => $authType,
+                    'auth' => $auth,
                     'order' => $workspace->collections()->where('parent_id', $collection->id)->count(),
                 ]);
 
@@ -72,6 +90,7 @@ class ImportCollectionAction
 
         [$preScript, $testScript] = $this->extractScripts($item['event'] ?? []);
         [$bodyType, $body] = $this->mapBody($request['body'] ?? null);
+        [$authType, $auth] = $this->mapAuth($request['auth'] ?? null);
 
         $collection->requests()->create([
             'name' => $item['name'] ?? 'Imported Request',
@@ -82,9 +101,71 @@ class ImportCollectionAction
             'query_params' => $this->mapQueryParams($request['url'] ?? null),
             'body' => $body,
             'body_type' => $bodyType,
+            'auth_type' => $authType,
+            'auth' => $auth,
             'pre_request_script' => $preScript,
             'test_script' => $testScript,
         ]);
+    }
+
+    /**
+     * Translate a Postman `auth` block into our (auth_type, auth) pair.
+     * Supports bearer, basic, apikey, and explicit noauth (-> AuthType::None,
+     * which cancels inheritance). Anything else — including a missing/absent
+     * `auth` key, which means "no opinion, inherit from the parent" — yields
+     * [null, null].
+     *
+     * @return array{0: AuthType|null, 1: array<string, mixed>|null}
+     */
+    private function mapAuth(mixed $auth): array
+    {
+        if (! is_array($auth) || ! is_string($auth['type'] ?? null)) {
+            return [null, null];
+        }
+
+        $fields = $this->authFields($auth[$auth['type']] ?? []);
+
+        return match ($auth['type']) {
+            'noauth' => [AuthType::None, null],
+            'bearer' => isset($fields['token'])
+                ? [AuthType::Bearer, ['token' => (string) $fields['token']]]
+                : [null, null],
+            'basic' => [AuthType::Basic, [
+                'username' => (string) ($fields['username'] ?? ''),
+                'password' => (string) ($fields['password'] ?? ''),
+            ]],
+            'apikey' => is_string($fields['key'] ?? null) && $fields['key'] !== ''
+                ? [AuthType::ApiKey, [
+                    'key' => $fields['key'],
+                    'value' => (string) ($fields['value'] ?? ''),
+                    'in' => ($fields['in'] ?? 'header') === 'query' ? 'query' : 'header',
+                ]]
+                : [null, null],
+            default => [null, null],
+        };
+    }
+
+    /**
+     * Postman stores each auth scheme's fields as a flat list of {key, value}
+     * pairs rather than an object, e.g. `[{"key": "token", "value": "..."}]`.
+     *
+     * @return array<string, mixed>
+     */
+    private function authFields(mixed $list): array
+    {
+        if (! is_array($list)) {
+            return [];
+        }
+
+        $fields = [];
+
+        foreach ($list as $entry) {
+            if (is_array($entry) && is_string($entry['key'] ?? null)) {
+                $fields[$entry['key']] = $entry['value'] ?? null;
+            }
+        }
+
+        return $fields;
     }
 
     private function extractUrl(mixed $url): string

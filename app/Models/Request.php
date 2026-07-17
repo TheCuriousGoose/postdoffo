@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AuthType;
 use App\Enums\BodyType;
 use App\Enums\HttpMethod;
 use Database\Factories\RequestFactory;
@@ -25,6 +26,8 @@ use Illuminate\Support\Carbon;
  * @property array<int, array{key: string, value: string, enabled?: bool}>|null $query_params
  * @property array<string, mixed>|null $body
  * @property BodyType $body_type
+ * @property AuthType|null $auth_type
+ * @property array{token?: string, username?: string, password?: string, key?: string, value?: string, in?: string}|null $auth
  * @property string|null $pre_request_script
  * @property string|null $test_script
  * @property Carbon|null $created_at
@@ -33,7 +36,7 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'collection_id', 'name', 'method', 'url', 'order',
     'headers', 'query_params', 'body', 'body_type',
-    'pre_request_script', 'test_script',
+    'auth_type', 'auth', 'pre_request_script', 'test_script',
 ])]
 class Request extends Model
 {
@@ -48,6 +51,8 @@ class Request extends Model
             'headers' => 'array',
             'query_params' => 'array',
             'body' => 'array',
+            'auth_type' => AuthType::class,
+            'auth' => 'array',
         ];
     }
 

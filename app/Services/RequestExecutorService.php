@@ -69,8 +69,21 @@ class RequestExecutorService
      */
     private function buildOutgoingRequest(Request $request, array $variables, array $headerOverrides): OutgoingRequestData
     {
-        $headers = [...$this->keyValueListToMap($request->headers), ...$headerOverrides];
+        $auth = $this->variableResolver->resolveAuth($request, $variables);
+
+        $headers = $this->variableResolver->resolveHeaders($request->collection);
+
+        if ($auth && $auth['location'] === 'header') {
+            $headers[$auth['key']] = $auth['value'];
+        }
+
+        $headers = [...$headers, ...$this->keyValueListToMap($request->headers), ...$headerOverrides];
+
         $query = $this->keyValueListToMap($request->query_params);
+
+        if ($auth && $auth['location'] === 'query') {
+            $query = [$auth['key'] => $auth['value'], ...$query];
+        }
 
         $interpolated = $this->variableResolver->interpolateArray([
             'url' => $request->url,

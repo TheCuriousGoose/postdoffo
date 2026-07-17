@@ -95,6 +95,9 @@ class WorkspaceController extends Controller
                 'parent_id' => $collection->parent_id,
                 'order' => $collection->order,
                 'variables' => $collection->variables,
+                'headers' => $collection->headers,
+                'auth_type' => $collection->auth_type,
+                'auth' => $collection->auth,
                 'requests' => $collection->requests->values(),
                 'children' => $this->buildTree($collections, $collection->id),
             ])

@@ -81,6 +81,7 @@ export type Workspace = {
     name: string;
     owner_id: number;
     collections_count?: number;
+    role?: WorkspaceRole | null;
 };
 
 export type WorkspaceMemberRole = 'editor' | 'viewer';

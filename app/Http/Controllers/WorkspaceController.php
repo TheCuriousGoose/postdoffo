@@ -24,6 +24,10 @@ class WorkspaceController extends Controller
             ->orderBy('name')
             ->get();
 
+        $workspaces->each(function (Workspace $workspace) use ($user) {
+            $workspace->role = $workspace->roleFor($user)?->value;
+        });
+
         return Inertia::render('workspaces/Index', [
             'workspaces' => $workspaces,
         ]);
@@ -45,6 +49,13 @@ class WorkspaceController extends Controller
     public function show(Request $request, Workspace $workspace): Response
     {
         $this->authorize('view', $workspace);
+
+        $user = $request->user();
+
+        if ($user->last_workspace_id !== $workspace->id) {
+            $user->last_workspace_id = $workspace->id;
+            $user->save();
+        }
 
         $collections = $workspace->collections()->orderBy('order')->orderBy('name')->with('requests')->get();
         $environments = $workspace->environments()->with('variables')->orderBy('name')->get();

@@ -7,6 +7,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -24,6 +25,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string|null $password
  * @property string|null $provider
  * @property string|null $provider_id
+ * @property int|null $last_workspace_id
  * @property string|null $two_factor_secret
  * @property string|null $two_factor_recovery_codes
  * @property Carbon|null $two_factor_confirmed_at
@@ -68,5 +70,13 @@ class User extends Authenticatable implements PasskeyUser
         return $this->belongsToMany(Workspace::class, 'workspace_members')
             ->withPivot('role')
             ->withTimestamps();
+    }
+
+    /**
+     * @return BelongsTo<Workspace, $this>
+     */
+    public function lastWorkspace(): BelongsTo
+    {
+        return $this->belongsTo(Workspace::class, 'last_workspace_id');
     }
 }

@@ -16,6 +16,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import ShareDialog from '@/components/workspace/ShareDialog.vue';
 import { confirmDialog, promptDialog } from '@/lib/dialogs';
 import { index } from '@/routes/workspaces';
 import type { Workspace } from '@/types/workspace';
@@ -106,31 +107,39 @@ async function deleteWorkspace(workspace: Workspace) {
                     class="flex flex-row items-start justify-between gap-2"
                 >
                     <CardTitle class="truncate">{{ workspace.name }}</CardTitle>
-                    <DropdownMenu v-if="workspace.owner_id === currentUserId">
-                        <DropdownMenuTrigger as-child @click.stop>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                class="-mt-1 -mr-1 size-7 shrink-0 opacity-0 transition group-hover:opacity-100 data-[state=open]:opacity-100"
-                                aria-label="Workspace options"
-                            >
-                                <MoreHorizontal class="size-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" @click.stop>
-                            <DropdownMenuItem
-                                @click="renameWorkspace(workspace)"
-                            >
-                                <Pencil class="size-3.5" /> Rename
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                variant="destructive"
-                                @click="deleteWorkspace(workspace)"
-                            >
-                                <Trash2 class="size-3.5" /> Delete
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div class="-mt-1 -mr-1 flex shrink-0 items-center gap-1">
+                        <span @click.stop>
+                            <ShareDialog
+                                :workspace="workspace"
+                                :role="workspace.role ?? null"
+                            />
+                        </span>
+                        <DropdownMenu v-if="workspace.owner_id === currentUserId">
+                            <DropdownMenuTrigger as-child @click.stop>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    class="size-7 shrink-0 opacity-0 transition group-hover:opacity-100 data-[state=open]:opacity-100"
+                                    aria-label="Workspace options"
+                                >
+                                    <MoreHorizontal class="size-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" @click.stop>
+                                <DropdownMenuItem
+                                    @click="renameWorkspace(workspace)"
+                                >
+                                    <Pencil class="size-3.5" /> Rename
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    variant="destructive"
+                                    @click="deleteWorkspace(workspace)"
+                                >
+                                    <Trash2 class="size-3.5" /> Delete
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                 </CardHeader>
                 <CardContent class="text-sm text-muted-foreground">
                     {{ workspace.collections_count ?? 0 }} collections

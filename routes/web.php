@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 
@@ -10,7 +10,7 @@ Route::inertia('/privacy-policy', 'legal/Privacy')->name('legal.privacy');
 Route::inertia('/terms-of-service', 'legal/Terms')->name('legal.terms');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', DashboardController::class)->name('dashboard');
+    Route::get('dashboard', HomeController::class)->name('dashboard');
 
     Route::prefix('api')->name('api.')->group(function () {
         Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');

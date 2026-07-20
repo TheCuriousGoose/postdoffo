@@ -4,6 +4,7 @@ import { LayoutGrid, Layers } from '@lucide/vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
+import NotificationBell from '@/components/NotificationBell.vue';
 import {
     Sidebar,
     SidebarContent,
@@ -51,6 +52,11 @@ const mainNavItems: NavItem[] = [
 
         <SidebarFooter>
             <NavUser />
+            <SidebarMenu>
+                <SidebarMenuItem>
+                    <NotificationBell />
+                </SidebarMenuItem>
+            </SidebarMenu>
         </SidebarFooter>
     </Sidebar>
     <slot />

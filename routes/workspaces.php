@@ -23,6 +23,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('workspaces/{workspace}/collections/import', [CollectionController::class, 'import'])->name('collections.import');
         Route::post('workspaces/{workspace}/collections', [CollectionController::class, 'store'])->name('collections.store');
         Route::patch('collections/{collection}', [CollectionController::class, 'update'])->name('collections.update');
+        Route::get('collections/{collection}/download', [CollectionController::class, 'download'])->name('collections.download');
         Route::delete('collections/{collection}', [CollectionController::class, 'destroy'])->name('collections.destroy');
 
         Route::post('collections/{collection}/requests', [RequestController::class, 'store'])->name('requests.store');

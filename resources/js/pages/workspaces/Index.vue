@@ -1,14 +1,22 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
-import { Plus } from '@lucide/vue';
+import { Head, router, usePage } from '@inertiajs/vue3';
+import { MoreHorizontal, Pencil, Plus, Trash2 } from '@lucide/vue';
+import {
+    destroy,
+    show,
+    store,
+    update,
+} from '@/actions/App/Http/Controllers/WorkspaceController';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-    show,
-    store,
-} from '@/actions/App/Http/Controllers/WorkspaceController';
-import { promptDialog } from '@/lib/dialogs';
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { confirmDialog, promptDialog } from '@/lib/dialogs';
 import { index } from '@/routes/workspaces';
 import type { Workspace } from '@/types/workspace';
 
@@ -21,6 +29,9 @@ defineOptions({
         breadcrumbs: [{ title: 'Workspaces', href: index() }],
     },
 });
+
+const page = usePage();
+const currentUserId = page.props.auth.user?.id ?? null;
 
 async function createWorkspace() {
     const name = await promptDialog({
@@ -35,6 +46,37 @@ async function createWorkspace() {
     }
 
     router.post(store().url, { name });
+}
+
+async function renameWorkspace(workspace: Workspace) {
+    const name = await promptDialog({
+        title: 'Rename workspace',
+        label: 'Workspace name',
+        defaultValue: workspace.name,
+        confirmText: 'Rename',
+    });
+
+    if (!name || name === workspace.name) {
+        return;
+    }
+
+    router.patch(update(workspace.id).url, { name }, { preserveScroll: true });
+}
+
+async function deleteWorkspace(workspace: Workspace) {
+    const confirmed = await confirmDialog({
+        title: `Delete "${workspace.name}"?`,
+        description:
+            'This permanently deletes the workspace and every collection, request and environment inside it. This cannot be undone.',
+        confirmText: 'Delete workspace',
+        variant: 'destructive',
+    });
+
+    if (!confirmed) {
+        return;
+    }
+
+    router.delete(destroy(workspace.id).url, { preserveScroll: true });
 }
 </script>
 
@@ -57,11 +99,38 @@ async function createWorkspace() {
             <Card
                 v-for="workspace in workspaces"
                 :key="workspace.id"
-                class="cursor-pointer transition-colors hover:border-primary"
+                class="group cursor-pointer transition-colors hover:border-primary"
                 @click="router.visit(show(workspace).url)"
             >
-                <CardHeader>
-                    <CardTitle>{{ workspace.name }}</CardTitle>
+                <CardHeader
+                    class="flex flex-row items-start justify-between gap-2"
+                >
+                    <CardTitle class="truncate">{{ workspace.name }}</CardTitle>
+                    <DropdownMenu v-if="workspace.owner_id === currentUserId">
+                        <DropdownMenuTrigger as-child @click.stop>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                class="-mt-1 -mr-1 size-7 shrink-0 opacity-0 transition group-hover:opacity-100 data-[state=open]:opacity-100"
+                                aria-label="Workspace options"
+                            >
+                                <MoreHorizontal class="size-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" @click.stop>
+                            <DropdownMenuItem
+                                @click="renameWorkspace(workspace)"
+                            >
+                                <Pencil class="size-3.5" /> Rename
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                variant="destructive"
+                                @click="deleteWorkspace(workspace)"
+                            >
+                                <Trash2 class="size-3.5" /> Delete
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </CardHeader>
                 <CardContent class="text-sm text-muted-foreground">
                     {{ workspace.collections_count ?? 0 }} collections

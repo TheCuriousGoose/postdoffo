@@ -34,11 +34,12 @@ class ImportCollectionAction
     {
         $name = $postmanCollection['info']['name'] ?? 'Imported Collection';
         [$authType, $auth] = $this->mapAuth($postmanCollection['auth'] ?? null);
+        $variables = $this->mapVariables($postmanCollection['variable'] ?? []);
 
         $collection = $workspace->collections()->create([
             'name' => $name,
             'parent_id' => $parent?->id,
-            'variables' => $this->mapVariables($postmanCollection['variable'] ?? []),
+            'variables' => $variables,
             'auth_type' => $authType,
             'auth' => $auth,
             'order' => $workspace->collections()->where('parent_id', $parent?->id)->count(),
@@ -46,7 +47,47 @@ class ImportCollectionAction
 
         $this->importItems($workspace, $collection, $postmanCollection['item'] ?? []);
 
+        // A top-level import seeds an environment from the collection's base
+        // variables, so the imported {{placeholders}} resolve to something the
+        // moment the collection lands — and give the user an obvious, editable
+        // place to swap those values per environment.
+        if ($parent === null && $variables !== null) {
+            $this->createBaseEnvironment($workspace, $name, $variables);
+        }
+
         return $collection;
+    }
+
+    /**
+     * Create (and, if the workspace has no active one, activate) an environment
+     * holding the collection's base variables. Keys that read like credentials
+     * are stored as secret so their values are masked in the UI.
+     *
+     * @param  array<string, string>  $variables
+     */
+    private function createBaseEnvironment(Workspace $workspace, string $collectionName, array $variables): void
+    {
+        $environment = $workspace->environments()->create([
+            'name' => $collectionName.' (base)',
+            'is_active' => ! $workspace->environments()->where('is_active', true)->exists(),
+        ]);
+
+        foreach ($variables as $key => $value) {
+            $environment->variables()->create([
+                'key' => $key,
+                'value' => $value,
+                'is_secret' => $this->looksSecret($key),
+            ]);
+        }
+    }
+
+    /**
+     * Heuristic: a variable named like a credential (token, secret, password,
+     * api key, ...) is stored as secret so its value is masked by default.
+     */
+    private function looksSecret(string $key): bool
+    {
+        return (bool) preg_match('/(secret|password|passwd|token|api[_-]?key|apikey|auth|bearer|credential|private[_-]?key)/i', $key);
     }
 
     /**

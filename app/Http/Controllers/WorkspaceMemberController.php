@@ -142,6 +142,9 @@ class WorkspaceMemberController extends Controller
                 'email' => $invitation->email,
                 'role' => $invitation->role->value,
                 'created_at' => $invitation->created_at,
+                // The direct accept link, so the owner can share access even
+                // when invitation email delivery isn't set up.
+                'url' => route('invitations.accept', $invitation->token),
             ])->values();
 
         return [

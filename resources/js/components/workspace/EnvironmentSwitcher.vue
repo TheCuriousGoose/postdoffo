@@ -179,6 +179,11 @@ async function removeVariable(variableId: number) {
                         <Input
                             :model-value="variable.key"
                             placeholder="Key"
+                            autocomplete="off"
+                            data-lpignore="true"
+                            data-1p-ignore="true"
+                            data-bwignore="true"
+                            data-form-type="other"
                             class="font-mono text-sm"
                             @change="
                                 (e: Event) =>
@@ -192,6 +197,11 @@ async function removeVariable(variableId: number) {
                             :model-value="variable.value ?? ''"
                             :type="variable.is_secret ? 'password' : 'text'"
                             placeholder="Value"
+                            autocomplete="off"
+                            data-lpignore="true"
+                            data-1p-ignore="true"
+                            data-bwignore="true"
+                            data-form-type="other"
                             class="font-mono text-sm"
                             @change="
                                 (e: Event) =>

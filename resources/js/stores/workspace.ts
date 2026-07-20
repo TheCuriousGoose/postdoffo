@@ -1,6 +1,13 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
-import type { ApiRequest, ExecutedResponse } from '@/types/workspace';
+import { buildVariableScope, EMPTY_SCOPE } from '@/lib/variableScope';
+import type { VariableScope } from '@/lib/variableScope';
+import type {
+    ApiRequest,
+    CollectionNode,
+    Environment,
+    ExecutedResponse,
+} from '@/types/workspace';
 
 export type OpenTab = {
     requestId: number;
@@ -23,12 +30,48 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const activeEnvironmentId = ref<number | null>(null);
     const tabs = ref<OpenTab[]>([]);
     const activeTabId = ref<number | null>(null);
+    const collectionTree = ref<CollectionNode[]>([]);
+    const environments = ref<Environment[]>([]);
 
     const activeTab = computed(
         () =>
             tabs.value.find((tab) => tab.requestId === activeTabId.value) ??
             null,
     );
+
+    const activeEnvironment = computed(
+        () =>
+            environments.value.find(
+                (environment) => environment.id === activeEnvironmentId.value,
+            ) ?? null,
+    );
+
+    /**
+     * What the active request resolves to at send time: the variable map with
+     * each value's source, the inherited default headers and the inherited auth.
+     * Drives every "what's inherited / what's set" affordance in the editor.
+     */
+    const activeScope = computed<VariableScope>(() => {
+        const draft = activeTab.value?.draft;
+
+        if (!draft) {
+            return EMPTY_SCOPE;
+        }
+
+        return buildVariableScope(
+            collectionTree.value,
+            draft.collection_id,
+            activeEnvironment.value,
+        );
+    });
+
+    function setCollectionTree(tree: CollectionNode[]): void {
+        collectionTree.value = tree;
+    }
+
+    function setEnvironments(next: Environment[]): void {
+        environments.value = next;
+    }
 
     function setWorkspace(id: number, environmentId: number | null): void {
         if (workspaceId.value !== id) {
@@ -137,9 +180,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         activeEnvironmentId,
         tabs,
         activeTabId,
+        collectionTree,
+        environments,
         activeTab,
+        activeEnvironment,
+        activeScope,
         setWorkspace,
         setActiveEnvironment,
+        setCollectionTree,
+        setEnvironments,
         openRequest,
         closeTab,
         setActiveTab,

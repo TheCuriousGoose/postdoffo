@@ -97,6 +97,7 @@ export type WorkspaceInvitation = {
     email: string;
     role: WorkspaceMemberRole;
     created_at: string;
+    url: string;
 };
 
 export type TestResult = {

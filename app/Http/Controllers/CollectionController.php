@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\ExportCollectionAction;
 use App\Actions\ImportCollectionAction;
 use App\Enums\AuthType;
 use App\Models\Collection;
 use App\Models\Workspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class CollectionController extends Controller
@@ -93,5 +95,19 @@ class CollectionController extends Controller
         $collection->delete();
 
         return response()->json(status: 204);
+    }
+
+    /**
+     * Export a collection as a Postman v2.1 file. Named "download" rather than
+     * "export" so the generated JS route helper isn't a reserved word.
+     */
+    public function download(Collection $collection, ExportCollectionAction $action): JsonResponse
+    {
+        $this->authorize('view', $collection->workspace);
+
+        $filename = (Str::slug($collection->name) ?: 'collection').'.postman_collection.json';
+
+        return response()->json($action->handle($collection))
+            ->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
     }
 }

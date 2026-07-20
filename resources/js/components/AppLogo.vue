@@ -8,8 +8,8 @@ import logo from '../../img/logo.webp';
     >
         <img :src="logo" alt="PostDoffo" class="size-full object-cover" />
     </div>
-    <div class="ml-1 grid flex-1 text-left text-sm">
-        <span class="mb-0.5 truncate leading-tight font-semibold"
+    <div class="grid flex-1 text-left text-sm">
+        <span class="mb-0.5 truncate font-display leading-tight font-semibold"
             >PostDoffo</span
         >
     </div>

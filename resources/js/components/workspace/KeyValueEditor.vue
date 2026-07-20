@@ -1,23 +1,22 @@
 <script setup lang="ts">
 import { Trash2 } from '@lucide/vue';
 import { computed } from 'vue';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import type { KeyValuePair } from '@/types/workspace';
 import VariableHighlightInput from './VariableHighlightInput.vue';
 
+/**
+ * A spreadsheet-style editor for header / query / form pairs. Rows are a real
+ * table with borderless cell inputs, and a permanent blank row at the bottom
+ * turns into a real row the moment you type in it (Postman-style), so there's
+ * no separate "add" button. Keyed by index so the row you're typing in keeps
+ * focus as it graduates from the trailing blank to a real row.
+ */
 const props = defineProps<{
     modelValue: KeyValuePair[] | null;
     keyPlaceholder?: string;
     valuePlaceholder?: string;
+    variables?: Record<string, unknown>;
 }>();
 
 const emit = defineEmits<{
@@ -26,17 +25,28 @@ const emit = defineEmits<{
 
 const rows = computed(() => props.modelValue ?? []);
 
-function update(index: number, patch: Partial<KeyValuePair>) {
-    const next = rows.value.map((row, i) =>
-        i === index ? { ...row, ...patch } : row,
-    );
-    emit('update:modelValue', next);
-}
+// The real rows plus one trailing blank the user can type into.
+const displayRows = computed<KeyValuePair[]>(() => [
+    ...rows.value,
+    { key: '', value: '', enabled: true },
+]);
 
-function addRow() {
+function update(index: number, patch: Partial<KeyValuePair>) {
+    if (index < rows.value.length) {
+        emit(
+            'update:modelValue',
+            rows.value.map((row, i) =>
+                i === index ? { ...row, ...patch } : row,
+            ),
+        );
+
+        return;
+    }
+
+    // Typing in the trailing blank row promotes it to a real row.
     emit('update:modelValue', [
         ...rows.value,
-        { key: '', value: '', enabled: true },
+        { key: '', value: '', enabled: true, ...patch },
     ]);
 }
 
@@ -49,62 +59,75 @@ function removeRow(index: number) {
 </script>
 
 <template>
-    <div class="flex flex-col gap-2">
-        <Table v-if="rows.length">
-            <TableHeader>
-                <TableRow>
-                    <TableHead class="w-8"></TableHead>
-                    <TableHead>{{ keyPlaceholder ?? 'Key' }}</TableHead>
-                    <TableHead>{{ valuePlaceholder ?? 'Value' }}</TableHead>
-                    <TableHead class="w-8"></TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                <TableRow v-for="(row, index) in rows" :key="index">
-                    <TableCell>
+    <div class="overflow-hidden rounded-md border">
+        <table class="w-full table-fixed border-collapse">
+            <thead>
+                <tr
+                    class="border-b bg-muted/40 text-[11px] font-medium tracking-wide text-muted-foreground uppercase"
+                >
+                    <th class="w-9 border-r py-1.5"></th>
+                    <th class="border-r px-2.5 py-1.5 text-left">
+                        {{ keyPlaceholder ?? 'Key' }}
+                    </th>
+                    <th class="px-2.5 py-1.5 text-left">
+                        {{ valuePlaceholder ?? 'Value' }}
+                    </th>
+                    <th class="w-9 py-1.5"></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr
+                    v-for="(row, index) in displayRows"
+                    :key="index"
+                    class="group border-b last:border-b-0"
+                >
+                    <td class="border-r text-center align-middle">
                         <Checkbox
+                            v-if="index < rows.length"
                             :model-value="row.enabled !== false"
+                            class="mx-auto"
                             @update:model-value="
                                 (v) => update(index, { enabled: !!v })
                             "
                         />
-                    </TableCell>
-                    <TableCell>
+                    </td>
+                    <td class="border-r p-0 align-middle">
                         <VariableHighlightInput
+                            plain
                             :model-value="row.key"
                             :placeholder="keyPlaceholder ?? 'Key'"
-                            class="font-mono text-sm"
+                            :variables="variables"
+                            class="font-mono"
                             @update:model-value="
                                 (v) => update(index, { key: v })
                             "
                         />
-                    </TableCell>
-                    <TableCell>
+                    </td>
+                    <td class="p-0 align-middle">
                         <VariableHighlightInput
+                            plain
                             :model-value="row.value"
                             :placeholder="valuePlaceholder ?? 'Value'"
-                            class="font-mono text-sm"
+                            :variables="variables"
+                            class="font-mono"
                             @update:model-value="
                                 (v) => update(index, { value: v })
                             "
                         />
-                    </TableCell>
-                    <TableCell>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            class="shrink-0"
+                    </td>
+                    <td class="text-center align-middle">
+                        <button
+                            v-if="index < rows.length"
+                            type="button"
+                            class="mx-auto flex size-6 items-center justify-center rounded text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:bg-accent hover:text-foreground"
+                            title="Remove"
                             @click="removeRow(index)"
                         >
-                            <Trash2 class="size-4" />
-                        </Button>
-                    </TableCell>
-                </TableRow>
-            </TableBody>
-        </Table>
-
-        <Button variant="outline" size="sm" class="w-fit" @click="addRow"
-            >Add</Button
-        >
+                            <Trash2 class="size-3.5" />
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </template>

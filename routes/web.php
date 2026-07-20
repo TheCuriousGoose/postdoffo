@@ -6,6 +6,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
 
+Route::inertia('/privacy-policy', 'legal/Privacy')->name('legal.privacy');
+Route::inertia('/terms-of-service', 'legal/Terms')->name('legal.terms');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
@@ -16,5 +19,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 });
 
+require __DIR__.'/auth.php';
 require __DIR__.'/settings.php';
 require __DIR__.'/workspaces.php';

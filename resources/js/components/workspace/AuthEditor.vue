@@ -9,6 +9,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import type { InheritedAuth } from '@/lib/variableScope';
 import type { AuthType, RequestAuth } from '@/types/workspace';
 import VariableHighlightInput from './VariableHighlightInput.vue';
 
@@ -16,7 +17,17 @@ const props = defineProps<{
     authType: AuthType | null;
     auth: RequestAuth;
     inheritLabel?: string;
+    variables?: Record<string, unknown>;
+    /** What this request would inherit from its collection chain, if anything. */
+    inheritedAuth?: InheritedAuth | null;
 }>();
+
+const authTypeLabels: Record<AuthType, string> = {
+    bearer: 'Bearer Token',
+    basic: 'Basic Auth',
+    apikey: 'API Key',
+    none: 'No Auth',
+};
 
 const emit = defineEmits<{
     'update:authType': [AuthType | null];
@@ -88,12 +99,39 @@ function setField(patch: Partial<NonNullable<RequestAuth>>) {
             </Select>
         </div>
 
-        <p v-if="selected === 'inherit'" class="text-xs text-muted-foreground">
-            {{
-                inheritLabel ??
-                'Uses the auth configured on the parent collection or folder, if any.'
-            }}
-        </p>
+        <template v-if="selected === 'inherit'">
+            <div
+                v-if="inheritedAuth && inheritedAuth.type !== 'none'"
+                class="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs"
+            >
+                <span
+                    class="rounded bg-orange-500/15 px-1.5 py-0.5 font-mono font-medium text-orange-600 dark:text-orange-400"
+                >
+                    {{ authTypeLabels[inheritedAuth.type] }}
+                </span>
+                <span class="text-muted-foreground">
+                    inherited from
+                    <span class="font-medium text-foreground">{{
+                        inheritedAuth.sourceName
+                    }}</span>
+                </span>
+            </div>
+            <p
+                v-else-if="inheritedAuth && inheritedAuth.type === 'none'"
+                class="text-xs text-muted-foreground"
+            >
+                <span class="font-medium text-foreground">{{
+                    inheritedAuth.sourceName
+                }}</span>
+                sends no auth, so this request won't either.
+            </p>
+            <p v-else class="text-xs text-muted-foreground">
+                {{
+                    inheritLabel ??
+                    'Nothing to inherit yet. Set auth on a parent collection and it will apply here automatically.'
+                }}
+            </p>
+        </template>
 
         <p
             v-else-if="selected === 'none'"
@@ -108,6 +146,7 @@ function setField(patch: Partial<NonNullable<RequestAuth>>) {
             <VariableHighlightInput
                 id="auth-token"
                 :model-value="auth?.token ?? ''"
+                :variables="variables"
                 placeholder="{{token}}"
                 class="font-mono text-sm"
                 @update:model-value="(v) => setField({ token: v })"
@@ -120,6 +159,7 @@ function setField(patch: Partial<NonNullable<RequestAuth>>) {
                 <VariableHighlightInput
                     id="auth-username"
                     :model-value="auth?.username ?? ''"
+                    :variables="variables"
                     class="font-mono text-sm"
                     @update:model-value="(v) => setField({ username: v })"
                 />
@@ -130,6 +170,11 @@ function setField(patch: Partial<NonNullable<RequestAuth>>) {
                     id="auth-password"
                     type="password"
                     :model-value="auth?.password ?? ''"
+                    autocomplete="off"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-bwignore="true"
+                    data-form-type="other"
                     class="font-mono text-sm"
                     @update:model-value="
                         (v) => setField({ password: String(v) })
@@ -144,6 +189,7 @@ function setField(patch: Partial<NonNullable<RequestAuth>>) {
                 <VariableHighlightInput
                     id="auth-key"
                     :model-value="auth?.key ?? ''"
+                    :variables="variables"
                     placeholder="X-API-Key"
                     class="font-mono text-sm"
                     @update:model-value="(v) => setField({ key: v })"
@@ -154,6 +200,7 @@ function setField(patch: Partial<NonNullable<RequestAuth>>) {
                 <VariableHighlightInput
                     id="auth-value"
                     :model-value="auth?.value ?? ''"
+                    :variables="variables"
                     placeholder="{{api_key}}"
                     class="font-mono text-sm"
                     @update:model-value="(v) => setField({ value: v })"

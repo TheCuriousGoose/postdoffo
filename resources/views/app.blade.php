@@ -22,17 +22,16 @@
         {{-- Inline style to set the HTML background color based on our theme in app.css --}}
         <style>
             html {
-                background-color: oklch(1 0 0);
+                background-color: hsl(0 0% 100%);
             }
 
             html.dark {
-                background-color: oklch(0.145 0 0);
+                background-color: hsl(20 14.3% 4.1%);
             }
         </style>
 
         <link rel="icon" href="/favicon.ico" sizes="any">
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-        <link rel="icon" href="/logo.webp" type="image/webp">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
         @fonts

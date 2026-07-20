@@ -7,6 +7,7 @@ use App\Enums\BodyType;
 use App\Enums\HttpMethod;
 use App\Enums\WorkspaceRole;
 use App\Models\Collection;
+use App\Models\Environment;
 use App\Models\Request;
 use App\Models\User;
 use App\Models\Workspace;
@@ -94,6 +95,71 @@ class ImportCollectionTest extends TestCase
 
         $ping = Request::where('name', 'Ping')->firstOrFail();
         $this->assertSame($response['id'], $ping->collection_id);
+    }
+
+    public function test_it_creates_an_active_base_environment_from_collection_variables(): void
+    {
+        $user = User::factory()->create();
+        $workspace = Workspace::factory()->create(['owner_id' => $user->id]);
+
+        $postman = [
+            'info' => ['name' => 'Demo API'],
+            'variable' => [
+                ['key' => 'base_url', 'value' => 'https://api.example.com'],
+                ['key' => 'api_token', 'value' => 'sk_live_123'],
+            ],
+            'item' => [],
+        ];
+
+        $this->actingAs($user)
+            ->postJson(route('api.collections.import', $workspace), ['collection' => $postman])
+            ->assertOk();
+
+        $environment = Environment::where('workspace_id', $workspace->id)->firstOrFail();
+        $this->assertSame('Demo API (base)', $environment->name);
+        $this->assertTrue($environment->is_active);
+
+        $variables = $environment->variables()->pluck('is_secret', 'key');
+        $this->assertSame('https://api.example.com', $environment->variables()->where('key', 'base_url')->value('value'));
+        $this->assertFalse((bool) $variables['base_url']);
+        // A credential-looking key is stored as a secret.
+        $this->assertTrue((bool) $variables['api_token']);
+    }
+
+    public function test_it_does_not_create_an_environment_when_there_are_no_base_variables(): void
+    {
+        $user = User::factory()->create();
+        $workspace = Workspace::factory()->create(['owner_id' => $user->id]);
+
+        $this->actingAs($user)
+            ->postJson(route('api.collections.import', $workspace), [
+                'collection' => ['info' => ['name' => 'No Vars'], 'item' => []],
+            ])
+            ->assertOk();
+
+        $this->assertSame(0, Environment::where('workspace_id', $workspace->id)->count());
+    }
+
+    public function test_an_imported_base_environment_does_not_steal_active_from_an_existing_one(): void
+    {
+        $user = User::factory()->create();
+        $workspace = Workspace::factory()->create(['owner_id' => $user->id]);
+        $existing = $workspace->environments()->create(['name' => 'Existing', 'is_active' => true]);
+
+        $this->actingAs($user)
+            ->postJson(route('api.collections.import', $workspace), [
+                'collection' => [
+                    'info' => ['name' => 'Demo API'],
+                    'variable' => [['key' => 'base_url', 'value' => 'https://api.example.com']],
+                    'item' => [],
+                ],
+            ])
+            ->assertOk();
+
+        $this->assertTrue($existing->fresh()->is_active);
+        $this->assertFalse(
+            Environment::where('name', 'Demo API (base)')->firstOrFail()->is_active,
+        );
     }
 
     public function test_viewer_cannot_import_a_collection(): void

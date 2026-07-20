@@ -67,16 +67,22 @@ onMounted(load);
 <template>
     <DropdownMenu @update:open="onOpenChange">
         <DropdownMenuTrigger as-child>
-            <Button variant="ghost" size="icon" class="relative size-9">
-                <Bell class="size-4.5" />
+            <Button
+                variant="ghost"
+                class="h-9 w-full justify-start gap-2 px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+            >
+                <Bell class="size-4.5 shrink-0" />
+                <span class="group-data-[collapsible=icon]:hidden"
+                    >Notifications</span
+                >
                 <Badge
                     v-if="unreadCount > 0"
-                    class="absolute -top-1 -right-1 size-4 justify-center rounded-full p-0 text-[10px]"
+                    class="ml-auto size-5 justify-center rounded-full p-0 text-[10px] group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:top-0 group-data-[collapsible=icon]:right-0 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:size-4"
                     >{{ unreadCount > 9 ? '9+' : unreadCount }}</Badge
                 >
             </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" class="w-80 p-0">
+        <DropdownMenuContent side="top" align="start" class="w-80 p-0">
             <div class="flex items-center justify-between border-b px-3 py-2">
                 <span class="text-sm font-medium">Notifications</span>
                 <Button

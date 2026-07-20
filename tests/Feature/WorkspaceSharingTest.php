@@ -55,6 +55,29 @@ class WorkspaceSharingTest extends TestCase
         Notification::assertSentOnDemand(WorkspaceInvitationNotification::class);
     }
 
+    public function test_the_members_payload_exposes_a_shareable_invite_link(): void
+    {
+        Notification::fake();
+
+        $owner = User::factory()->create();
+        $workspace = Workspace::factory()->create(['owner_id' => $owner->id]);
+
+        $this->actingAs($owner)->postJson(route('api.members.store', $workspace), [
+            'email' => 'linkme@example.com',
+            'role' => 'viewer',
+        ])->assertOk();
+
+        $invitation = WorkspaceInvitation::sole();
+
+        $this->actingAs($owner)
+            ->getJson(route('api.members.index', $workspace))
+            ->assertOk()
+            ->assertJsonPath(
+                'invitations.0.url',
+                route('invitations.accept', $invitation->token),
+            );
+    }
+
     public function test_editor_cannot_invite_members(): void
     {
         $owner = User::factory()->create();

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import AppLogo from '@/components/AppLogo.vue';
 import { home } from '@/routes';
-import logo from '../../../img/logo.webp';
 
 defineProps<{
     title?: string;
@@ -18,21 +18,14 @@ defineProps<{
                 <div class="flex flex-col items-center gap-4">
                     <Link
                         :href="home()"
-                        class="flex flex-col items-center gap-2 font-medium"
+                        class="flex flex-col items-center gap-1 font-medium"
                     >
-                        <div
-                            class="mb-1 flex h-9 w-9 items-center justify-center overflow-hidden rounded-md"
-                        >
-                            <img
-                                :src="logo"
-                                alt="PostDoffo"
-                                class="size-full object-cover"
-                            />
-                        </div>
-                        <span class="text-sm font-semibold">PostDoffo</span>
+                        <AppLogo />
                     </Link>
                     <div class="space-y-2 text-center">
-                        <h1 class="text-xl font-medium">{{ title }}</h1>
+                        <h1 class="font-display text-xl font-semibold">
+                            {{ title }}
+                        </h1>
                         <p class="text-center text-sm text-muted-foreground">
                             {{ description }}
                         </p>

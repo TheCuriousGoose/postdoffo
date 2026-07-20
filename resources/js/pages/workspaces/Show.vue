@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { Plus, Upload, X } from '@lucide/vue';
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import {
     importMethod as importCollection,
@@ -49,10 +49,47 @@ defineOptions({
 const store = useWorkspaceStore();
 const importInput = ref<HTMLInputElement | null>(null);
 
+const methodColor: Record<string, string> = {
+    GET: 'text-blue-600 dark:text-blue-400',
+    POST: 'text-green-600 dark:text-green-400',
+    PUT: 'text-amber-600 dark:text-amber-400',
+    PATCH: 'text-amber-600 dark:text-amber-400',
+    DELETE: 'text-red-600 dark:text-red-400',
+    HEAD: 'text-muted-foreground',
+    OPTIONS: 'text-muted-foreground',
+};
+
 onMounted(() => {
     const active = props.environments.find((e) => e.is_active) ?? null;
     store.setWorkspace(props.workspace.id, active?.id ?? null);
 });
+
+// Keep the store's copy of the tree and environments current so the editor's
+// "what's inherited / in scope" affordances update after partial reloads.
+watch(
+    () => props.collectionTree,
+    (tree) => store.setCollectionTree(tree),
+    { immediate: true, deep: true },
+);
+
+watch(
+    () => props.environments,
+    (environments) => {
+        store.setEnvironments(environments);
+
+        // Adopt the server's active environment when nothing is selected yet,
+        // so an environment created during import (or on first load) is live
+        // immediately without a manual switch.
+        if (store.activeEnvironmentId == null) {
+            const active = environments.find((e) => e.is_active);
+
+            if (active) {
+                store.setActiveEnvironment(active.id);
+            }
+        }
+    },
+    { immediate: true, deep: true },
+);
 
 function openRequest(request: ApiRequest) {
     store.openRequest(request);
@@ -86,8 +123,8 @@ async function onImportFile(event: Event) {
         await api.post(importCollection.url(props.workspace.id), {
             collection,
         });
-        router.reload({ only: ['collectionTree'] });
-        toast.success('Collection imported');
+        router.reload({ only: ['collectionTree', 'environments'] });
+        toast.success('Collection imported, with a base environment');
     } catch {
         toast.error(
             'Failed to import collection — is this a valid Postman v2.1 export?',
@@ -172,36 +209,47 @@ async function onImportFile(event: Event) {
                 </div>
             </ResizablePanel>
 
-            <ResizableHandle with-handle />
+            <ResizableHandle />
 
             <ResizablePanel :default-size="80">
                 <div class="flex h-full min-h-0 flex-col">
                     <div
                         v-if="store.tabs.length"
-                        class="flex items-center gap-1 overflow-x-auto border-b px-2 py-1"
+                        class="flex items-center gap-0.5 overflow-x-auto border-b px-2"
                     >
                         <button
                             v-for="tab in store.tabs"
                             :key="tab.requestId"
-                            class="flex shrink-0 items-center gap-2 rounded-md px-2 py-1 text-xs"
+                            class="group -mb-px flex shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-xs transition-colors"
                             :class="
                                 cn(
                                     tab.requestId === store.activeTabId
-                                        ? 'bg-accent font-medium'
-                                        : 'text-muted-foreground hover:bg-accent/50',
+                                        ? 'border-orange-500 font-medium text-foreground'
+                                        : 'border-transparent text-muted-foreground hover:text-foreground',
                                 )
                             "
                             @click="store.setActiveTab(tab.requestId)"
                         >
-                            <span>{{ tab.draft.name || 'Untitled' }}</span>
                             <span
-                                v-if="tab.dirty"
-                                class="size-1.5 rounded-full bg-orange-500"
-                            />
-                            <X
-                                class="size-3 opacity-60 hover:opacity-100"
-                                @click.stop="store.closeTab(tab.requestId)"
-                            />
+                                class="font-mono text-[10px] font-semibold"
+                                :class="methodColor[tab.draft.method]"
+                                >{{ tab.draft.method }}</span
+                            >
+                            <span class="max-w-40 truncate">{{
+                                tab.draft.name || 'Untitled'
+                            }}</span>
+                            <span
+                                class="relative flex size-3.5 items-center justify-center"
+                            >
+                                <span
+                                    v-if="tab.dirty"
+                                    class="size-1.5 rounded-full bg-orange-500 group-hover:hidden"
+                                />
+                                <X
+                                    class="hidden size-3.5 rounded-sm p-0.5 text-muted-foreground group-hover:block hover:bg-accent hover:text-foreground"
+                                    @click.stop="store.closeTab(tab.requestId)"
+                                />
+                            </span>
                         </button>
                     </div>
 

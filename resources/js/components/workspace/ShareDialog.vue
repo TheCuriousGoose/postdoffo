@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { usePage } from '@inertiajs/vue3';
-import { Share2, X } from '@lucide/vue';
+import { Copy, Share2, X } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import {
@@ -116,14 +116,42 @@ async function sendInvite() {
             email: inviteEmail.value.trim(),
             role: inviteRole.value,
         });
+        const email = inviteEmail.value.trim().toLowerCase();
         members.value = data.members;
         invitations.value = data.invitations;
         inviteEmail.value = '';
-        toast.success('Invitation sent');
+
+        // If a pending invitation was created (the invitee has no account yet),
+        // copy its link straight away so it can be shared without waiting on
+        // email. Existing users are added immediately and need no link.
+        const pending = data.invitations.find(
+            (i) => i.email.toLowerCase() === email,
+        );
+
+        if (pending) {
+            await copyLink(
+                pending,
+                'Invitation created. Link copied — send it to them.',
+            );
+        } else {
+            toast.success('Added to the workspace');
+        }
     } catch (error) {
         inviteError.value = apiErrorMessage(error, 'Failed to send invitation');
     } finally {
         inviting.value = false;
+    }
+}
+
+async function copyLink(
+    invitation: WorkspaceInvitation,
+    message = 'Invite link copied',
+) {
+    try {
+        await navigator.clipboard.writeText(invitation.url);
+        toast.success(message);
+    } catch {
+        toast.error('Could not copy the link');
     }
 }
 
@@ -221,7 +249,8 @@ async function revokeInvitation(invitation: WorkspaceInvitation) {
             <DialogHeader>
                 <DialogTitle>Share "{{ workspace.name }}"</DialogTitle>
                 <DialogDescription>
-                    Invite people to collaborate on this workspace.
+                    Invite people by email, or copy an invite link to share
+                    directly. They'll join with the role you pick.
                 </DialogDescription>
             </DialogHeader>
 
@@ -350,6 +379,15 @@ async function revokeInvitation(invitation: WorkspaceInvitation) {
                         <Badge variant="outline" class="capitalize">{{
                             invitation.role
                         }}</Badge>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            class="size-7"
+                            title="Copy invite link"
+                            @click="copyLink(invitation)"
+                        >
+                            <Copy class="size-3.5" />
+                        </Button>
                         <Button
                             variant="ghost"
                             size="sm"

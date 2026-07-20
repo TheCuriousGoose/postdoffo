@@ -1,10 +1,11 @@
 import { reactive } from 'vue';
 
 /**
- * Backs the app-wide ConfirmDialog/PromptDialog singletons (mounted once in
- * AppSidebarLayout). We never use window.confirm/alert/prompt — those block
- * the render thread and can't be styled or tested, so every "are you sure?"
- * or "name this" flow goes through these instead.
+ * Backs the app-wide ConfirmDialog/PromptDialog singletons (mounted once per
+ * layout: AppHeaderLayout, WorkspaceLayout). We never use
+ * window.confirm/alert/prompt — those block the render thread and can't be
+ * styled or tested, so every "are you sure?" or "name this" flow goes
+ * through these instead.
  */
 
 type ConfirmOptions = {

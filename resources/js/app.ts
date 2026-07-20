@@ -2,6 +2,7 @@ import { createInertiaApp } from '@inertiajs/vue3';
 import { createPinia } from 'pinia';
 import { createApp, h } from 'vue';
 import { initializeTheme } from '@/composables/useAppearance';
+import WorkspaceLayout from '@/layouts/app/WorkspaceLayout.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
@@ -19,6 +20,8 @@ createInertiaApp({
                 return null;
             case name.startsWith('auth/'):
                 return AuthLayout;
+            case name === 'workspaces/Show':
+                return WorkspaceLayout;
             case name.startsWith('settings/'):
                 return [AppLayout, SettingsLayout];
             default:

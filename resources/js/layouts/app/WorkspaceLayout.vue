@@ -1,27 +1,16 @@
 <script setup lang="ts">
 import AppContent from '@/components/AppContent.vue';
 import AppShell from '@/components/AppShell.vue';
-import AppSidebar from '@/components/AppSidebar.vue';
-import AppSidebarHeader from '@/components/AppSidebarHeader.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import PromptDialog from '@/components/PromptDialog.vue';
 import { Toaster } from '@/components/ui/sonner';
-import type { BreadcrumbItem } from '@/types';
-
-type Props = {
-    breadcrumbs?: BreadcrumbItem[];
-};
-
-withDefaults(defineProps<Props>(), {
-    breadcrumbs: () => [],
-});
+import WorkspaceSidebar from '@/components/workspace/WorkspaceSidebar.vue';
 </script>
 
 <template>
     <AppShell variant="sidebar">
-        <AppSidebar />
+        <WorkspaceSidebar />
         <AppContent variant="sidebar" class="overflow-x-hidden">
-            <AppSidebarHeader :breadcrumbs="breadcrumbs" />
             <slot />
         </AppContent>
         <Toaster />

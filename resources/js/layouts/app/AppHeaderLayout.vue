@@ -2,6 +2,8 @@
 import AppContent from '@/components/AppContent.vue';
 import AppHeader from '@/components/AppHeader.vue';
 import AppShell from '@/components/AppShell.vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import PromptDialog from '@/components/PromptDialog.vue';
 import { Toaster } from '@/components/ui/sonner';
 import type { BreadcrumbItem } from '@/types';
 
@@ -21,5 +23,7 @@ withDefaults(defineProps<Props>(), {
             <slot />
         </AppContent>
         <Toaster />
+        <ConfirmDialog />
+        <PromptDialog />
     </AppShell>
 </template>

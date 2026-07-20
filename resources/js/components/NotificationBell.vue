@@ -18,6 +18,10 @@ import {
 import { api } from '@/lib/api';
 import type { AppNotification } from '@/types/ui';
 
+withDefaults(defineProps<{ variant?: 'sidebar' | 'icon' }>(), {
+    variant: 'sidebar',
+});
+
 const notifications = ref<AppNotification[]>([]);
 const unreadCount = ref(0);
 const loaded = ref(false);
@@ -68,6 +72,21 @@ onMounted(load);
     <DropdownMenu @update:open="onOpenChange">
         <DropdownMenuTrigger as-child>
             <Button
+                v-if="variant === 'icon'"
+                variant="ghost"
+                size="icon"
+                class="relative size-9"
+                aria-label="Notifications"
+            >
+                <Bell class="size-4.5" />
+                <Badge
+                    v-if="unreadCount > 0"
+                    class="absolute top-0 right-0 size-4 justify-center rounded-full p-0 text-[10px]"
+                    >{{ unreadCount > 9 ? '9+' : unreadCount }}</Badge
+                >
+            </Button>
+            <Button
+                v-else
                 variant="ghost"
                 class="h-9 w-full justify-start gap-2 px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
             >
@@ -82,7 +101,11 @@ onMounted(load);
                 >
             </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent side="top" align="start" class="w-80 p-0">
+        <DropdownMenuContent
+            :side="variant === 'icon' ? 'bottom' : 'top'"
+            :align="variant === 'icon' ? 'end' : 'start'"
+            class="w-80 p-0"
+        >
             <div class="flex items-center justify-between border-b px-3 py-2">
                 <span class="text-sm font-medium">Notifications</span>
                 <Button

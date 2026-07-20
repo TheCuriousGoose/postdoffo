@@ -114,7 +114,9 @@ async function deleteWorkspace(workspace: Workspace) {
                                 :role="workspace.role ?? null"
                             />
                         </span>
-                        <DropdownMenu v-if="workspace.owner_id === currentUserId">
+                        <DropdownMenu
+                            v-if="workspace.owner_id === currentUserId"
+                        >
                             <DropdownMenuTrigger as-child @click.stop>
                                 <Button
                                     variant="ghost"

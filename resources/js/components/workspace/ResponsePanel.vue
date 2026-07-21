@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { CheckCircle2, XCircle } from '@lucide/vue';
-import { computed } from 'vue';
+import { AlertTriangle, CheckCircle2, XCircle } from '@lucide/vue';
+import { computed, ref, watch } from 'vue';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
     Table,
     TableBody,
@@ -18,6 +19,55 @@ const store = useWorkspaceStore();
 
 const tab = computed(() => store.activeTab);
 const response = computed(() => tab.value?.response ?? null);
+
+// Bodies past this size skip pretty-printing/highlighting entirely (tokenizing
+// renders one <span> per token, so a multi-MB response can produce hundreds of
+// thousands of DOM nodes and lock up the tab) — shown as raw text instead.
+const MAX_HIGHLIGHT_CHARS = 300_000;
+// Bodies past this size aren't rendered at all until the user opts in, since
+// even a plain <pre> of several MB of text is enough to make the page stutter.
+const MAX_DISPLAY_CHARS = 3_000_000;
+
+const forceShowBody = ref(false);
+
+watch(response, () => {
+    forceShowBody.value = false;
+});
+
+const bodyLength = computed(() => response.value?.body?.length ?? 0);
+const isHugeBody = computed(() => bodyLength.value > MAX_DISPLAY_CHARS);
+const shouldRenderBody = computed(() => !isHugeBody.value || forceShowBody.value);
+const isHighlightable = computed(() => bodyLength.value <= MAX_HIGHLIGHT_CHARS);
+
+const formattedBodySize = computed(() => {
+    const bytes = bodyLength.value;
+
+    if (bytes < 1024) {
+        return `${bytes} B`;
+    }
+
+    if (bytes < 1024 * 1024) {
+        return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+});
+
+function downloadBody() {
+    if (!response.value?.body) {
+        return;
+    }
+
+    const blob = new Blob([response.value.body], {
+        type: contentType.value || 'text/plain',
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'response-body';
+    anchor.click();
+    URL.revokeObjectURL(url);
+}
 
 const statusColor = computed(() => {
     const status = response.value?.status;
@@ -40,7 +90,7 @@ const statusColor = computed(() => {
 const bodyIsJson = computed(() => {
     const body = response.value?.body;
 
-    if (!body) {
+    if (!body || !shouldRenderBody.value) {
         return false;
     }
 
@@ -56,10 +106,13 @@ const bodyIsJson = computed(() => {
 const prettyBody = computed(() => {
     const body = response.value?.body;
 
-    if (!body) {
+    if (!body || !shouldRenderBody.value) {
         return '';
     }
 
+    // Pretty-printing re-parses a JSON body we already parsed in bodyIsJson —
+    // duplicate work, but re-parsing a bounded (<= MAX_DISPLAY_CHARS) string is
+    // cheap next to the DOM cost the size gate above is actually guarding against.
     try {
         return JSON.stringify(JSON.parse(body), null, 2);
     } catch {
@@ -68,7 +121,9 @@ const prettyBody = computed(() => {
 });
 
 const bodyTokens = computed(() =>
-    highlight(prettyBody.value, { json: bodyIsJson.value }),
+    isHighlightable.value
+        ? highlight(prettyBody.value, { json: bodyIsJson.value })
+        : [],
 );
 
 const headerRows = computed(() => {
@@ -89,8 +144,8 @@ const contentType = computed(() => {
     return key ? headers[key].join('; ') : '';
 });
 
-const isPreviewableHtml = computed(() =>
-    contentType.value.toLowerCase().includes('html'),
+const isPreviewableHtml = computed(
+    () => contentType.value.toLowerCase().includes('html') && shouldRenderBody.value,
 );
 
 const passedCount = computed(
@@ -180,18 +235,72 @@ const passedCount = computed(
 
             <div class="min-h-0 flex-1 overflow-y-auto pt-3">
                 <TabsContent value="body">
+                    <div
+                        v-if="isHugeBody && !forceShowBody"
+                        class="flex flex-col items-start gap-3 rounded-md border border-amber-500/30 bg-amber-500/5 p-4 text-sm"
+                    >
+                        <div class="flex items-start gap-2">
+                            <AlertTriangle
+                                class="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400"
+                            />
+                            <p>
+                                This response is
+                                {{ formattedBodySize }} — rendering it could
+                                freeze the page, so it isn't shown by default.
+                            </p>
+                        </div>
+                        <div class="flex gap-2">
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                @click="forceShowBody = true"
+                            >
+                                Show anyway
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                @click="downloadBody"
+                            >
+                                Download
+                            </Button>
+                        </div>
+                    </div>
                     <pre
+                        v-else
                         class="overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs whitespace-pre-wrap"
-                    ><template v-if="prettyBody"><span
+                    ><template v-if="prettyBody"><template v-if="isHighlightable"><span
                             v-for="(token, index) in bodyTokens"
                             :key="index"
                             :class="tokenClass(token.type)"
-                        >{{ token.text }}</span></template><template v-else>(empty body)</template></pre>
+                        >{{ token.text }}</span></template><template v-else>{{ prettyBody }}</template></template><template v-else>(empty body)</template></pre>
                 </TabsContent>
 
                 <TabsContent value="preview" class="h-full">
+                    <div
+                        v-if="isHugeBody && !forceShowBody"
+                        class="flex flex-col items-start gap-3 rounded-md border border-amber-500/30 bg-amber-500/5 p-4 text-sm"
+                    >
+                        <div class="flex items-start gap-2">
+                            <AlertTriangle
+                                class="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400"
+                            />
+                            <p>
+                                This response is
+                                {{ formattedBodySize }} — too large to preview
+                                by default.
+                            </p>
+                        </div>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            @click="forceShowBody = true"
+                        >
+                            Show anyway
+                        </Button>
+                    </div>
                     <iframe
-                        v-if="isPreviewableHtml"
+                        v-else-if="isPreviewableHtml"
                         :srcdoc="response.body ?? ''"
                         sandbox=""
                         title="Response preview"

@@ -22,10 +22,13 @@ import {
     update as updateCollection,
     destroy as destroyCollection,
     download as downloadCollection,
+    reorder as reorderCollections,
 } from '@/actions/App/Http/Controllers/CollectionController';
 import {
     store as storeRequest,
+    update as updateRequest,
     destroy as destroyRequest,
+    reorder as reorderRequests,
 } from '@/actions/App/Http/Controllers/RequestController';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,15 +51,18 @@ import {
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { confirmDialog, promptDialog } from '@/lib/dialogs';
+import { draggedItem, reorderIds } from '@/lib/dragState';
+import type { DraggedItem } from '@/lib/dragState';
 import { cn } from '@/lib/utils';
 import type {
-    ApiRequest,
     AuthType,
     CollectionNode,
     KeyValuePair,
     RequestAuth,
+    RequestSummary,
 } from '@/types/workspace';
 import AuthEditor from './AuthEditor.vue';
+import ExportDialog from './ExportDialog.vue';
 import KeyValueEditor from './KeyValueEditor.vue';
 
 const props = defineProps<{
@@ -67,7 +73,14 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-    'open-request': [ApiRequest];
+    'open-request': [RequestSummary];
+    /** A sibling folder was dropped onto another sibling folder — reordering
+     * needs the parent, since it's the one holding the shared array. */
+    'reorder-child': [
+        draggedId: number,
+        targetId: number,
+        position: 'before' | 'after',
+    ];
 }>();
 
 const open = ref(true);
@@ -114,6 +127,201 @@ async function addRequest() {
     reload();
 }
 
+// Native HTML5 drag-and-drop. `draggedItem` is a module-scoped singleton (see
+// lib/dragState.ts) shared by every row in the tree, since a drop target can
+// sit in a completely different subtree than the drag started in — dropping
+// onto a folder's own row always moves the dragged item into that folder;
+// dropping onto a sibling in the *same* list reorders in place instead.
+//
+// 'before'/'after' draw a thin insertion line matching exactly where the
+// item will land (top or bottom half of the row the pointer is over); 'into'
+// highlights the whole row to signal "this becomes its new parent" instead.
+type DropIntent = 'before' | 'after' | 'into' | null;
+
+/** Which half of `event`'s target the pointer is over, for insertion lines. */
+function positionFromEvent(event: DragEvent): 'before' | 'after' {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+
+    return event.clientY - rect.top < rect.height / 2 ? 'before' : 'after';
+}
+
+const isDragging = computed(
+    () =>
+        draggedItem.value?.type === 'collection' &&
+        draggedItem.value.id === props.node.id,
+);
+
+const folderDropIntent = ref<DropIntent>(null);
+
+function onFolderDragStart() {
+    draggedItem.value = {
+        type: 'collection',
+        id: props.node.id,
+        parentId: props.node.parent_id,
+    };
+}
+
+function onFolderDragEnd() {
+    draggedItem.value = null;
+    folderDropIntent.value = null;
+}
+
+function onFolderDragOver(event: DragEvent) {
+    const item = draggedItem.value;
+
+    if (!item || (item.type === 'collection' && item.id === props.node.id)) {
+        folderDropIntent.value = null;
+
+        return;
+    }
+
+    folderDropIntent.value =
+        item.type === 'collection' && item.parentId === props.node.parent_id
+            ? positionFromEvent(event)
+            : 'into';
+}
+
+function onFolderDragLeave() {
+    folderDropIntent.value = null;
+}
+
+async function onFolderDrop() {
+    const intent = folderDropIntent.value;
+    folderDropIntent.value = null;
+
+    const item = draggedItem.value;
+
+    if (!item || (item.type === 'collection' && item.id === props.node.id)) {
+        return;
+    }
+
+    if (intent === 'before' || intent === 'after') {
+        // Same sibling list as this row — the parent owns that array.
+        emit('reorder-child', item.id, props.node.id, intent);
+        return;
+    }
+
+    await moveInto(item);
+}
+
+/** Move a dragged folder or request so it becomes part of `props.node`. */
+async function moveInto(item: DraggedItem) {
+    if (item.type === 'collection') {
+        if (item.id === props.node.id) {
+            return;
+        }
+
+        await api.patch(updateCollection.url(item.id), {
+            parent_id: props.node.id,
+            order: props.node.children.length,
+        });
+    } else {
+        await api.patch(updateRequest.url(item.id), {
+            collection_id: props.node.id,
+            order: props.node.requests.length,
+        });
+    }
+
+    draggedItem.value = null;
+    reload();
+}
+
+function onRequestDragStart(request: RequestSummary) {
+    draggedItem.value = {
+        type: 'request',
+        id: request.id,
+        collectionId: props.node.id,
+    };
+}
+
+function onRequestDragEnd() {
+    draggedItem.value = null;
+    requestDropIntent.value = null;
+}
+
+const dragOverRequestId = ref<number | null>(null);
+const requestDropIntent = ref<DropIntent>(null);
+
+function onRequestDragOver(event: DragEvent, request: RequestSummary) {
+    dragOverRequestId.value = request.id;
+
+    const item = draggedItem.value;
+
+    requestDropIntent.value =
+        item?.type === 'request' &&
+        item.id !== request.id &&
+        item.collectionId === props.node.id
+            ? positionFromEvent(event)
+            : 'into';
+}
+
+async function onRequestDrop(target: RequestSummary) {
+    dragOverRequestId.value = null;
+    const intent = requestDropIntent.value;
+    requestDropIntent.value = null;
+
+    const item = draggedItem.value;
+
+    if (!item) {
+        return;
+    }
+
+    if (item.type === 'collection') {
+        await moveInto(item);
+
+        return;
+    }
+
+    if (item.id === target.id) {
+        return;
+    }
+
+    if (item.collectionId !== props.node.id) {
+        // Dropped a request from a different folder onto this one — move it
+        // in rather than trying to splice it into an array it isn't part of.
+        await moveInto(item);
+
+        return;
+    }
+
+    const ordered = reorderIds(
+        props.node.requests.map((r) => r.id),
+        item.id,
+        target.id,
+        intent === 'after' ? 'after' : 'before',
+    );
+
+    draggedItem.value = null;
+    await api.patch(reorderRequests.url(props.node.id), {
+        ordered_ids: ordered,
+    });
+    reload();
+}
+
+async function onChildReorder(
+    draggedId: number,
+    targetId: number,
+    position: 'before' | 'after',
+) {
+    if (draggedId === targetId) {
+        return;
+    }
+
+    const ordered = reorderIds(
+        props.node.children.map((c) => c.id),
+        draggedId,
+        targetId,
+        position,
+    );
+
+    draggedItem.value = null;
+    await api.patch(reorderCollections.url(props.workspaceId), {
+        parent_id: props.node.id,
+        ordered_ids: ordered,
+    });
+    reload();
+}
+
 async function rename() {
     const name = await promptDialog({
         title: 'Rename collection',
@@ -147,7 +355,7 @@ async function remove() {
     reload();
 }
 
-async function removeRequest(request: ApiRequest) {
+async function removeRequest(request: RequestSummary) {
     const confirmed = await confirmDialog({
         title: `Delete request "${request.name}"?`,
         description: 'This cannot be undone.',
@@ -178,6 +386,7 @@ const settingsSections: {
 ];
 
 const settingsOpen = ref(false);
+const exportOpen = ref(false);
 const activeSection = ref<SettingsSection>('general');
 const settingsName = ref('');
 const settingsVariables = ref<KeyValuePair[]>([]);
@@ -231,22 +440,6 @@ async function saveSettings() {
     }
 }
 
-function downloadExport() {
-    api.get<Record<string, unknown>>(downloadCollection.url(props.node.id))
-        .then((data) => {
-            const blob = new Blob([JSON.stringify(data, null, 2)], {
-                type: 'application/json',
-            });
-            const url = URL.createObjectURL(blob);
-            const anchor = document.createElement('a');
-            anchor.href = url;
-            anchor.download = `${props.node.name}.postman_collection.json`;
-            anchor.click();
-            URL.revokeObjectURL(url);
-        })
-        .catch(() => toast.error('Failed to export collection'));
-}
-
 async function copyExport() {
     copying.value = true;
 
@@ -288,18 +481,48 @@ const methodColor: Record<string, string> = {
 <template>
     <Collapsible v-model:open="open">
         <div
-            class="group flex items-center gap-1 rounded-md px-1 hover:bg-accent"
+            draggable="true"
+            class="group/row relative flex cursor-grab items-center gap-1 rounded-md px-1 hover:bg-accent active:cursor-grabbing"
+            :class="
+                cn(
+                    isDragging && 'opacity-40',
+                    !isDragging &&
+                        folderDropIntent === 'into' &&
+                        'bg-primary/10 ring-2 ring-inset ring-primary',
+                )
+            "
             :style="{ paddingLeft: `${(depth ?? 0) * 12}px` }"
+            @dragstart="onFolderDragStart"
+            @dragend="onFolderDragEnd"
+            @dragover.prevent="onFolderDragOver"
+            @dragleave="onFolderDragLeave"
+            @drop.prevent="onFolderDrop"
         >
+            <div
+                v-if="folderDropIntent === 'before'"
+                class="absolute inset-x-1 top-0 z-10 h-0.5 -translate-y-1/2 rounded-full bg-primary"
+            />
+            <div
+                v-if="folderDropIntent === 'after'"
+                class="absolute inset-x-1 bottom-0 z-10 h-0.5 translate-y-1/2 rounded-full bg-primary"
+            />
+
             <CollapsibleTrigger as-child>
                 <button
-                    class="flex flex-1 items-center gap-1.5 py-1 text-left text-sm"
+                    class="flex min-w-0 flex-1 items-center gap-1.5 py-1 text-left text-sm"
                 >
                     <ChevronRight
                         class="size-3.5 shrink-0 transition-transform"
                         :class="{ 'rotate-90': open }"
                     />
-                    <Folder class="size-3.5 shrink-0 text-muted-foreground" />
+                    <Folder
+                        class="size-3.5 shrink-0"
+                        :class="
+                            folderDropIntent === 'into'
+                                ? 'text-primary'
+                                : 'text-muted-foreground'
+                        "
+                    />
                     <span class="truncate">{{ node.name }}</span>
                 </button>
             </CollapsibleTrigger>
@@ -309,7 +532,7 @@ const methodColor: Record<string, string> = {
                     <Button
                         variant="ghost"
                         size="icon"
-                        class="size-6 shrink-0 opacity-0 group-hover:opacity-100"
+                        class="size-6 shrink-0 opacity-0 group-hover/row:opacity-100"
                     >
                         <MoreHorizontal class="size-3.5" />
                     </Button>
@@ -325,6 +548,9 @@ const methodColor: Record<string, string> = {
                     <DropdownMenuItem @click="openSettings">
                         <Settings2 class="size-3.5" /> Settings
                     </DropdownMenuItem>
+                    <DropdownMenuItem @click="exportOpen = true">
+                        <Download class="size-3.5" /> Export
+                    </DropdownMenuItem>
                     <DropdownMenuItem variant="destructive" @click="remove">
                         <Trash2 class="size-3.5" /> Delete
                     </DropdownMenuItem>
@@ -336,11 +562,45 @@ const methodColor: Record<string, string> = {
             <div
                 v-for="request in node.requests"
                 :key="request.id"
-                class="group flex items-center gap-1 rounded-md px-1 hover:bg-accent"
+                draggable="true"
+                class="group/row relative flex cursor-grab items-center gap-1 rounded-md px-1 hover:bg-accent active:cursor-grabbing"
+                :class="
+                    cn(
+                        draggedItem?.type === 'request' &&
+                            draggedItem.id === request.id &&
+                            'opacity-40',
+                        dragOverRequestId === request.id &&
+                            requestDropIntent === 'into' &&
+                            'bg-primary/10 ring-2 ring-inset ring-primary',
+                    )
+                "
                 :style="{ paddingLeft: `${((depth ?? 0) + 1) * 12 + 18}px` }"
+                @dragstart="onRequestDragStart(request)"
+                @dragend="onRequestDragEnd"
+                @dragover.prevent="onRequestDragOver($event, request)"
+                @dragleave="
+                    dragOverRequestId === request.id &&
+                    ((dragOverRequestId = null), (requestDropIntent = null))
+                "
+                @drop.prevent="onRequestDrop(request)"
             >
+                <div
+                    v-if="
+                        dragOverRequestId === request.id &&
+                        requestDropIntent === 'before'
+                    "
+                    class="absolute inset-x-1 top-0 z-10 h-0.5 -translate-y-1/2 rounded-full bg-primary"
+                />
+                <div
+                    v-if="
+                        dragOverRequestId === request.id &&
+                        requestDropIntent === 'after'
+                    "
+                    class="absolute inset-x-1 bottom-0 z-10 h-0.5 translate-y-1/2 rounded-full bg-primary"
+                />
+
                 <button
-                    class="flex flex-1 items-center gap-2 truncate py-1 text-left text-sm"
+                    class="flex min-w-0 flex-1 items-center gap-2 py-1 text-left text-sm"
                     :class="
                         cn(
                             activeRequestId === request.id &&
@@ -361,7 +621,7 @@ const methodColor: Record<string, string> = {
                 <Button
                     variant="ghost"
                     size="icon"
-                    class="size-6 shrink-0 opacity-0 group-hover:opacity-100"
+                    class="size-6 shrink-0 opacity-0 group-hover/row:opacity-100"
                     @click="removeRequest(request)"
                 >
                     <Trash2 class="size-3.5" />
@@ -376,6 +636,7 @@ const methodColor: Record<string, string> = {
                 :active-request-id="activeRequestId"
                 :depth="(depth ?? 0) + 1"
                 @open-request="(r) => emit('open-request', r)"
+                @reorder-child="onChildReorder"
             />
         </CollapsibleContent>
     </Collapsible>
@@ -498,13 +759,17 @@ const methodColor: Record<string, string> = {
                             Share this collection
                         </h3>
                         <p class="mt-1 mb-4 text-xs text-muted-foreground">
-                            Export the whole tree as a Postman v2.1 file. Anyone
-                            can import it here or into Postman or Insomnia.
+                            Export the whole tree as a Postman collection or an
+                            OpenAPI spec, or copy the Postman JSON straight to
+                            your clipboard.
                         </p>
                         <div class="flex flex-wrap gap-2">
-                            <Button variant="outline" @click="downloadExport">
+                            <Button
+                                variant="outline"
+                                @click="exportOpen = true"
+                            >
                                 <Download class="size-4" />
-                                Download JSON
+                                Export…
                             </Button>
                             <Button
                                 variant="outline"
@@ -529,4 +794,10 @@ const methodColor: Record<string, string> = {
             </div>
         </DialogContent>
     </Dialog>
+
+    <ExportDialog
+        v-model:open="exportOpen"
+        :collection-id="node.id"
+        :collection-name="node.name"
+    />
 </template>

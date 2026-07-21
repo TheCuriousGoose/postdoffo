@@ -115,4 +115,44 @@ class SecurityTest extends TestCase
             ->assertSessionHasErrors('current_password')
             ->assertRedirect(route('security.edit'));
     }
+
+    public function test_security_page_reports_no_password_for_social_only_users()
+    {
+        $user = User::factory()->create([
+            'password' => null,
+            'provider' => 'github',
+            'provider_id' => '12345',
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['auth.password_confirmed_at' => time()])
+            ->get(route('security.edit'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('settings/Security')
+                ->where('hasPassword', false),
+            );
+    }
+
+    public function test_social_only_user_can_set_a_password_without_a_current_password()
+    {
+        $user = User::factory()->create([
+            'password' => null,
+            'provider' => 'github',
+            'provider_id' => '12345',
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->from(route('security.edit'))
+            ->put(route('user-password.update'), [
+                'password' => 'new-password',
+                'password_confirmation' => 'new-password',
+            ]);
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('security.edit'));
+
+        $this->assertTrue(Hash::check('new-password', $user->refresh()->password));
+    }
 }

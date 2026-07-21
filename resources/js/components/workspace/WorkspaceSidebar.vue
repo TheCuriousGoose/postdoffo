@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { Plus, Upload } from '@lucide/vue';
+import { Plus, Search, Upload } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import {
     importMethod as importCollection,
+    reorder as reorderCollections,
     store as storeCollection,
 } from '@/actions/App/Http/Controllers/CollectionController';
 import AppLogo from '@/components/AppLogo.vue';
@@ -19,23 +20,25 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarRail,
 } from '@/components/ui/sidebar';
+import CommandPalette from '@/components/workspace/CommandPalette.vue';
 import CollectionTree from '@/components/workspace/CollectionTree.vue';
+import { useOpenRequest } from '@/composables/useOpenRequest';
 import { api } from '@/lib/api';
 import { promptDialog } from '@/lib/dialogs';
+import { reorderIds } from '@/lib/dragState';
 import { index as workspacesIndex } from '@/routes/workspaces';
 import { useWorkspaceStore } from '@/stores/workspace';
-import type { ApiRequest, Workspace } from '@/types/workspace';
+import type { Workspace } from '@/types/workspace';
 
 const page = usePage<{ workspace: Workspace }>();
 const workspace = computed(() => page.props.workspace);
 const store = useWorkspaceStore();
+const { openRequest } = useOpenRequest();
 
 const importInput = ref<HTMLInputElement | null>(null);
-
-function openRequest(request: ApiRequest) {
-    store.openRequest(request);
-}
+const paletteOpen = ref(false);
 
 async function newRootCollection() {
     const name = await promptDialog({
@@ -50,6 +53,32 @@ async function newRootCollection() {
     }
 
     await api.post(storeCollection.url(workspace.value.id), { name });
+    router.reload({ only: ['collectionTree'] });
+}
+
+// Same sibling-reorder handoff CollectionTree does for nested folders, but
+// for the root-level collections rendered directly here (parent_id: null) —
+// cross-folder moves are handled entirely inside CollectionTree itself.
+async function onRootReorder(
+    draggedId: number,
+    targetId: number,
+    position: 'before' | 'after',
+) {
+    if (draggedId === targetId) {
+        return;
+    }
+
+    const ordered = reorderIds(
+        store.collectionTree.map((n) => n.id),
+        draggedId,
+        targetId,
+        position,
+    );
+
+    await api.patch(reorderCollections.url(workspace.value.id), {
+        parent_id: null,
+        ordered_ids: ordered,
+    });
     router.reload({ only: ['collectionTree'] });
 }
 
@@ -91,6 +120,19 @@ async function onImportFile(event: Event) {
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>
+
+            <button
+                type="button"
+                class="mx-2 mb-1 flex items-center gap-2 rounded-md border bg-background px-2.5 py-1.5 text-left text-muted-foreground transition hover:bg-accent group-data-[collapsible=icon]:hidden"
+                @click="paletteOpen = true"
+            >
+                <Search class="size-3.5 shrink-0" />
+                <span class="flex-1 truncate text-xs">Search requests…</span>
+                <kbd
+                    class="hidden shrink-0 rounded border bg-muted px-1.5 py-0.5 font-mono text-[10px] sm:inline-block"
+                    >Ctrl K</kbd
+                >
+            </button>
 
             <div
                 class="flex items-center justify-between px-2 py-1 group-data-[collapsible=icon]:hidden"
@@ -136,6 +178,7 @@ async function onImportFile(event: Event) {
                 :workspace-id="workspace.id"
                 :active-request-id="store.activeTabId"
                 @open-request="openRequest"
+                @reorder-child="onRootReorder"
             />
             <p
                 v-if="!store.collectionTree.length"
@@ -153,5 +196,9 @@ async function onImportFile(event: Event) {
                 </SidebarMenuItem>
             </SidebarMenu>
         </SidebarFooter>
+
+        <SidebarRail />
     </Sidebar>
+
+    <CommandPalette v-model:open="paletteOpen" />
 </template>

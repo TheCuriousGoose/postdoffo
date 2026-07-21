@@ -57,7 +57,14 @@ class WorkspaceController extends Controller
             $user->save();
         }
 
-        $collections = $workspace->collections()->orderBy('order')->orderBy('name')->with('requests')->get();
+        // Only the fields the sidebar row actually renders — the full request
+        // (body, headers, scripts, ...) is fetched on demand when a tab opens
+        // (RequestController::show). With thousands of requests in a workspace,
+        // eagerly shipping every field of every request bloats the initial
+        // Inertia payload by megabytes for no benefit.
+        $collections = $workspace->collections()->orderBy('order')->orderBy('name')
+            ->with(['requests:id,collection_id,name,method,order'])
+            ->get();
         $environments = $workspace->environments()->with('variables')->orderBy('name')->get();
         $history = $workspace->requestHistory()->recent()->limit(50)->get();
 

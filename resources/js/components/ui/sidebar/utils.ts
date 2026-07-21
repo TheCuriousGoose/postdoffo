@@ -8,6 +8,10 @@ export const SIDEBAR_WIDTH_MOBILE = "18rem"
 export const SIDEBAR_WIDTH_ICON = "3rem"
 export const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
+export const SIDEBAR_WIDTH_COOKIE_NAME = "sidebar_width"
+export const SIDEBAR_MIN_WIDTH_PX = 200
+export const SIDEBAR_MAX_WIDTH_PX = 480
+
 export const [useSidebar, provideSidebarContext] = createContext<{
   state: ComputedRef<"expanded" | "collapsed">
   open: Ref<boolean>
@@ -16,4 +20,8 @@ export const [useSidebar, provideSidebarContext] = createContext<{
   openMobile: Ref<boolean>
   setOpenMobile: (value: boolean) => void
   toggleSidebar: () => void
+  width: Ref<string>
+  setWidthPx: (px: number) => void
+  resizing: Ref<boolean>
+  setResizing: (value: boolean) => void
 }>("Sidebar")

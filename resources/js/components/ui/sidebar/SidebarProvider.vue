@@ -4,7 +4,17 @@ import { defaultDocument, useEventListener, useMediaQuery, useVModel } from "@vu
 import { TooltipProvider } from "reka-ui"
 import { computed, ref } from "vue"
 import { cn } from "@/lib/utils"
-import { provideSidebarContext, SIDEBAR_COOKIE_MAX_AGE, SIDEBAR_COOKIE_NAME, SIDEBAR_KEYBOARD_SHORTCUT, SIDEBAR_WIDTH, SIDEBAR_WIDTH_ICON } from "./utils"
+import {
+  provideSidebarContext,
+  SIDEBAR_COOKIE_MAX_AGE,
+  SIDEBAR_COOKIE_NAME,
+  SIDEBAR_KEYBOARD_SHORTCUT,
+  SIDEBAR_MAX_WIDTH_PX,
+  SIDEBAR_MIN_WIDTH_PX,
+  SIDEBAR_WIDTH,
+  SIDEBAR_WIDTH_COOKIE_NAME,
+  SIDEBAR_WIDTH_ICON,
+} from "./utils"
 
 const props = withDefaults(defineProps<{
   defaultOpen?: boolean
@@ -43,6 +53,26 @@ function toggleSidebar() {
   return isMobile.value ? setOpenMobile(!openMobile.value) : setOpen(!open.value)
 }
 
+function readWidthCookie(): number | null {
+  const match = defaultDocument?.cookie.match(new RegExp(`${SIDEBAR_WIDTH_COOKIE_NAME}=(\\d+)`))
+  const px = match ? Number(match[1]) : null
+
+  return px && Number.isFinite(px) ? px : null
+}
+
+const width = ref(`${readWidthCookie() ?? Number.parseInt(SIDEBAR_WIDTH, 10) * 16}px`)
+const resizing = ref(false)
+
+function setWidthPx(px: number) {
+  const clamped = Math.min(SIDEBAR_MAX_WIDTH_PX, Math.max(SIDEBAR_MIN_WIDTH_PX, px))
+  width.value = `${clamped}px`
+  document.cookie = `${SIDEBAR_WIDTH_COOKIE_NAME}=${clamped}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+}
+
+function setResizing(value: boolean) {
+  resizing.value = value
+}
+
 useEventListener("keydown", (event: KeyboardEvent) => {
   if (event.key === SIDEBAR_KEYBOARD_SHORTCUT && (event.metaKey || event.ctrlKey)) {
     event.preventDefault()
@@ -62,6 +92,10 @@ provideSidebarContext({
   openMobile,
   setOpenMobile,
   toggleSidebar,
+  width,
+  setWidthPx,
+  resizing,
+  setResizing,
 })
 </script>
 
@@ -70,7 +104,7 @@ provideSidebarContext({
     <div
       data-slot="sidebar-wrapper"
       :style="{
-        '--sidebar-width': SIDEBAR_WIDTH,
+        '--sidebar-width': width,
         '--sidebar-width-icon': SIDEBAR_WIDTH_ICON,
       }"
       :class="cn('group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full', props.class)"

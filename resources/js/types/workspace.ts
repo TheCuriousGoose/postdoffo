@@ -47,6 +47,20 @@ export type ApiRequest = {
     updated_at: string;
 };
 
+/**
+ * Lightweight row shown in the sidebar tree. The full ApiRequest (body,
+ * headers, scripts, ...) is fetched on demand when a tab opens — see
+ * RequestController::show() — so a workspace with thousands of requests
+ * doesn't ship megabytes of unopened request bodies on initial page load.
+ */
+export type RequestSummary = {
+    id: number;
+    collection_id: number;
+    name: string;
+    method: HttpMethod;
+    order: number;
+};
+
 export type CollectionNode = {
     id: number;
     name: string;
@@ -56,7 +70,7 @@ export type CollectionNode = {
     headers: KeyValuePair[] | null;
     auth_type: AuthType | null;
     auth: RequestAuth;
-    requests: ApiRequest[];
+    requests: RequestSummary[];
     children: CollectionNode[];
 };
 

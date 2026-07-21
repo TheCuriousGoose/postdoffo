@@ -16,10 +16,23 @@ use App\Models\Environment;
 use App\Models\Request as ApiRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class RequestController extends Controller
 {
+    /**
+     * Full request payload (body, headers, scripts, ...), fetched on demand
+     * when a tab opens — the workspace sidebar tree only ships the lightweight
+     * summary fields (see WorkspaceController::show()).
+     */
+    public function show(ApiRequest $apiRequest): JsonResponse
+    {
+        $this->authorize('view', $apiRequest->collection->workspace);
+
+        return response()->json($apiRequest);
+    }
+
     public function store(Request $request, Collection $collection): JsonResponse
     {
         $this->authorize('edit', $collection->workspace);
@@ -45,6 +58,13 @@ class RequestController extends Controller
             $data['url'] = '';
         }
 
+        if (array_key_exists('collection_id', $data) && $data['collection_id'] !== $apiRequest->collection_id) {
+            // exists:collections,id alone doesn't scope by workspace, so without this
+            // a crafted request could move a request into another workspace's tree.
+            $target = Collection::forWorkspace($apiRequest->collection->workspace_id)->find($data['collection_id']);
+            abort_unless($target, 422, 'Target folder not found in this workspace.');
+        }
+
         $apiRequest->update($data);
 
         return response()->json($apiRequest->fresh());
@@ -55,6 +75,35 @@ class RequestController extends Controller
         $this->authorize('edit', $apiRequest->collection->workspace);
 
         $apiRequest->delete();
+
+        return response()->json(status: 204);
+    }
+
+    /**
+     * Persists a drag-and-drop reorder of the requests within one collection.
+     * ids not actually belonging to this collection are silently dropped, same
+     * as CollectionController::reorder().
+     */
+    public function reorder(Request $request, Collection $collection): JsonResponse
+    {
+        $this->authorize('edit', $collection->workspace);
+
+        $data = $request->validate([
+            'ordered_ids' => ['required', 'array', 'min:1'],
+            'ordered_ids.*' => ['integer'],
+        ]);
+
+        $validIds = ApiRequest::forCollection($collection->id)
+            ->whereIn('id', $data['ordered_ids'])
+            ->pluck('id');
+
+        $orderedIds = array_values(array_intersect($data['ordered_ids'], $validIds->all()));
+
+        DB::transaction(function () use ($orderedIds) {
+            foreach ($orderedIds as $order => $id) {
+                ApiRequest::whereKey($id)->update(['order' => $order]);
+            }
+        });
 
         return response()->json(status: 204);
     }
@@ -184,6 +233,7 @@ class RequestController extends Controller
             // even runs, so "required"/"present" would reject it either way.
             'url' => ['sometimes', 'nullable', 'string'],
             'order' => ['sometimes', 'integer', 'min:0'],
+            'collection_id' => ['sometimes', 'integer', 'exists:collections,id'],
             'headers' => ['sometimes', 'nullable', 'array'],
             'query_params' => ['sometimes', 'nullable', 'array'],
             'body' => ['sometimes', 'nullable', 'array'],

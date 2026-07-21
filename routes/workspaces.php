@@ -22,11 +22,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('api')->name('api.')->group(function () {
         Route::post('workspaces/{workspace}/collections/import', [CollectionController::class, 'import'])->name('collections.import');
         Route::post('workspaces/{workspace}/collections', [CollectionController::class, 'store'])->name('collections.store');
+        Route::patch('workspaces/{workspace}/collections/reorder', [CollectionController::class, 'reorder'])->name('collections.reorder');
         Route::patch('collections/{collection}', [CollectionController::class, 'update'])->name('collections.update');
         Route::get('collections/{collection}/download', [CollectionController::class, 'download'])->name('collections.download');
         Route::delete('collections/{collection}', [CollectionController::class, 'destroy'])->name('collections.destroy');
 
         Route::post('collections/{collection}/requests', [RequestController::class, 'store'])->name('requests.store');
+        Route::patch('collections/{collection}/requests/reorder', [RequestController::class, 'reorder'])->name('requests.reorder');
+        Route::get('requests/{apiRequest}', [RequestController::class, 'show'])->name('requests.show');
         Route::patch('requests/{apiRequest}', [RequestController::class, 'update'])->name('requests.update');
         Route::delete('requests/{apiRequest}', [RequestController::class, 'destroy'])->name('requests.destroy');
         Route::post('requests/{apiRequest}/execute', [RequestController::class, 'execute'])->name('requests.execute');

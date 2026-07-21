@@ -14,6 +14,7 @@ import { edit } from '@/routes/security';
 
 type Props = {
     passwordRules: string;
+    hasPassword: boolean;
 } & ManagePasskeysProps &
     ManageTwoFactorProps;
 
@@ -39,8 +40,12 @@ defineOptions({
     <div class="space-y-6">
         <Heading
             variant="small"
-            title="Update password"
-            description="Ensure your account is using a long, random password to stay secure"
+            :title="hasPassword ? 'Update password' : 'Set a password'"
+            :description="
+                hasPassword
+                    ? 'Ensure your account is using a long, random password to stay secure'
+                    : 'You signed in with a social account and have no password yet. Set one to also be able to sign in with your email and password.'
+            "
         />
 
         <Form
@@ -57,7 +62,7 @@ defineOptions({
             class="space-y-6"
             v-slot="{ errors, processing }"
         >
-            <div class="grid gap-2">
+            <div v-if="hasPassword" class="grid gap-2">
                 <Label for="current_password">Current password</Label>
                 <PasswordInput
                     id="current_password"

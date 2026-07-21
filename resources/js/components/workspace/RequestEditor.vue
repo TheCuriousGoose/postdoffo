@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
 import { Loader2, Play, Save } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
@@ -17,10 +18,10 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
 import { api } from '@/lib/api';
 import { isLocalUrl, sendViaBrowser } from '@/lib/localRequest';
 import type { PreparedOutgoingRequest } from '@/lib/localRequest';
+import { scripting as scriptingDocs } from '@/routes/docs';
 import { useWorkspaceStore } from '@/stores/workspace';
 import type {
     AuthType,
@@ -584,11 +585,19 @@ async function send() {
                         <code class="font-mono"
                             >pm.request.headers.set(k, v)</code
                         >.
+                        <Link
+                            :href="scriptingDocs()"
+                            target="_blank"
+                            class="underline hover:text-foreground"
+                            >Full scripting reference</Link
+                        >
                     </p>
-                    <Textarea
+                    <CodeEditor
                         :model-value="tab.draft.pre_request_script ?? ''"
-                        class="min-h-48 flex-1 font-mono text-sm"
+                        language="script"
+                        :variables="scope.variables"
                         placeholder='pm.variables.set("timestamp", "123")'
+                        class="min-h-48 flex-1"
                         @update:model-value="
                             (v) => setPreRequestScript(String(v))
                         "
@@ -602,11 +611,19 @@ async function send() {
                             >pm.test("status is 200", pm.response.status ==
                             200)</code
                         >
+                        <Link
+                            :href="scriptingDocs()"
+                            target="_blank"
+                            class="underline hover:text-foreground"
+                            >Full scripting reference</Link
+                        >
                     </p>
-                    <Textarea
+                    <CodeEditor
                         :model-value="tab.draft.test_script ?? ''"
-                        class="min-h-48 flex-1 font-mono text-sm"
+                        language="script"
+                        :variables="scope.variables"
                         placeholder='pm.test("status is 200", pm.response.status == 200)'
+                        class="min-h-48 flex-1"
                         @update:model-value="(v) => setTestScript(String(v))"
                     />
                 </TabsContent>

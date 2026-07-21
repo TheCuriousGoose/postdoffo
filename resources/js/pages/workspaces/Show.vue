@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
-import { onMounted, watch } from 'vue';
+import { onBeforeUnmount, onMounted, watch } from 'vue';
 import {
     ResizableHandle,
     ResizablePanel,
@@ -45,6 +45,33 @@ onMounted(() => {
     const active = props.environments.find((e) => e.is_active) ?? null;
     store.setWorkspace(props.workspace.id, active?.id ?? null);
 });
+
+// Alt+W closes the active tab. Plain Ctrl/Cmd+W is the browser's own "close
+// tab" shortcut and can't be intercepted, and Ctrl+Shift+W closes the whole
+// browser window in Chrome/Firefox/Edge, so neither is usable here. Ctrl+Alt
+// is out too: on Windows that's indistinguishable from AltGr, and Firefox
+// clears ctrlKey/altKey to false when a layout resolves AltGr+W to a
+// composed character, so the combo silently never fires. Plain Alt avoids
+// all of that — excluding ctrlKey also stops it firing on AltGr-composed
+// input in browsers (Chrome) that don't clear the modifier flags.
+function onGlobalKeydown(event: KeyboardEvent) {
+    if (
+        event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        event.key.toLowerCase() === 'w'
+    ) {
+        if (store.activeTabId === null) {
+            return;
+        }
+
+        event.preventDefault();
+        store.closeTab(store.activeTabId);
+    }
+}
+
+onMounted(() => window.addEventListener('keydown', onGlobalKeydown));
+onBeforeUnmount(() => window.removeEventListener('keydown', onGlobalKeydown));
 
 // Keep the store's copy of the tree and environments current so the editor's
 // "what's inherited / in scope" affordances update after partial reloads.

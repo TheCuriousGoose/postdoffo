@@ -122,7 +122,9 @@ const prettyBody = computed(() => {
 
 const bodyTokens = computed(() =>
     isHighlightable.value
-        ? highlight(prettyBody.value, { json: bodyIsJson.value })
+        ? highlight(prettyBody.value, {
+              mode: bodyIsJson.value ? 'json' : 'text',
+          })
         : [],
 );
 

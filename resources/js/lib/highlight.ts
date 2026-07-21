@@ -13,6 +13,8 @@ export type HighlightTokenType =
     | 'boolean'
     | 'null'
     | 'punctuation'
+    | 'operator'
+    | 'comment'
     | 'plain'
     | 'variable'
     | 'variable-unresolved';
@@ -22,8 +24,10 @@ export type HighlightToken = {
     type: HighlightTokenType;
 };
 
+export type HighlightMode = 'json' | 'script' | 'text';
+
 export type HighlightOptions = {
-    json: boolean;
+    mode: HighlightMode;
     /**
      * When provided, `{{name}}` tokens are detected and marked resolved or not
      * via this predicate. Omit it to skip variable detection entirely (e.g. for
@@ -46,6 +50,8 @@ const CLASS_MAP: Record<HighlightTokenType, string> = {
     boolean: 'text-rose-600 dark:text-rose-400',
     null: 'text-rose-600 dark:text-rose-400',
     punctuation: 'text-muted-foreground',
+    operator: 'text-fuchsia-600 dark:text-fuchsia-400',
+    comment: 'text-muted-foreground italic',
     plain: 'text-foreground',
     variable:
         'rounded bg-amber-500/15 text-amber-600 dark:bg-amber-400/10 dark:text-amber-400',
@@ -156,16 +162,116 @@ function highlightJson(
     );
 }
 
+// Mirrors the token grammar accepted by the PHP script evaluator
+// (app/Services/Scripting/ScriptExpression.php): strings, numbers, the
+// comparison/logical operators it supports, bare identifiers (pm, its path
+// segments, true/false/null), and `.(),` punctuation. A trailing catch-all
+// keeps unrecognized characters (e.g. a stray `/`) visible instead of
+// silently dropping them from the rendered backdrop.
+const SCRIPT_PATTERN =
+    /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|-?\d+(?:\.\d+)?|==|!=|>=|<=|&&|\|\||[><!]|[A-Za-z_][A-Za-z0-9_]*|[.(),]|\s+|./g;
+
+const SCRIPT_OPERATORS = new Set(['==', '!=', '>=', '<=', '&&', '||', '>', '<', '!']);
+
+function classifyScriptToken(token: string): HighlightTokenType {
+    if (token[0] === '"' || token[0] === "'") {
+        return 'string';
+    }
+
+    if (token === 'true' || token === 'false') {
+        return 'boolean';
+    }
+
+    if (token === 'null') {
+        return 'null';
+    }
+
+    if (/^-?\d/.test(token)) {
+        return 'number';
+    }
+
+    if (SCRIPT_OPERATORS.has(token)) {
+        return 'operator';
+    }
+
+    if (token.length === 1 && '.(),'.includes(token)) {
+        return 'punctuation';
+    }
+
+    // Bare identifiers: `pm` itself and every segment of a `pm.foo.bar` path
+    // (the only identifiers the grammar allows), styled like a JSON key.
+    if (/^[A-Za-z_]/.test(token)) {
+        return 'key';
+    }
+
+    return 'plain';
+}
+
+/**
+ * A line is a comment only when, once trimmed, it starts with `//` — matching
+ * ScriptRunner's line-based `str_starts_with($line, '//')` check exactly.
+ * Trailing/inline `//` isn't treated as a comment (the runner doesn't
+ * recognize it as one either), so it's tokenized as ordinary script text.
+ */
+function highlightScriptLine(
+    line: string,
+    resolved?: (name: string) => boolean,
+): HighlightToken[] {
+    if (line.trim().startsWith('//')) {
+        const indent = line.slice(0, line.indexOf('//'));
+        const tokens: HighlightToken[] = [];
+
+        if (indent !== '') {
+            tokens.push({ text: indent, type: 'plain' });
+        }
+
+        tokens.push({ text: line.slice(indent.length), type: 'comment' });
+
+        return tokens;
+    }
+
+    const raw: HighlightToken[] = [];
+
+    for (const match of line.matchAll(SCRIPT_PATTERN)) {
+        raw.push({ text: match[0], type: classifyScriptToken(match[0]) });
+    }
+
+    return raw.flatMap((token) =>
+        token.type === 'string'
+            ? splitVariables(token.text, token.type, resolved)
+            : [token],
+    );
+}
+
+function highlightScript(
+    src: string,
+    resolved?: (name: string) => boolean,
+): HighlightToken[] {
+    const lines = src.split('\n');
+
+    return lines.flatMap((line, index) => {
+        const tokens = highlightScriptLine(line, resolved);
+
+        return index < lines.length - 1
+            ? [...tokens, { text: '\n', type: 'plain' as const }]
+            : tokens;
+    });
+}
+
 export function highlight(
     src: string,
-    { json, resolved }: HighlightOptions,
+    { mode, resolved }: HighlightOptions,
 ): HighlightToken[] {
     if (src === '') {
         return [];
     }
 
-    if (json) {
+    if (mode === 'json') {
         return highlightJson(src, resolved);
+    }
+
+    if (mode === 'script') {
+        return highlightScript(src, resolved);
     }
 
     return splitVariables(src, 'plain', resolved);

@@ -80,8 +80,15 @@ async function addVariable() {
         return;
     }
 
-    await api.post(storeVariable.url(managingId.value), { key: '', value: '' });
-    router.reload({ only: ['environments'] });
+    try {
+        await api.post(storeVariable.url(managingId.value), {
+            key: `new_variable_${Date.now()}`,
+            value: '',
+        });
+        router.reload({ only: ['environments'] });
+    } catch {
+        toast.error('Failed to add variable');
+    }
 }
 
 async function saveVariable(

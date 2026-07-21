@@ -8,10 +8,10 @@ import { variableAtOffset } from '@/lib/variableScope';
 /**
  * Multi-line sibling of VariableHighlightInput: a real <textarea> (so native
  * editing, caret and selection are untouched) with its glyphs made transparent,
- * layered over a highlighted backdrop that scrolls in lockstep. JSON gets
- * syntax colors; `{{variables}}` are flagged resolved/unresolved when a scope
- * is passed. If highlighting ever mis-tokenizes, the textarea underneath still
- * edits perfectly.
+ * layered over a highlighted backdrop that scrolls in lockstep. JSON and
+ * pm.* scripts get syntax colors; `{{variables}}` are flagged
+ * resolved/unresolved when a scope is passed. If highlighting ever
+ * mis-tokenizes, the textarea underneath still edits perfectly.
  */
 defineOptions({
     inheritAttrs: false,
@@ -19,7 +19,7 @@ defineOptions({
 
 const props = defineProps<{
     modelValue: string;
-    language?: 'json' | 'text';
+    language?: 'json' | 'script' | 'text';
     placeholder?: string;
     variables?: Record<string, unknown>;
     class?: string;
@@ -34,7 +34,7 @@ const textarea = useTemplateRef('textarea');
 
 const tokens = computed(() =>
     highlight(props.modelValue ?? '', {
-        json: props.language === 'json',
+        mode: props.language ?? 'text',
         resolved: props.variables
             ? (name) => name in props.variables!
             : undefined,

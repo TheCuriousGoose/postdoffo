@@ -8,6 +8,7 @@ Route::inertia('/', 'Welcome')->name('home');
 
 Route::inertia('/privacy-policy', 'legal/Privacy')->name('legal.privacy');
 Route::inertia('/terms-of-service', 'legal/Terms')->name('legal.terms');
+Route::inertia('/docs/scripting', 'docs/Scripting')->name('docs.scripting');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', HomeController::class)->name('dashboard');

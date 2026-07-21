@@ -19,7 +19,7 @@ class WorkspaceController extends Controller
         $user = $request->user();
 
         $workspaces = $user->ownedWorkspaces()
-            ->orWhereHas('members', fn ($query) => $query->where('user_id', $user->id))
+            ->orWhereHas('members', fn($query) => $query->where('user_id', $user->id))
             ->withCount('collections')
             ->orderBy('name')
             ->get();
@@ -66,7 +66,11 @@ class WorkspaceController extends Controller
             ->with(['requests:id,collection_id,name,method,order'])
             ->get();
         $environments = $workspace->environments()->with('variables')->orderBy('name')->get();
-        $history = $workspace->requestHistory()->recent()->limit(50)->get();
+
+        $history = $workspace->requestHistory()
+            ->recent()
+            ->limit(50)
+            ->get(['id', 'request_id', 'workspace_id', 'user_id', 'method', 'url', 'status_code', 'duration_ms', 'executed_at']);
 
         return Inertia::render('workspaces/Show', [
             'workspace' => $workspace,
@@ -107,7 +111,7 @@ class WorkspaceController extends Controller
     {
         return $collections
             ->where('parent_id', $parentId)
-            ->map(fn (Collection $collection) => [
+            ->map(fn(Collection $collection) => [
                 'id' => $collection->id,
                 'name' => $collection->name,
                 'parent_id' => $collection->parent_id,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
+import { Form, Head, Link } from '@inertiajs/vue3';
 import {
     index as confirmOptions,
     store as confirmStore,
@@ -10,7 +10,13 @@ import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { edit as securityEdit } from '@/routes/security';
 import { store } from '@/routes/password/confirm';
+
+defineProps<{
+    hasPassword: boolean;
+    hasPasskeys: boolean;
+}>();
 
 defineOptions({
     layout: {
@@ -25,6 +31,7 @@ defineOptions({
     <Head title="Confirm password" />
 
     <PasskeyVerify
+        v-if="hasPasskeys"
         :routes="{
             options: confirmOptions(),
             submit: confirmStore(),
@@ -32,9 +39,11 @@ defineOptions({
         label="Confirm with passkey"
         loading-label="Confirming..."
         separator="Or confirm with password"
+        :hide-separator="!hasPassword"
     />
 
     <Form
+        v-if="hasPassword"
         v-bind="store.form()"
         reset-on-success
         v-slot="{ errors, processing }"
@@ -66,4 +75,18 @@ defineOptions({
             </div>
         </div>
     </Form>
+
+    <p
+        v-if="!hasPassword && !hasPasskeys"
+        class="text-sm text-muted-foreground"
+    >
+        You don't have a password or passkey set up, so there's nothing to
+        confirm with.
+        <Link
+            :href="securityEdit()"
+            class="underline underline-offset-4 hover:text-foreground"
+            >Set a password</Link
+        >
+        in security settings to continue.
+    </p>
 </template>

@@ -16,6 +16,7 @@ type Props = {
     label?: string;
     loadingLabel?: string;
     separator?: string;
+    hideSeparator?: boolean;
 };
 
 const props = defineProps<Props>();
@@ -59,7 +60,7 @@ const { verify, isLoading, error, isSupported } = usePasskeyVerify({
             </div>
         </div>
 
-        <div class="relative my-6">
+        <div v-if="!hideSeparator" class="relative my-6">
             <div class="absolute inset-0 flex items-center">
                 <Separator class="w-full" />
             </div>

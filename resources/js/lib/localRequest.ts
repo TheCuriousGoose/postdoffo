@@ -1,9 +1,5 @@
 import type { BodyType, HttpMethod, KeyValuePair } from '@/types/workspace';
 
-// Hosts that only resolve on the machine actually running the browser — never on
-// whatever server this app is deployed to. Requests to these must be fired by the
-// browser itself, not proxied through the backend, or "localhost" would mean the
-// backend's localhost instead of the developer's.
 const LOCAL_SUFFIXES = ['.test', '.local', '.localhost'];
 
 export function isLocalHost(hostname: string): boolean {

@@ -4,6 +4,7 @@ import { createPinia } from 'pinia';
 import { createSSRApp, h } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 import WorkspaceLayout from '@/layouts/app/WorkspaceLayout.vue';
+import AdminLayout from '@/layouts/admin/Layout.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
@@ -27,6 +28,8 @@ createServer((page) =>
                     return WorkspaceLayout;
                 case name.startsWith('settings/'):
                     return [AppLayout, SettingsLayout];
+                case name.startsWith('admin/'):
+                    return [AppLayout, AdminLayout];
                 default:
                     return AppLayout;
             }

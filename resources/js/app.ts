@@ -3,6 +3,7 @@ import { createPinia } from 'pinia';
 import { createApp, h } from 'vue';
 import { initializeTheme } from '@/composables/useAppearance';
 import WorkspaceLayout from '@/layouts/app/WorkspaceLayout.vue';
+import AdminLayout from '@/layouts/admin/Layout.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
@@ -25,6 +26,8 @@ createInertiaApp({
                 return WorkspaceLayout;
             case name.startsWith('settings/'):
                 return [AppLayout, SettingsLayout];
+            case name.startsWith('admin/'):
+                return [AppLayout, AdminLayout];
             default:
                 return AppLayout;
         }

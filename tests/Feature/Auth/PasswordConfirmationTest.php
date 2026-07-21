@@ -30,4 +30,26 @@ class PasswordConfirmationTest extends TestCase
 
         $response->assertRedirect(route('login'));
     }
+
+    public function test_confirm_password_screen_hides_password_form_and_passkeys_when_user_has_neither()
+    {
+        $user = User::factory()->create(['password' => null]);
+
+        $response = $this->actingAs($user)->get(route('password.confirm'));
+
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('auth/ConfirmPassword')
+            ->where('hasPassword', false)
+            ->where('hasPasskeys', false),
+        );
+    }
+
+    public function test_oauth_only_user_without_password_or_passkey_can_still_reach_security_settings()
+    {
+        $user = User::factory()->create(['password' => null]);
+
+        $response = $this->actingAs($user)->get(route('security.edit'));
+
+        $response->assertOk();
+    }
 }

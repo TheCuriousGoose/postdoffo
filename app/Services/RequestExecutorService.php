@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\DTOs\ExecutedResponseData;
 use App\DTOs\OutgoingRequestData;
+use App\DTOs\PreparedRequestData;
 use App\Enums\BodyType;
 use App\Models\Environment;
 use App\Models\Request;
@@ -18,6 +19,11 @@ use Throwable;
  * scripts around the call. This is a backend-proxied executor by design: it sidesteps
  * CORS entirely and gives every call a single place to log, rate-limit, and attach
  * workspace secrets without shipping them to the browser.
+ *
+ * `prepare()` and `finalize()` split that pipeline in two so a caller can hand the
+ * resolved request off to the browser to fire instead (e.g. for .test/.local hosts
+ * that only resolve on the developer's own machine) and still get pre-request/test
+ * script support and history recording on the way back through `finalize()`.
  */
 class RequestExecutorService
 {
@@ -27,6 +33,38 @@ class RequestExecutorService
     ) {}
 
     public function execute(Request $request, ?Environment $environment): ExecutedResponseData
+    {
+        return $this->sendAndFinalize($request, $this->prepare($request, $environment));
+    }
+
+    /**
+     * Fires an already-prepared request server-side. Split out from execute() so a
+     * request can be prepared once and either fired here or handed to the browser —
+     * without re-running the pre-request script a second time.
+     */
+    public function sendAndFinalize(Request $request, PreparedRequestData $prepared): ExecutedResponseData
+    {
+        $start = microtime(true);
+        $status = null;
+        $headers = [];
+        $body = null;
+        $error = null;
+
+        try {
+            $response = $this->send($prepared->outgoing);
+            $status = $response->status();
+            $headers = $response->headers();
+            $body = $response->body();
+        } catch (Throwable $e) {
+            $error = $e->getMessage();
+        }
+
+        $durationMs = (int) round((microtime(true) - $start) * 1000);
+
+        return $this->finalize($request, $prepared->variables, $status, $headers, $body, $durationMs, $error);
+    }
+
+    public function prepare(Request $request, ?Environment $environment): PreparedRequestData
     {
         $request->loadMissing('collection');
 
@@ -38,25 +76,29 @@ class RequestExecutorService
 
         $outgoing = $this->buildOutgoingRequest($request, $variables, $preContext->headerOverrides);
 
-        $start = microtime(true);
-        $response = null;
-        $error = null;
+        return new PreparedRequestData($outgoing, $variables);
+    }
 
-        try {
-            $response = $this->send($outgoing);
-        } catch (Throwable $e) {
-            $error = $e->getMessage();
-        }
-
-        $durationMs = (int) round((microtime(true) - $start) * 1000);
-
-        $testContext = $this->buildTestContext($variables, $response, $durationMs);
+    /**
+     * @param  array<string, string>  $variables
+     * @param  array<string, array<int, string>|string>  $headers
+     */
+    public function finalize(
+        Request $request,
+        array $variables,
+        ?int $status,
+        array $headers,
+        ?string $body,
+        int $durationMs,
+        ?string $error,
+    ): ExecutedResponseData {
+        $testContext = $this->buildTestContext($variables, $status, $body, $headers, $durationMs);
         $this->scriptRunner->run($request->test_script, $testContext);
 
         return new ExecutedResponseData(
-            status: $response?->status(),
-            headers: $response?->headers() ?? [],
-            body: $response?->body(),
+            status: $status,
+            headers: $headers,
+            body: $body,
             durationMs: $durationMs,
             testResults: $testContext->testResults,
             error: $error,
@@ -182,16 +224,17 @@ class RequestExecutorService
 
     /**
      * @param  array<string, string>  $variables
+     * @param  array<string, array<int, string>|string>  $headers
      */
-    private function buildTestContext(array $variables, ?HttpResponse $response, int $durationMs): ScriptContext
+    private function buildTestContext(array $variables, ?int $status, ?string $body, array $headers, int $durationMs): ScriptContext
     {
         $context = new ScriptContext($variables);
-        $context->responseStatus = $response?->status();
-        $context->responseBody = $response?->body();
+        $context->responseStatus = $status;
+        $context->responseBody = $body;
         $context->responseTimeMs = $durationMs;
 
-        foreach ($response?->headers() ?? [] as $name => $values) {
-            $context->responseHeaders[strtolower($name)] = implode(', ', $values);
+        foreach ($headers as $name => $values) {
+            $context->responseHeaders[strtolower($name)] = is_array($values) ? implode(', ', $values) : (string) $values;
         }
 
         return $context;

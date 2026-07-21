@@ -3,7 +3,9 @@ import { Loader2, Play, Save } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import {
-    execute as executeRequest,
+    prepare as prepareRequest,
+    record as recordRequest,
+    send as sendRequest,
     update as updateRequest,
 } from '@/actions/App/Http/Controllers/RequestController';
 import { Button } from '@/components/ui/button';
@@ -17,6 +19,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { api } from '@/lib/api';
+import { isLocalUrl, sendViaBrowser } from '@/lib/localRequest';
+import type { PreparedOutgoingRequest } from '@/lib/localRequest';
 import { useWorkspaceStore } from '@/stores/workspace';
 import type {
     AuthType,
@@ -294,6 +298,12 @@ async function save() {
     }
 }
 
+function withEnvironment(url: string): string {
+    return store.activeEnvironmentId
+        ? `${url}?environment_id=${store.activeEnvironmentId}`
+        : url;
+}
+
 async function send() {
     if (!tab.value || !commitBodyText()) {
         return;
@@ -308,11 +318,21 @@ async function send() {
     store.setExecuting(id, true);
 
     try {
-        const url = executeRequest.url(id);
-        const withEnv = store.activeEnvironmentId
-            ? `${url}?environment_id=${store.activeEnvironmentId}`
-            : url;
-        const response = await api.post(withEnv);
+        // .test/.local/localhost hosts only resolve on this machine — they must be
+        // fired by the browser itself, not proxied through the server, or
+        // "localhost" would mean the server's localhost instead of the developer's.
+        const { outgoing, variables } = await api.post<{
+            outgoing: PreparedOutgoingRequest;
+            variables: Record<string, string>;
+        }>(withEnvironment(prepareRequest.url(id)));
+
+        const response = isLocalUrl(outgoing.url)
+            ? await api.post(recordRequest.url(id), {
+                  variables,
+                  ...(await sendViaBrowser(outgoing)),
+              })
+            : await api.post(sendRequest.url(id), { outgoing, variables });
+
         store.setResponse(id, response as never);
     } catch {
         toast.error('Request failed to execute');

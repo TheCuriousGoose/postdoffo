@@ -3,6 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Actions\ExecuteRequestAction;
+use App\Actions\PrepareRequestAction;
+use App\Actions\RecordClientExecutedRequestAction;
+use App\Actions\SendPreparedRequestAction;
+use App\DTOs\OutgoingRequestData;
+use App\DTOs\PreparedRequestData;
 use App\Enums\AuthType;
 use App\Enums\BodyType;
 use App\Enums\HttpMethod;
@@ -66,6 +71,99 @@ class RequestController extends Controller
         }
 
         $result = $action->handle($apiRequest, $request->user(), $environment);
+
+        return response()->json($result->toArray());
+    }
+
+    /**
+     * Resolves the request (variables, pre-request script, interpolation) without
+     * firing it, so the browser can send it directly — used for hosts like .test/
+     * .local that only resolve on the developer's own machine, not this server.
+     */
+    public function prepare(Request $request, ApiRequest $apiRequest, PrepareRequestAction $action): JsonResponse
+    {
+        $this->authorize('view', $apiRequest->collection->workspace);
+
+        $environment = null;
+
+        if ($request->filled('environment_id')) {
+            $environment = Environment::forWorkspace($apiRequest->collection->workspace_id)
+                ->findOrFail($request->integer('environment_id'));
+        }
+
+        $prepared = $action->handle($apiRequest, $environment);
+
+        return response()->json([
+            'outgoing' => [
+                'method' => $prepared->outgoing->method->value,
+                'url' => $prepared->outgoing->url,
+                'headers' => $prepared->outgoing->headers,
+                'query_params' => $prepared->outgoing->queryParams,
+                'body' => $prepared->outgoing->body,
+                'body_type' => $prepared->outgoing->bodyType->value,
+            ],
+            'variables' => $prepared->variables,
+        ]);
+    }
+
+    /**
+     * Fires an already-prepared request from this server. Used when prepare() turned
+     * out not to target a local-only host, so the browser hands the resolved request
+     * back here instead of firing it itself.
+     */
+    public function send(Request $request, ApiRequest $apiRequest, SendPreparedRequestAction $action): JsonResponse
+    {
+        $this->authorize('view', $apiRequest->collection->workspace);
+
+        $data = $request->validate([
+            'outgoing.method' => ['required', Rule::enum(HttpMethod::class)],
+            'outgoing.url' => ['required', 'string'],
+            'outgoing.headers' => ['sometimes', 'array'],
+            'outgoing.query_params' => ['sometimes', 'array'],
+            'outgoing.body' => ['nullable'],
+            'outgoing.body_type' => ['required', Rule::enum(BodyType::class)],
+            'variables' => ['sometimes', 'array'],
+            'variables.*' => ['nullable', 'string'],
+        ]);
+
+        $prepared = new PreparedRequestData(
+            OutgoingRequestData::fromArray($data['outgoing']),
+            $data['variables'] ?? [],
+        );
+
+        $result = $action->handle($apiRequest, $request->user(), $prepared);
+
+        return response()->json($result->toArray());
+    }
+
+    /**
+     * Counterpart to prepare(): the browser reports back what happened when it fired
+     * the request itself, and we run the test script + record history against that.
+     */
+    public function record(Request $request, ApiRequest $apiRequest, RecordClientExecutedRequestAction $action): JsonResponse
+    {
+        $this->authorize('view', $apiRequest->collection->workspace);
+
+        $data = $request->validate([
+            'variables' => ['sometimes', 'array'],
+            'variables.*' => ['nullable', 'string'],
+            'status' => ['nullable', 'integer'],
+            'headers' => ['sometimes', 'array'],
+            'body' => ['nullable', 'string'],
+            'duration_ms' => ['required', 'integer', 'min:0'],
+            'error' => ['nullable', 'string'],
+        ]);
+
+        $result = $action->handle(
+            $apiRequest,
+            $request->user(),
+            $data['variables'] ?? [],
+            $data['status'] ?? null,
+            $data['headers'] ?? [],
+            $data['body'] ?? null,
+            $data['duration_ms'],
+            $data['error'] ?? null,
+        );
 
         return response()->json($result->toArray());
     }

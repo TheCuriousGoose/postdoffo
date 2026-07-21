@@ -30,6 +30,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('requests/{apiRequest}', [RequestController::class, 'update'])->name('requests.update');
         Route::delete('requests/{apiRequest}', [RequestController::class, 'destroy'])->name('requests.destroy');
         Route::post('requests/{apiRequest}/execute', [RequestController::class, 'execute'])->name('requests.execute');
+        Route::post('requests/{apiRequest}/prepare', [RequestController::class, 'prepare'])->name('requests.prepare');
+        Route::post('requests/{apiRequest}/send', [RequestController::class, 'send'])->name('requests.send');
+        Route::post('requests/{apiRequest}/record', [RequestController::class, 'record'])->name('requests.record');
 
         Route::post('workspaces/{workspace}/environments', [EnvironmentController::class, 'store'])->name('environments.store');
         Route::patch('environments/{environment}', [EnvironmentController::class, 'update'])->name('environments.update');

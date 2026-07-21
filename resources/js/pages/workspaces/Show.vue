@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { router, Head } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
 import { onBeforeUnmount, onMounted, watch } from 'vue';
+import { toast } from 'vue-sonner';
+import { store as storeRequest } from '@/actions/App/Http/Controllers/RequestController';
 import {
     ResizableHandle,
     ResizablePanel,
@@ -12,9 +14,13 @@ import HistoryPanel from '@/components/workspace/HistoryPanel.vue';
 import RequestEditor from '@/components/workspace/RequestEditor.vue';
 import ResponsePanel from '@/components/workspace/ResponsePanel.vue';
 import ShareDialog from '@/components/workspace/ShareDialog.vue';
+import { useOpenRequest } from '@/composables/useOpenRequest';
+import { api } from '@/lib/api';
+import { promptDialog } from '@/lib/dialogs';
 import { cn } from '@/lib/utils';
 import { useWorkspaceStore } from '@/stores/workspace';
 import type {
+    ApiRequest,
     CollectionNode,
     Environment,
     RequestHistoryEntry,
@@ -30,6 +36,7 @@ const props = defineProps<{
 }>();
 
 const store = useWorkspaceStore();
+const { openRequest } = useOpenRequest();
 
 const methodColor: Record<string, string> = {
     GET: 'text-blue-600 dark:text-blue-400',
@@ -47,19 +54,58 @@ onMounted(() => {
 });
 
 function onGlobalKeydown(event: KeyboardEvent) {
-    if (
-        event.altKey &&
-        !event.ctrlKey &&
-        !event.metaKey &&
-        event.key.toLowerCase() === 'w'
-    ) {
+    if (!event.altKey || event.ctrlKey || event.metaKey) {
+        return;
+    }
+
+    const key = event.key.toLowerCase();
+
+    if (key === 'w') {
         if (store.activeTabId === null) {
             return;
         }
 
         event.preventDefault();
         store.closeTab(store.activeTabId);
+    } else if (key === 't') {
+        event.preventDefault();
+        addRequestViaShortcut();
     }
+}
+
+// Alt+T: same "create a request" flow as a collection's own "New request"
+// menu item, targeting the active tab's collection (so it lands next to what
+// you're already looking at) or the first root collection otherwise.
+async function addRequestViaShortcut() {
+    const collectionId =
+        store.activeTab?.draft.collection_id ??
+        store.collectionTree[0]?.id ??
+        null;
+
+    if (collectionId === null) {
+        toast.error('Create a collection first');
+
+        return;
+    }
+
+    const name = await promptDialog({
+        title: 'New request',
+        label: 'Request name',
+        defaultValue: 'New Request',
+        confirmText: 'Create',
+    });
+
+    if (!name) {
+        return;
+    }
+
+    const created = await api.post<ApiRequest>(storeRequest.url(collectionId), {
+        name,
+        method: 'GET',
+        url: '',
+    });
+    router.reload({ only: ['collectionTree'] });
+    await openRequest(created);
 }
 
 onMounted(() => window.addEventListener('keydown', onGlobalKeydown));

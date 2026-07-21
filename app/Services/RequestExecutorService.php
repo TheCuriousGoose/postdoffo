@@ -64,11 +64,14 @@ class RequestExecutorService
         return $this->finalize($request, $prepared->variables, $status, $headers, $body, $durationMs, $error);
     }
 
-    public function prepare(Request $request, ?Environment $environment): PreparedRequestData
+    /**
+     * @param  array<string, string>  $runtimeOverrides  Highest-precedence variable layer — e.g. a Collection Runner's data-file row or a value chained from an earlier request in the same run.
+     */
+    public function prepare(Request $request, ?Environment $environment, array $runtimeOverrides = []): PreparedRequestData
     {
         $request->loadMissing('collection');
 
-        $variables = $this->variableResolver->resolve($request->collection, $environment);
+        $variables = $this->variableResolver->resolve($request->collection, $environment, $runtimeOverrides);
 
         $preContext = new ScriptContext($variables);
         $this->scriptRunner->run($request->pre_request_script, $preContext);
@@ -102,6 +105,7 @@ class RequestExecutorService
             durationMs: $durationMs,
             testResults: $testContext->testResults,
             error: $error,
+            variables: $testContext->variables,
         );
     }
 

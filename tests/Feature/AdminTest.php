@@ -100,4 +100,66 @@ class AdminTest extends TestCase
 
         $this->assertModelExists($workspace);
     }
+
+    public function test_users_index_paginates_results(): void
+    {
+        $admin = User::factory()->admin()->create();
+        User::factory()->count(20)->create();
+
+        $this->actingAs($admin)
+            ->get(route('admin.users.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('admin/users/Index')
+                ->where('users.per_page', 12)
+                ->where('users.total', 21)
+                ->has('users.data', 12)
+            );
+    }
+
+    public function test_users_index_can_search_by_name(): void
+    {
+        $admin = User::factory()->admin()->create();
+        User::factory()->create(['name' => 'Ada Lovelace']);
+        User::factory()->create(['name' => 'Alan Turing']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.users.index', ['search' => 'Lovelace']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('users.data', 1)
+                ->where('users.data.0.name', 'Ada Lovelace')
+            );
+    }
+
+    public function test_users_index_can_filter_by_role(): void
+    {
+        $admin = User::factory()->admin()->create();
+        User::factory()->count(3)->create();
+
+        $this->actingAs($admin)
+            ->get(route('admin.users.index', ['role' => 'admin']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('users.data', 1)
+                ->where('users.data.0.role', UserRole::Admin->value)
+            );
+    }
+
+    public function test_workspaces_index_can_search_by_owner(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $owner = User::factory()->create(['name' => 'Grace Hopper']);
+        Workspace::factory()->create(['name' => 'Cobol', 'owner_id' => $owner->id]);
+        Workspace::factory()->create(['name' => 'Fortran']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.workspaces.index', ['search' => 'Grace']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('admin/workspaces/Index')
+                ->has('workspaces.data', 1)
+                ->where('workspaces.data.0.name', 'Cobol')
+            );
+    }
 }

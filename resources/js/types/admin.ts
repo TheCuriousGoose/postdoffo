@@ -23,10 +23,31 @@ export type AdminWorkspace = {
     created_at: string;
 };
 
-export type AdminStats = {
-    users: number;
-    admins: number;
-    workspaces: number;
-    collections: number;
-    requests: number;
+export type AdminStat = {
+    total: number;
+    delta: number | null;
+};
+
+export type AdminStatKey =
+    'users' | 'admins' | 'workspaces' | 'collections' | 'requests';
+
+export type AdminStats = Record<AdminStatKey, AdminStat>;
+
+export type ChartPoint = {
+    date: string;
+    label: string;
+    value: number;
+};
+
+/**
+ * Shape of a Laravel length-aware paginator once serialized to Inertia props.
+ */
+export type Paginated<T> = {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    from: number | null;
+    to: number | null;
+    total: number;
 };

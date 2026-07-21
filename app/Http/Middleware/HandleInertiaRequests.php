@@ -43,7 +43,6 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'socialProviders' => SocialAuthController::configuredProviders(),
-            'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }
 }

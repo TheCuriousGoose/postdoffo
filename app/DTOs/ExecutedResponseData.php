@@ -7,6 +7,7 @@ final readonly class ExecutedResponseData
     /**
      * @param  array<string, array<int, string>>  $headers
      * @param  array<int, TestResultData>  $testResults
+     * @param  array<string, string>  $variables
      */
     public function __construct(
         public ?int $status,
@@ -15,6 +16,7 @@ final readonly class ExecutedResponseData
         public int $durationMs,
         public array $testResults = [],
         public ?string $error = null,
+        public array $variables = [],
     ) {}
 
     public function ok(): bool
@@ -35,6 +37,7 @@ final readonly class ExecutedResponseData
             'test_results' => array_map(fn (TestResultData $r) => $r->toArray(), $this->testResults),
             'error' => $this->error,
             'ok' => $this->ok(),
+            'variables' => $this->variables,
         ];
     }
 }

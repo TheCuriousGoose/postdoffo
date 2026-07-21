@@ -129,6 +129,7 @@ export type ExecutedResponse = {
     test_results: TestResult[];
     error: string | null;
     ok: boolean;
+    variables: Record<string, string>;
 };
 
 export type RequestHistoryEntry = {

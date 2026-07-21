@@ -3,12 +3,7 @@ import { Link } from '@inertiajs/vue3';
 import { Loader2, Play, Save } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
-import {
-    prepare as prepareRequest,
-    record as recordRequest,
-    send as sendRequest,
-    update as updateRequest,
-} from '@/actions/App/Http/Controllers/RequestController';
+import { update as updateRequest } from '@/actions/App/Http/Controllers/RequestController';
 import { Button } from '@/components/ui/button';
 import {
     Select,
@@ -19,8 +14,7 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { api } from '@/lib/api';
-import { isLocalUrl, sendViaBrowser } from '@/lib/localRequest';
-import type { PreparedOutgoingRequest } from '@/lib/localRequest';
+import { runRequest } from '@/lib/executeRequest';
 import { scripting as scriptingDocs } from '@/routes/docs';
 import { useWorkspaceStore } from '@/stores/workspace';
 import type {
@@ -299,12 +293,6 @@ async function save() {
     }
 }
 
-function withEnvironment(url: string): string {
-    return store.activeEnvironmentId
-        ? `${url}?environment_id=${store.activeEnvironmentId}`
-        : url;
-}
-
 async function send() {
     if (!tab.value || !commitBodyText()) {
         return;
@@ -319,22 +307,9 @@ async function send() {
     store.setExecuting(id, true);
 
     try {
-        // .test/.local/localhost hosts only resolve on this machine — they must be
-        // fired by the browser itself, not proxied through the server, or
-        // "localhost" would mean the server's localhost instead of the developer's.
-        const { outgoing, variables } = await api.post<{
-            outgoing: PreparedOutgoingRequest;
-            variables: Record<string, string>;
-        }>(withEnvironment(prepareRequest.url(id)));
+        const response = await runRequest(id, store.activeEnvironmentId);
 
-        const response = isLocalUrl(outgoing.url)
-            ? await api.post(recordRequest.url(id), {
-                variables,
-                ...(await sendViaBrowser(outgoing)),
-            })
-            : await api.post(sendRequest.url(id), { outgoing, variables });
-
-        store.setResponse(id, response as never);
+        store.setResponse(id, response);
     } catch {
         toast.error('Request failed to execute');
     } finally {
@@ -347,32 +322,63 @@ async function send() {
     <div v-if="tab" class="flex h-full min-h-0 flex-col">
         <!-- title -->
         <div class="flex items-center gap-2 border-b px-3 py-2">
-            <span class="size-1.5 shrink-0 rounded-full transition-colors"
-                :class="tab.dirty ? 'bg-orange-500' : 'bg-transparent'" :title="tab.dirty ? 'Unsaved changes' : ''" />
-            <input :value="tab.draft.name" placeholder="Request name" autocomplete="off" data-lpignore="true"
-                data-1p-ignore="true" data-bwignore="true" data-form-type="other"
+            <span
+                class="size-1.5 shrink-0 rounded-full transition-colors"
+                :class="tab.dirty ? 'bg-orange-500' : 'bg-transparent'"
+                :title="tab.dirty ? 'Unsaved changes' : ''"
+            />
+            <input
+                :value="tab.draft.name"
+                placeholder="Request name"
+                autocomplete="off"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-bwignore="true"
+                data-form-type="other"
                 class="min-w-0 flex-1 bg-transparent text-sm font-medium outline-none placeholder:text-muted-foreground/70"
-                @input="(e) => setName((e.target as HTMLInputElement).value)" />
+                @input="(e) => setName((e.target as HTMLInputElement).value)"
+            />
             <VariableScopePopover />
         </div>
 
         <!-- address bar -->
         <div class="flex items-center gap-2 px-3 py-2.5">
-            <Select :model-value="tab.draft.method" @update:model-value="(v) => setMethod(String(v))">
-                <SelectTrigger class="w-24 font-mono text-xs font-semibold" :class="methodColor[tab.draft.method]">
+            <Select
+                :model-value="tab.draft.method"
+                @update:model-value="(v) => setMethod(String(v))"
+            >
+                <SelectTrigger
+                    class="w-24 font-mono text-xs font-semibold"
+                    :class="methodColor[tab.draft.method]"
+                >
                     <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem v-for="m in methods" :key="m" :value="m" class="font-mono text-xs font-semibold"
-                        :class="methodColor[m]">{{ m }}</SelectItem>
+                    <SelectItem
+                        v-for="m in methods"
+                        :key="m"
+                        :value="m"
+                        class="font-mono text-xs font-semibold"
+                        :class="methodColor[m]"
+                        >{{ m }}</SelectItem
+                    >
                 </SelectContent>
             </Select>
 
-            <VariableHighlightInput :model-value="tab.draft.url" :variables="scope.variables"
-                placeholder="https://api.example.com/users/{{userId}}" class="flex-1 font-mono text-sm"
-                @update:model-value="setUrl" />
+            <VariableHighlightInput
+                :model-value="tab.draft.url"
+                :variables="scope.variables"
+                placeholder="https://api.example.com/users/{{userId}}"
+                class="flex-1 font-mono text-sm"
+                @update:model-value="setUrl"
+            />
 
-            <Button variant="outline" size="sm" :disabled="tab.saving" @click="save">
+            <Button
+                variant="outline"
+                size="sm"
+                :disabled="tab.saving"
+                @click="save"
+            >
                 <Loader2 v-if="tab.saving" class="size-4 animate-spin" />
                 <Save v-else class="size-4" />
                 Save
@@ -385,7 +391,10 @@ async function send() {
             </Button>
         </div>
 
-        <Tabs default-value="params" class="flex min-h-0 flex-1 flex-col px-3 pb-3">
+        <Tabs
+            default-value="params"
+            class="flex min-h-0 flex-1 flex-col px-3 pb-3"
+        >
             <TabsList>
                 <TabsTrigger value="params">Params</TabsTrigger>
                 <TabsTrigger value="headers">Headers</TabsTrigger>
@@ -397,42 +406,64 @@ async function send() {
 
             <div class="min-h-0 flex-1 overflow-y-auto pt-3">
                 <TabsContent value="params">
-                    <KeyValueEditor :model-value="tab.draft.query_params" :variables="scope.variables"
-                        key-placeholder="Param" @update:model-value="setQueryParams" />
+                    <KeyValueEditor
+                        :model-value="tab.draft.query_params"
+                        :variables="scope.variables"
+                        key-placeholder="Param"
+                        @update:model-value="setQueryParams"
+                    />
                 </TabsContent>
 
                 <TabsContent value="headers" class="flex flex-col gap-4">
                     <!-- inherited / default headers, in the same table shape -->
                     <div v-if="scope.inheritedHeaders.length">
-                        <p class="mb-1.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                        <p
+                            class="mb-1.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase"
+                        >
                             Inherited from collections
                         </p>
                         <div class="overflow-hidden rounded-md border">
                             <table class="w-full table-fixed border-collapse">
                                 <thead>
                                     <tr
-                                        class="border-b bg-muted/40 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-                                        <th class="border-r px-2.5 py-1.5 text-left">
+                                        class="border-b bg-muted/40 text-[11px] font-medium tracking-wide text-muted-foreground uppercase"
+                                    >
+                                        <th
+                                            class="border-r px-2.5 py-1.5 text-left"
+                                        >
                                             Header
                                         </th>
-                                        <th class="border-r px-2.5 py-1.5 text-left">
+                                        <th
+                                            class="border-r px-2.5 py-1.5 text-left"
+                                        >
                                             Value
                                         </th>
-                                        <th class="w-32 px-2.5 py-1.5 text-left">
+                                        <th
+                                            class="w-32 px-2.5 py-1.5 text-left"
+                                        >
                                             Source
                                         </th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="header in scope.inheritedHeaders" :key="header.key"
-                                        class="border-b font-mono text-xs last:border-b-0">
-                                        <td class="truncate border-r px-2.5 py-1.5">
+                                    <tr
+                                        v-for="header in scope.inheritedHeaders"
+                                        :key="header.key"
+                                        class="border-b font-mono text-xs last:border-b-0"
+                                    >
+                                        <td
+                                            class="truncate border-r px-2.5 py-1.5"
+                                        >
                                             {{ header.key }}
                                         </td>
-                                        <td class="truncate border-r px-2.5 py-1.5 text-muted-foreground">
+                                        <td
+                                            class="truncate border-r px-2.5 py-1.5 text-muted-foreground"
+                                        >
                                             {{ header.value }}
                                         </td>
-                                        <td class="truncate px-2.5 py-1.5 text-muted-foreground">
+                                        <td
+                                            class="truncate px-2.5 py-1.5 text-muted-foreground"
+                                        >
                                             {{ header.sourceName }}
                                         </td>
                                     </tr>
@@ -446,44 +477,76 @@ async function send() {
                     </div>
 
                     <div>
-                        <p class="mb-1.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                        <p
+                            class="mb-1.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase"
+                        >
                             Request headers
                         </p>
-                        <KeyValueEditor :model-value="tab.draft.headers" :variables="scope.variables"
-                            key-placeholder="Header" @update:model-value="setHeaders" />
+                        <KeyValueEditor
+                            :model-value="tab.draft.headers"
+                            :variables="scope.variables"
+                            key-placeholder="Header"
+                            @update:model-value="setHeaders"
+                        />
                     </div>
                 </TabsContent>
 
                 <TabsContent value="auth">
-                    <AuthEditor :auth-type="tab.draft.auth_type" :auth="tab.draft.auth" :variables="scope.variables"
-                        :inherited-auth="scope.inheritedAuth" @update:auth-type="setAuthType" @update:auth="setAuth" />
+                    <AuthEditor
+                        :auth-type="tab.draft.auth_type"
+                        :auth="tab.draft.auth"
+                        :variables="scope.variables"
+                        :inherited-auth="scope.inheritedAuth"
+                        @update:auth-type="setAuthType"
+                        @update:auth="setAuth"
+                    />
                 </TabsContent>
 
                 <TabsContent value="body" class="flex flex-col gap-3">
-                    <Select :model-value="tab.draft.body_type" @update:model-value="(v) => setBodyType(String(v))">
+                    <Select
+                        :model-value="tab.draft.body_type"
+                        @update:model-value="(v) => setBodyType(String(v))"
+                    >
                         <SelectTrigger class="w-40 text-xs">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem v-for="bt in bodyTypes" :key="bt.value" :value="bt.value">{{ bt.label }}
+                            <SelectItem
+                                v-for="bt in bodyTypes"
+                                :key="bt.value"
+                                :value="bt.value"
+                                >{{ bt.label }}
                             </SelectItem>
                         </SelectContent>
                     </Select>
 
-                    <CodeEditor v-if="
-                        tab.draft.body_type === 'raw' ||
-                        tab.draft.body_type === 'json'
-                    " v-model="rawBodyText" :language="tab.draft.body_type === 'json' ? 'json' : 'text'
-                            " :variables="scope.variables" :placeholder="tab.draft.body_type === 'json'
+                    <CodeEditor
+                        v-if="
+                            tab.draft.body_type === 'raw' ||
+                            tab.draft.body_type === 'json'
+                        "
+                        v-model="rawBodyText"
+                        :language="
+                            tab.draft.body_type === 'json' ? 'json' : 'text'
+                        "
+                        :variables="scope.variables"
+                        :placeholder="
+                            tab.draft.body_type === 'json'
                                 ? 'JSON request body'
                                 : 'Raw request body'
-                            " class="min-h-48" />
+                        "
+                        class="min-h-48"
+                    />
 
-                    <KeyValueEditor v-else-if="
-                        tab.draft.body_type === 'form_data' ||
-                        tab.draft.body_type === 'urlencoded'
-                    " :model-value="tab.draft.body?.fields ?? []" :variables="scope.variables"
-                        @update:model-value="setFormFields" />
+                    <KeyValueEditor
+                        v-else-if="
+                            tab.draft.body_type === 'form_data' ||
+                            tab.draft.body_type === 'urlencoded'
+                        "
+                        :model-value="tab.draft.body?.fields ?? []"
+                        :variables="scope.variables"
+                        @update:model-value="setFormFields"
+                    />
 
                     <p v-else class="text-sm text-muted-foreground">
                         This request has no body.
@@ -494,34 +557,59 @@ async function send() {
                     <p class="text-xs text-muted-foreground">
                         Runs before the request. Available:
                         <code class="font-mono">pm.variables.set(k, v)</code>,
-                        <code class="font-mono">pm.request.headers.set(k, v)</code>.
-                        <Link :href="scriptingDocs()" target="_blank" class="underline hover:text-foreground">Full
-                            scripting reference</Link>
+                        <code class="font-mono"
+                            >pm.request.headers.set(k, v)</code
+                        >.
+                        <Link
+                            :href="scriptingDocs()"
+                            target="_blank"
+                            class="underline hover:text-foreground"
+                            >Full scripting reference</Link
+                        >
                     </p>
-                    <CodeEditor :model-value="tab.draft.pre_request_script ?? ''" language="script"
-                        :variables="scope.variables" placeholder='pm.variables.set("timestamp", "123")'
-                        class="min-h-48 flex-1" @update:model-value="
+                    <CodeEditor
+                        :model-value="tab.draft.pre_request_script ?? ''"
+                        language="script"
+                        :variables="scope.variables"
+                        placeholder='pm.variables.set("timestamp", "123")'
+                        class="min-h-48 flex-1"
+                        @update:model-value="
                             (v) => setPreRequestScript(String(v))
-                        " />
+                        "
+                    />
                 </TabsContent>
 
                 <TabsContent value="tests" class="flex h-full flex-col gap-2">
                     <p class="text-xs text-muted-foreground">
                         Runs after the response. Example:
-                        <code class="font-mono">pm.test("status is 200", pm.response.status ==
-                            200)</code>
-                        <Link :href="scriptingDocs()" target="_blank" class="underline hover:text-foreground">Full
-                            scripting reference</Link>
+                        <code class="font-mono"
+                            >pm.test("status is 200", pm.response.status ==
+                            200)</code
+                        >
+                        <Link
+                            :href="scriptingDocs()"
+                            target="_blank"
+                            class="underline hover:text-foreground"
+                            >Full scripting reference</Link
+                        >
                     </p>
-                    <CodeEditor :model-value="tab.draft.test_script ?? ''" language="script"
-                        :variables="scope.variables" placeholder='pm.test("status is 200", pm.response.status == 200)'
-                        class="min-h-48 flex-1" @update:model-value="(v) => setTestScript(String(v))" />
+                    <CodeEditor
+                        :model-value="tab.draft.test_script ?? ''"
+                        language="script"
+                        :variables="scope.variables"
+                        placeholder='pm.test("status is 200", pm.response.status == 200)'
+                        class="min-h-48 flex-1"
+                        @update:model-value="(v) => setTestScript(String(v))"
+                    />
                 </TabsContent>
             </div>
         </Tabs>
     </div>
 
-    <div v-else class="flex h-full items-center justify-center text-sm text-muted-foreground">
+    <div
+        v-else
+        class="flex h-full items-center justify-center text-sm text-muted-foreground"
+    >
         Select or create a request to get started.
     </div>
 

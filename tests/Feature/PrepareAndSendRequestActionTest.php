@@ -46,6 +46,49 @@ class PrepareAndSendRequestActionTest extends TestCase
         $this->assertSame(0, RequestHistory::count());
     }
 
+    public function test_prepare_merges_runtime_overrides_as_the_highest_precedence_variable_layer(): void
+    {
+        $user = User::factory()->create();
+        $workspace = Workspace::factory()->create(['owner_id' => $user->id]);
+        $collection = Collection::factory()->create([
+            'workspace_id' => $workspace->id,
+            'variables' => ['base_url' => 'http://myapp.test', 'user_id' => 'collection-default'],
+        ]);
+
+        $request = RequestModel::factory()->create([
+            'collection_id' => $collection->id,
+            'url' => '{{base_url}}/users/{{user_id}}',
+        ]);
+
+        Http::preventStrayRequests();
+
+        $prepared = app(PrepareRequestAction::class)->handle($request, runtimeOverrides: ['user_id' => '42']);
+
+        $this->assertSame('http://myapp.test/users/42', $prepared->outgoing->url);
+        $this->assertSame('42', $prepared->variables['user_id']);
+    }
+
+    public function test_finalize_returns_variables_mutated_by_the_test_script_for_chaining_into_later_requests(): void
+    {
+        $user = User::factory()->create();
+        $workspace = Workspace::factory()->create(['owner_id' => $user->id]);
+        $collection = Collection::factory()->create(['workspace_id' => $workspace->id]);
+
+        $request = RequestModel::factory()->create([
+            'collection_id' => $collection->id,
+            'url' => 'https://api.example.com/login',
+            'test_script' => 'pm.variables.set("token", "abc123")',
+        ]);
+
+        Http::fake(['api.example.com/*' => Http::response(['token' => 'abc123'], 200)]);
+
+        $prepared = app(PrepareRequestAction::class)->handle($request);
+        $result = app(SendPreparedRequestAction::class)->handle($request, $user, $prepared);
+
+        $this->assertArrayNotHasKey('token', $prepared->variables);
+        $this->assertSame('abc123', $result->variables['token']);
+    }
+
     public function test_send_prepared_request_fires_it_once_and_records_history_without_redoing_the_pre_request_script(): void
     {
         $user = User::factory()->create();

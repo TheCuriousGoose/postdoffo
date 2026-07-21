@@ -9,6 +9,7 @@ import {
     FolderPlus,
     Layers,
     MoreHorizontal,
+    Play,
     Plus,
     Settings2,
     Share2,
@@ -62,6 +63,7 @@ import type {
     RequestSummary,
 } from '@/types/workspace';
 import AuthEditor from './AuthEditor.vue';
+import CollectionRunnerDialog from './CollectionRunnerDialog.vue';
 import ExportDialog from './ExportDialog.vue';
 import KeyValueEditor from './KeyValueEditor.vue';
 
@@ -198,6 +200,7 @@ async function onFolderDrop() {
     if (intent === 'before' || intent === 'after') {
         // Same sibling list as this row — the parent owns that array.
         emit('reorder-child', item.id, props.node.id, intent);
+
         return;
     }
 
@@ -387,6 +390,7 @@ const settingsSections: {
 
 const settingsOpen = ref(false);
 const exportOpen = ref(false);
+const runOpen = ref(false);
 const activeSection = ref<SettingsSection>('general');
 const settingsName = ref('');
 const settingsVariables = ref<KeyValuePair[]>([]);
@@ -488,7 +492,7 @@ const methodColor: Record<string, string> = {
                     isDragging && 'opacity-40',
                     !isDragging &&
                         folderDropIntent === 'into' &&
-                        'bg-primary/10 ring-2 ring-inset ring-primary',
+                        'bg-primary/10 ring-2 ring-primary ring-inset',
                 )
             "
             :style="{ paddingLeft: `${(depth ?? 0) * 12}px` }"
@@ -548,6 +552,9 @@ const methodColor: Record<string, string> = {
                     <DropdownMenuItem @click="openSettings">
                         <Settings2 class="size-3.5" /> Settings
                     </DropdownMenuItem>
+                    <DropdownMenuItem @click="runOpen = true">
+                        <Play class="size-3.5" /> Run collection
+                    </DropdownMenuItem>
                     <DropdownMenuItem @click="exportOpen = true">
                         <Download class="size-3.5" /> Export
                     </DropdownMenuItem>
@@ -571,7 +578,7 @@ const methodColor: Record<string, string> = {
                             'opacity-40',
                         dragOverRequestId === request.id &&
                             requestDropIntent === 'into' &&
-                            'bg-primary/10 ring-2 ring-inset ring-primary',
+                            'bg-primary/10 ring-2 ring-primary ring-inset',
                     )
                 "
                 :style="{ paddingLeft: `${((depth ?? 0) + 1) * 12 + 18}px` }"
@@ -800,4 +807,6 @@ const methodColor: Record<string, string> = {
         :collection-id="node.id"
         :collection-name="node.name"
     />
+
+    <CollectionRunnerDialog v-model:open="runOpen" :node="node" />
 </template>

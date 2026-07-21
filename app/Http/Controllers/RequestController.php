@@ -140,7 +140,12 @@ class RequestController extends Controller
                 ->findOrFail($request->integer('environment_id'));
         }
 
-        $prepared = $action->handle($apiRequest, $environment);
+        $data = $request->validate([
+            'variables' => ['sometimes', 'array'],
+            'variables.*' => ['nullable', 'string'],
+        ]);
+
+        $prepared = $action->handle($apiRequest, $environment, $data['variables'] ?? []);
 
         return response()->json([
             'outgoing' => [

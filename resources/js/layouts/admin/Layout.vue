@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { LayoutDashboard, Shield, Users } from '@lucide/vue';
+import { LayoutDashboard, ShieldCheck, Users } from '@lucide/vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -25,11 +25,15 @@ const sidebarNavItems: NavItem[] = [
     {
         title: 'Workspaces',
         href: workspacesIndex(),
-        icon: Shield,
+        icon: ShieldCheck,
     },
 ];
 
-const { isCurrentOrParentUrl } = useCurrentUrl();
+// Admin routes are flat (/admin, /admin/users, /admin/workspaces) with no
+// nested detail pages, so an exact match is correct here — isCurrentOrParentUrl's
+// startsWith made "Dashboard" (/admin) match every other admin URL as a prefix,
+// so it was highlighted no matter which admin page was open.
+const { isCurrentUrl } = useCurrentUrl();
 </script>
 
 <template>
@@ -39,8 +43,8 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
             description="Manage users and workspaces across the whole app."
         />
 
-        <div class="flex flex-col lg:flex-row lg:space-x-12">
-            <aside class="w-full max-w-xl lg:w-48">
+        <div class="flex flex-col lg:flex-row lg:space-x-8">
+            <aside class="w-full lg:w-48 lg:shrink-0">
                 <nav
                     class="flex flex-col space-y-1 space-x-0"
                     aria-label="Admin"
@@ -51,7 +55,7 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
                         variant="ghost"
                         :class="[
                             'w-full justify-start',
-                            { 'bg-muted': isCurrentOrParentUrl(item.href) },
+                            { 'bg-muted': isCurrentUrl(item.href) },
                         ]"
                         as-child
                     >
@@ -65,8 +69,8 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
 
             <Separator class="my-6 lg:hidden" />
 
-            <div class="flex-1 md:max-w-3xl">
-                <section class="max-w-3xl space-y-12">
+            <div class="min-w-0 flex-1">
+                <section class="space-y-8">
                     <slot />
                 </section>
             </div>

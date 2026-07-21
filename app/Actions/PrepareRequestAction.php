@@ -17,12 +17,15 @@ class PrepareRequestAction
 {
     public function __construct(private readonly RequestExecutorService $executor) {}
 
-    public function handle(Request $request, ?Environment $environment = null): PreparedRequestData
+    /**
+     * @param  array<string, string>  $runtimeOverrides
+     */
+    public function handle(Request $request, ?Environment $environment = null, array $runtimeOverrides = []): PreparedRequestData
     {
         $request->loadMissing('collection.workspace');
 
         $environment ??= Environment::forWorkspace($request->collection->workspace_id)->active()->first();
 
-        return $this->executor->prepare($request, $environment);
+        return $this->executor->prepare($request, $environment, $runtimeOverrides);
     }
 }

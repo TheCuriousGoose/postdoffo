@@ -2,80 +2,65 @@
 import { Head, Link } from '@inertiajs/vue3';
 import {
     ArrowRight,
-    Boxes,
     CheckCircle2,
     Globe,
-    History,
+    KeyRound,
     Layers,
-    Play,
     Plus,
-    ShieldCheck,
+    Upload,
     Users,
-    XCircle,
 } from '@lucide/vue';
 import IconGithub from '@/components/IconGithub.vue';
 import SiteFooter from '@/components/site/SiteFooter.vue';
 import SiteHeader from '@/components/site/SiteHeader.vue';
+import { GITHUB_URL } from '@/lib/links';
 import { dashboard, register } from '@/routes';
 
 // Literal variable token, kept out of the template so the `}}` doesn't
 // terminate Vue's mustache interpolation early.
 const varBaseUrl = '{{base_url}}';
 
-const features = [
-    {
-        icon: Boxes,
-        title: 'Workspaces',
-        description:
-            'Every project gets its own space. Collections, environments and history stay neatly apart, never tangled together.',
-        span: 'md:col-span-6',
-        lead: true,
-    },
+const capabilities = [
     {
         icon: Layers,
-        title: 'Nested collections',
+        name: 'Workspaces & collections',
         description:
-            'Fold requests into collections and sub-folders. Headers and auth cascade down the whole tree.',
-        span: 'md:col-span-6',
+            'Requests organised into workspaces, collections and nested folders.',
     },
     {
         icon: Globe,
-        title: 'Environments',
+        name: 'Environments',
         description:
-            'Reusable variables per workspace. Flip between dev, staging and production in a click.',
-        span: 'md:col-span-4',
+            'Swap dev, staging and production with one active environment. Secrets stay masked.',
     },
     {
-        icon: History,
-        title: 'Request history',
+        icon: CheckCircle2,
+        name: 'Request tests',
         description:
-            'Every call is recorded with its response. Jump back and replay any of them instantly.',
-        span: 'md:col-span-4',
+            'Assertions run on every send, with pass or fail shown next to the response.',
     },
     {
         icon: Users,
-        title: 'Team roles',
+        name: 'Team roles',
         description:
-            'Invite people as editors or viewers. Everyone works from the same source of truth.',
-        span: 'md:col-span-4',
+            'Invite editors and viewers. Everyone works from one source of truth.',
     },
     {
-        icon: ShieldCheck,
-        title: 'Auth, built in',
+        icon: KeyRound,
+        name: 'Auth built in',
         description:
-            'Bearer, Basic and API key, set per request or inherited from a parent collection. No plugins, no scripts to copy around.',
-        span: 'md:col-span-12',
-        wide: true,
+            'Bearer, Basic and API key, set per request or inherited from a folder.',
+    },
+    {
+        icon: Upload,
+        name: 'Postman import',
+        description:
+            'Bring a v2.1 export across with folders, headers and auth intact.',
     },
 ];
 
-const testResults = [
-    { label: 'status is 200', ok: true },
-    { label: 'response under 500 ms', ok: true },
-    { label: 'body has an id', ok: true },
-    { label: 'currency equals usd', ok: false },
-];
-
+// Kept identical to the FAQPage JSON-LD in resources/views/app.blade.php so
+// the structured data matches what's on the page.
 const faqs = [
     {
         question: 'Is PostDoffo really free?',
@@ -98,7 +83,6 @@ const faqs = [
         answer: 'Only you and the teammates you invite to a workspace. Roles decide whether a member can edit or only view. See the privacy policy for how data is stored.',
     },
 ];
-
 </script>
 
 <template>
@@ -107,313 +91,171 @@ const faqs = [
     <div class="min-h-svh bg-background font-sans text-foreground">
         <SiteHeader />
 
-        <!-- Hero -->
-        <section class="relative overflow-hidden border-b border-border">
-            <!-- dotted technical canvas -->
+        <!-- Hero: asymmetric split, editorial left / honest request figure right -->
+        <section class="border-b border-border">
             <div
-                class="pointer-events-none absolute inset-0 -z-10 [background-image:radial-gradient(var(--border)_1px,transparent_1px)] [mask-image:linear-gradient(to_bottom,black,transparent_85%)] [background-size:22px_22px] opacity-70"
-                aria-hidden="true"
-            />
-
-            <div class="mx-auto max-w-6xl px-6 pt-20 pb-16 lg:pt-28">
-                <div class="grid gap-14 lg:grid-cols-12 lg:gap-10">
-                    <div class="lg:col-span-6">
-                        <p
-                            class="flex items-center gap-2 font-mono text-xs tracking-widest text-muted-foreground uppercase"
+                class="mx-auto grid max-w-6xl gap-14 px-6 pt-20 pb-20 lg:grid-cols-12 lg:gap-12 lg:pt-24 lg:pb-28"
+            >
+                <div class="lg:col-span-7 lg:pr-8">
+                    <h1
+                        class="max-w-xl font-display text-5xl leading-[1.03] font-semibold tracking-tight text-balance sm:text-6xl"
+                    >
+                        The open-source API client for teams.
+                    </h1>
+                    <p
+                        class="mt-6 max-w-md text-lg leading-relaxed text-pretty text-muted-foreground"
+                    >
+                        Collections, environments, request tests and sharing in
+                        one fast workspace. Free on the hosted app, or run it on
+                        your own servers.
+                    </p>
+                    <div class="mt-9 flex flex-col gap-3 sm:flex-row">
+                        <Link
+                            :href="$page.props.auth.user ? dashboard() : register()"
+                            class="inline-flex items-center justify-center gap-2 rounded-lg bg-orange-500 px-6 py-3 text-sm font-semibold text-stone-950 transition hover:bg-orange-400 active:translate-y-px"
                         >
-                            <span class="h-px w-6 bg-orange-500" />
-                            Open-source HTTP client for teams
-                        </p>
-
-                        <h1
-                            class="mt-6 font-display text-5xl leading-[1.02] font-semibold tracking-tight text-balance sm:text-6xl"
+                            Start building
+                            <ArrowRight class="size-4" />
+                        </Link>
+                        <Link
+                            :href="'/self-hosting'"
+                            class="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-6 py-3 text-sm font-semibold transition hover:bg-accent active:translate-y-px"
                         >
-                            Build and ship APIs
-                            <br class="hidden sm:block" />
-                            without the busywork.
-                        </h1>
-
-                        <p
-                            class="mt-6 max-w-md text-lg leading-relaxed text-pretty text-muted-foreground"
-                        >
-                            PostDoffo keeps your collections, environments,
-                            secrets and team in one fast workspace. No installs,
-                            no config files.
-                        </p>
-
-                        <div class="mt-9 flex flex-col gap-3 sm:flex-row">
-                            <Link
-                                :href="
-                                    $page.props.auth.user
-                                        ? dashboard()
-                                        : register()
-                                "
-                                class="inline-flex items-center justify-center gap-2 rounded-lg bg-orange-500 px-6 py-3 text-sm font-semibold text-stone-950 transition hover:bg-orange-400"
-                            >
-                                Start building
-                                <ArrowRight class="size-4" />
-                            </Link>
-                            <Link
-                                :href="'/self-hosting'"
-                                class="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-6 py-3 text-sm font-semibold transition hover:bg-accent"
-                            >
-                                <IconGithub class="size-4" />
-                                Self-host
-                            </Link>
-                        </div>
-
-                        <p class="mt-5 font-mono text-xs text-muted-foreground">
-                            Free and open source. Import your Postman
-                            collections in seconds.
-                        </p>
-                    </div>
-
-                    <!-- editor-style request panel -->
-                    <div class="lg:col-span-6">
-                        <div
-                            class="overflow-hidden rounded-xl border border-border bg-card shadow-xl shadow-black/5 dark:shadow-black/40"
-                        >
-                            <!-- tab bar -->
-                            <div
-                                class="flex items-center gap-1 border-b border-border bg-muted/40 px-3 pt-2"
-                            >
-                                <div
-                                    class="flex items-center gap-2 rounded-t-md border-x border-t border-border bg-card px-3 py-2 font-mono text-xs"
-                                >
-                                    <span
-                                        class="text-green-600 dark:text-green-400"
-                                        >POST</span
-                                    >
-                                    <span class="text-muted-foreground"
-                                        >charges</span
-                                    >
-                                </div>
-                                <div
-                                    class="px-3 py-2 font-mono text-xs text-muted-foreground/60"
-                                >
-                                    customers
-                                </div>
-                            </div>
-
-                            <!-- request line -->
-                            <div class="flex items-center gap-2 p-3">
-                                <span
-                                    class="rounded bg-green-500/10 px-2 py-1.5 font-mono text-xs font-bold text-green-600 dark:text-green-400"
-                                    >POST</span
-                                >
-                                <div
-                                    class="min-w-0 flex-1 truncate rounded-md border border-border bg-background px-3 py-1.5 font-mono text-sm text-muted-foreground"
-                                >
-                                    <span
-                                        class="text-orange-600 dark:text-orange-400"
-                                        >{{ varBaseUrl }}</span
-                                    >/v1/charges
-                                </div>
-                                <button
-                                    type="button"
-                                    class="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-orange-500 px-3 py-1.5 font-mono text-xs font-bold text-stone-950"
-                                >
-                                    <Play class="size-3.5" /> SEND
-                                </button>
-                            </div>
-
-                            <!-- status row -->
-                            <div
-                                class="flex flex-wrap items-center gap-x-4 gap-y-1 border-y border-border bg-muted/30 px-3 py-2 font-mono text-xs"
-                            >
-                                <span
-                                    class="flex items-center gap-1.5 font-semibold text-green-600 dark:text-green-400"
-                                >
-                                    <span
-                                        class="size-1.5 rounded-full bg-green-500"
-                                    />
-                                    200 OK
-                                </span>
-                                <span class="text-muted-foreground"
-                                    >128 ms</span
-                                >
-                                <span class="text-muted-foreground"
-                                    >1.2 KB</span
-                                >
-                                <span class="ml-auto text-muted-foreground/70"
-                                    >application/json</span
-                                >
-                            </div>
-
-                            <!-- response body with line numbers -->
-                            <div class="flex font-mono text-xs leading-relaxed">
-                                <div
-                                    class="shrink-0 border-r border-border py-3 pr-3 pl-4 text-right text-muted-foreground/40 select-none"
-                                >
-                                    <div v-for="n in 6" :key="n">{{ n }}</div>
-                                </div>
-                                <pre
-                                    class="overflow-x-auto py-3 pl-4"
-                                ><span class="text-muted-foreground">{</span>
-  <span class="text-orange-600 dark:text-orange-400">"id"</span>: <span class="text-green-600 dark:text-green-400">"ch_1M8fq2"</span>,
-  <span class="text-orange-600 dark:text-orange-400">"amount"</span>: <span class="text-sky-600 dark:text-sky-400">4200</span>,
-  <span class="text-orange-600 dark:text-orange-400">"currency"</span>: <span class="text-green-600 dark:text-green-400">"eur"</span>,
-  <span class="text-orange-600 dark:text-orange-400">"status"</span>: <span class="text-green-600 dark:text-green-400">"succeeded"</span>
-<span class="text-muted-foreground">}</span></pre>
-                            </div>
-                        </div>
+                            <IconGithub class="size-4" />
+                            Self-host
+                        </Link>
                     </div>
                 </div>
+
+                <!-- Honest request/response figure: real syntax, no fake app
+                     chrome (no tab bar, no window controls, no fake buttons). -->
+                <figure class="lg:col-span-5 lg:self-center">
+                    <div
+                        class="overflow-hidden rounded-xl border border-border bg-card font-mono text-xs"
+                    >
+                        <div class="flex items-center gap-2 px-4 py-3">
+                            <span
+                                class="font-bold text-green-600 dark:text-green-400"
+                                >GET</span
+                            >
+                            <span class="truncate text-muted-foreground">
+                                <span
+                                    class="text-orange-600 dark:text-orange-400"
+                                    >{{ varBaseUrl }}</span
+                                >/v1/customers</span
+                            >
+                        </div>
+                        <div
+                            class="flex flex-wrap items-center gap-x-4 gap-y-1 border-y border-border bg-muted/40 px-4 py-2.5"
+                        >
+                            <span
+                                class="flex items-center gap-1.5 font-semibold text-green-600 dark:text-green-400"
+                            >
+                                <span
+                                    class="size-1.5 rounded-full bg-green-500"
+                                />
+                                200 OK
+                            </span>
+                            <span class="text-muted-foreground">142 ms</span>
+                            <span class="text-muted-foreground">1.2 KB</span>
+                        </div>
+                        <pre
+                            class="overflow-x-auto px-4 py-4 leading-relaxed"
+                        ><span class="text-muted-foreground">{</span>
+  <span class="text-orange-600 dark:text-orange-400">"id"</span>: <span class="text-green-600 dark:text-green-400">"cus_9fTq2x"</span>,
+  <span class="text-orange-600 dark:text-orange-400">"email"</span>: <span class="text-green-600 dark:text-green-400">"ada@acme.dev"</span>,
+  <span class="text-orange-600 dark:text-orange-400">"plan"</span>: <span class="text-green-600 dark:text-green-400">"team"</span>
+<span class="text-muted-foreground">}</span></pre>
+                    </div>
+                    <figcaption class="mt-3 text-xs text-muted-foreground">
+                        A request and its response. Nothing else in the way.
+                    </figcaption>
+                </figure>
             </div>
         </section>
 
-        <!-- Features -->
-        <section id="features" class="scroll-mt-20 border-b border-border">
+        <!-- Capabilities: airy two-column list, no card chrome -->
+        <section class="border-b border-border">
             <div class="mx-auto max-w-6xl px-6 py-20 sm:py-28">
-                <div
-                    class="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between"
-                >
+                <div class="max-w-xl">
                     <h2
-                        class="max-w-xl font-display text-3xl font-semibold tracking-tight sm:text-4xl"
+                        class="font-display text-3xl font-semibold tracking-tight sm:text-4xl"
                     >
                         Everything the job needs.
-                        <span class="text-muted-foreground"
-                            >Nothing it doesn't.</span
-                        >
                     </h2>
-                    <p class="max-w-sm text-sm text-muted-foreground">
-                        A focused toolkit for working with APIs, with defaults
-                        that stay out of your way.
+                    <p class="mt-4 text-muted-foreground">
+                        A focused toolkit for working with APIs. No bloat, no
+                        plugins to wire up.
                     </p>
                 </div>
 
                 <div
-                    class="mt-12 grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-12"
+                    class="mt-14 grid grid-cols-1 gap-x-12 gap-y-10 md:grid-cols-2"
                 >
                     <div
-                        v-for="feature in features"
-                        :key="feature.title"
-                        :class="feature.span"
-                        class="group flex flex-col bg-background p-8 transition-colors hover:bg-card"
+                        v-for="item in capabilities"
+                        :key="item.name"
+                        class="flex gap-4"
                     >
-                        <div
-                            :class="feature.wide ? 'sm:flex-row sm:gap-6' : ''"
-                            class="flex flex-1 flex-col"
-                        >
-                            <component
-                                :is="feature.icon"
-                                class="size-6 text-orange-500"
-                                :stroke-width="1.75"
-                            />
-                            <div
-                                :class="feature.wide ? 'sm:mt-0' : 'mt-5'"
-                                class="flex-1"
+                        <component
+                            :is="item.icon"
+                            class="mt-0.5 size-5 shrink-0 text-orange-500"
+                            :stroke-width="1.75"
+                        />
+                        <div>
+                            <h3
+                                class="font-display font-semibold tracking-tight"
                             >
-                                <h3
-                                    :class="feature.lead ? 'text-lg' : ''"
-                                    class="font-display font-semibold tracking-tight"
-                                >
-                                    {{ feature.title }}
-                                </h3>
-                                <p
-                                    class="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground"
-                                >
-                                    {{ feature.description }}
-                                </p>
-                            </div>
+                                {{ item.name }}
+                            </h3>
+                            <p
+                                class="mt-1.5 text-sm leading-relaxed text-muted-foreground"
+                            >
+                                {{ item.description }}
+                            </p>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Scripting & tests (dark band) -->
-        <section id="testing" class="scroll-mt-20 bg-stone-950 text-stone-100">
+        <!-- Open source / self-host: editorial statement, no code block -->
+        <section class="border-b border-border bg-muted/30">
             <div class="mx-auto max-w-6xl px-6 py-20 sm:py-28">
-                <div class="max-w-2xl">
-                    <p
-                        class="flex items-center gap-2 font-mono text-xs tracking-widest text-stone-400 uppercase"
+                <h2
+                    class="max-w-2xl font-display text-3xl font-semibold tracking-tight text-balance sm:text-4xl"
+                >
+                    Yours to run. Yours to read.
+                </h2>
+                <p class="mt-5 max-w-xl text-muted-foreground">
+                    PostDoffo is open source. Use the hosted app, or clone the
+                    repository and run the exact same thing on your own
+                    infrastructure. Your requests and secrets stay on hardware
+                    you control.
+                </p>
+                <div class="mt-7 flex flex-wrap items-center gap-6">
+                    <Link
+                        :href="'/self-hosting'"
+                        class="inline-flex items-center gap-1.5 text-sm font-semibold text-orange-600 transition hover:text-orange-500 dark:text-orange-400"
                     >
-                        <span class="h-px w-6 bg-orange-500" />
-                        Scripting & tests
-                    </p>
-                    <h2
-                        class="mt-6 font-display text-3xl font-semibold tracking-tight sm:text-4xl"
+                        Read the self-hosting guide
+                        <ArrowRight class="size-4" />
+                    </Link>
+                    <a
+                        :href="GITHUB_URL"
+                        target="_blank"
+                        rel="noopener"
+                        class="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
                     >
-                        Assertions that run on every send
-                    </h2>
-                    <p class="mt-4 text-stone-400">
-                        Write a test script once and PostDoffo runs it the
-                        moment a response comes back. Catch a broken endpoint
-                        before it reaches your app. Need a token or timestamp
-                        first? A pre-request script runs ahead of the call.
-                    </p>
-                </div>
-
-                <div class="mt-12 grid gap-6 lg:grid-cols-2">
-                    <!-- code -->
-                    <div
-                        class="overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]"
-                    >
-                        <div
-                            class="flex items-center gap-2 border-b border-white/10 px-4 py-2.5 font-mono text-xs text-stone-400"
-                        >
-                            <Play class="size-3.5" />
-                            test script
-                        </div>
-                        <div class="flex font-mono text-xs leading-relaxed">
-                            <div
-                                class="shrink-0 border-r border-white/10 py-4 pr-3 pl-4 text-right text-stone-600 select-none"
-                            >
-                                <div v-for="n in 6" :key="n">{{ n }}</div>
-                            </div>
-                            <pre
-                                class="overflow-x-auto py-4 pl-4 text-stone-300"
-                            ><span class="text-sky-400">test</span>(<span class="text-green-400">"status is 200"</span>, () <span class="text-orange-400">=></span> {
-  <span class="text-sky-400">expect</span>(res.status).<span class="text-sky-400">toBe</span>(<span class="text-orange-300">200</span>)
-})
-<span class="text-sky-400">test</span>(<span class="text-green-400">"has an id"</span>, () <span class="text-orange-400">=></span> {
-  <span class="text-sky-400">expect</span>(res.body.id).<span class="text-sky-400">toBeDefined</span>()
-})</pre>
-                        </div>
-                    </div>
-
-                    <!-- results -->
-                    <div
-                        class="rounded-xl border border-white/10 bg-white/[0.03] p-5 font-mono text-sm"
-                    >
-                        <div
-                            class="flex items-center justify-between border-b border-white/10 pb-3 text-xs text-stone-400"
-                        >
-                            <span>results</span>
-                            <span class="text-green-400">3 / 4 passed</span>
-                        </div>
-                        <ul class="mt-4 space-y-3">
-                            <li
-                                v-for="test in testResults"
-                                :key="test.label"
-                                class="flex items-center gap-2.5"
-                            >
-                                <CheckCircle2
-                                    v-if="test.ok"
-                                    class="size-4 shrink-0 text-green-400"
-                                />
-                                <XCircle
-                                    v-else
-                                    class="size-4 shrink-0 text-red-400"
-                                />
-                                <span
-                                    :class="
-                                        test.ok
-                                            ? 'text-stone-300'
-                                            : 'text-red-300'
-                                    "
-                                    >{{ test.label }}</span
-                                >
-                            </li>
-                        </ul>
-                    </div>
+                        <IconGithub class="size-4" />
+                        View the source
+                    </a>
                 </div>
             </div>
         </section>
 
         <!-- FAQ -->
-        <section id="faq" class="scroll-mt-20 border-b border-border">
+        <section class="border-b border-border">
             <div class="mx-auto max-w-3xl px-6 py-20 sm:py-28">
                 <h2
                     class="font-display text-3xl font-semibold tracking-tight sm:text-4xl"
@@ -446,34 +288,30 @@ const faqs = [
         </section>
 
         <!-- CTA -->
-        <section class="relative overflow-hidden border-b border-border">
-            <div
-                class="pointer-events-none absolute inset-0 -z-10 [background-image:radial-gradient(var(--border)_1px,transparent_1px)] [mask-image:linear-gradient(to_top,black,transparent_85%)] [background-size:22px_22px] opacity-70"
-                aria-hidden="true"
-            />
-            <div class="mx-auto max-w-6xl px-6 py-24 text-center sm:py-32">
+        <section class="border-b border-border">
+            <div class="mx-auto max-w-2xl px-6 py-24 text-center sm:py-32">
                 <h2
-                    class="mx-auto max-w-2xl font-display text-4xl font-semibold tracking-tight text-balance sm:text-5xl"
+                    class="font-display text-4xl font-semibold tracking-tight text-balance sm:text-5xl"
                 >
-                    Ready to fire off your first request?
+                    Ready to send your first request?
                 </h2>
                 <p class="mx-auto mt-5 max-w-md text-muted-foreground">
-                    Create a workspace in seconds. PostDoffo is free, every
-                    feature, no strings attached.
+                    Create a workspace in seconds. Free, every feature, no seat
+                    counting.
                 </p>
                 <div
                     class="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row"
                 >
                     <Link
                         :href="$page.props.auth.user ? dashboard() : register()"
-                        class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-orange-500 px-6 py-3 text-sm font-semibold text-stone-950 transition hover:bg-orange-400 sm:w-auto"
+                        class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-orange-500 px-6 py-3 text-sm font-semibold text-stone-950 transition hover:bg-orange-400 active:translate-y-px sm:w-auto"
                     >
                         Start building
                         <ArrowRight class="size-4" />
                     </Link>
                     <Link
                         :href="'/self-hosting'"
-                        class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border px-6 py-3 text-sm font-semibold transition hover:bg-accent sm:w-auto"
+                        class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border px-6 py-3 text-sm font-semibold transition hover:bg-accent active:translate-y-px sm:w-auto"
                     >
                         <IconGithub class="size-4" />
                         Self-host

@@ -13,16 +13,11 @@ import {
     Users,
     XCircle,
 } from '@lucide/vue';
-import AppLogo from '@/components/AppLogo.vue';
 import IconGithub from '@/components/IconGithub.vue';
-import { dashboard, login, register } from '@/routes';
-import { scripting } from '@/routes/docs';
-import { privacy, terms } from '@/routes/legal';
-
-// Public source repository. Surfaced in the header and footer so the
-// open-source story is one click away and search engines can tie the
-// entity to its repo (see Organization.sameAs in app.blade.php).
-const github = 'https://github.com/TheCuriousGoose/postdoffo';
+import SiteFooter from '@/components/site/SiteFooter.vue';
+import SiteHeader from '@/components/site/SiteHeader.vue';
+import { GITHUB_URL } from '@/lib/links';
+import { dashboard, register } from '@/routes';
 
 // Literal variable token, kept out of the template so the `}}` doesn't
 // terminate Vue's mustache interpolation early.
@@ -130,79 +125,13 @@ const faqs = [
     },
 ];
 
-const navLinks = [
-    { href: '#features', label: 'Features' },
-    { href: '#testing', label: 'Testing' },
-    { href: '#faq', label: 'FAQ' },
-];
 </script>
 
 <template>
     <Head title="Free, open-source Postman alternative for teams" />
 
     <div class="min-h-svh bg-background font-sans text-foreground">
-        <!-- Nav -->
-        <header
-            class="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur"
-        >
-            <div
-                class="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-6"
-            >
-                <Link :href="'/'" class="flex items-center gap-2">
-                    <AppLogo />
-                </Link>
-
-                <nav
-                    class="hidden items-center gap-8 font-mono text-xs text-muted-foreground md:flex"
-                >
-                    <a
-                        v-for="link in navLinks"
-                        :key="link.href"
-                        :href="link.href"
-                        class="tracking-wide transition hover:text-foreground"
-                    >
-                        {{ link.label }}
-                    </a>
-                </nav>
-
-                <div class="flex items-center gap-2">
-                    <a
-                        :href="github"
-                        target="_blank"
-                        rel="noopener"
-                        class="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground transition hover:text-foreground"
-                        title="PostDoffo on GitHub"
-                    >
-                        <IconGithub class="size-5" />
-                        <span class="sr-only">PostDoffo source code on GitHub</span>
-                    </a>
-                    <template v-if="$page.props.auth.user">
-                        <Link
-                            :href="dashboard()"
-                            class="inline-flex items-center gap-1.5 rounded-md bg-orange-500 px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-orange-400"
-                        >
-                            Dashboard
-                            <ArrowRight class="size-4" />
-                        </Link>
-                    </template>
-                    <template v-else>
-                        <Link
-                            :href="login()"
-                            class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
-                        >
-                            Log in
-                        </Link>
-                        <Link
-                            :href="register()"
-                            class="inline-flex items-center gap-1.5 rounded-md bg-orange-500 px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-orange-400"
-                        >
-                            Start building
-                            <ArrowRight class="size-4" />
-                        </Link>
-                    </template>
-                </div>
-            </div>
-        </header>
+        <SiteHeader />
 
         <!-- Hero -->
         <section class="relative overflow-hidden border-b border-border">
@@ -251,7 +180,7 @@ const navLinks = [
                                 <ArrowRight class="size-4" />
                             </Link>
                             <a
-                                :href="github"
+                                :href="GITHUB_URL"
                                 target="_blank"
                                 rel="noopener"
                                 class="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-6 py-3 text-sm font-semibold transition hover:bg-accent"
@@ -589,7 +518,7 @@ const navLinks = [
                         <ArrowRight class="size-4" />
                     </Link>
                     <a
-                        :href="github"
+                        :href="GITHUB_URL"
                         target="_blank"
                         rel="noopener"
                         class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border px-6 py-3 text-sm font-semibold transition hover:bg-accent sm:w-auto"
@@ -601,102 +530,7 @@ const navLinks = [
             </div>
         </section>
 
-        <!-- Footer -->
-        <footer>
-            <div
-                class="mx-auto grid max-w-6xl gap-10 px-6 py-14 sm:grid-cols-2 lg:grid-cols-4"
-            >
-                <div class="sm:col-span-2 lg:col-span-2">
-                    <Link :href="'/'" class="flex items-center gap-2">
-                        <AppLogo />
-                    </Link>
-                    <p class="mt-4 max-w-xs text-sm text-muted-foreground">
-                        A fast, focused API workspace. Build, test and share
-                        without the bloat.
-                    </p>
-                    <a
-                        :href="github"
-                        target="_blank"
-                        rel="noopener"
-                        class="mt-5 inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"
-                    >
-                        <IconGithub class="size-4" />
-                        Source on GitHub
-                    </a>
-                </div>
-
-                <div>
-                    <p
-                        class="font-mono text-xs tracking-widest text-muted-foreground uppercase"
-                    >
-                        Product
-                    </p>
-                    <ul class="mt-4 space-y-3 text-sm">
-                        <li>
-                            <a
-                                href="#features"
-                                class="text-muted-foreground transition hover:text-foreground"
-                                >Features</a
-                            >
-                        </li>
-                        <li>
-                            <a
-                                href="#testing"
-                                class="text-muted-foreground transition hover:text-foreground"
-                                >Testing</a
-                            >
-                        </li>
-                        <li>
-                            <a
-                                href="#faq"
-                                class="text-muted-foreground transition hover:text-foreground"
-                                >FAQ</a
-                            >
-                        </li>
-                        <li>
-                            <Link
-                                :href="scripting()"
-                                class="text-muted-foreground transition hover:text-foreground"
-                                >Scripting docs</Link
-                            >
-                        </li>
-                    </ul>
-                </div>
-
-                <div>
-                    <p
-                        class="font-mono text-xs tracking-widest text-muted-foreground uppercase"
-                    >
-                        Legal
-                    </p>
-                    <ul class="mt-4 space-y-3 text-sm">
-                        <li>
-                            <Link
-                                :href="privacy()"
-                                class="text-muted-foreground transition hover:text-foreground"
-                                >Privacy policy</Link
-                            >
-                        </li>
-                        <li>
-                            <Link
-                                :href="terms()"
-                                class="text-muted-foreground transition hover:text-foreground"
-                                >Terms of service</Link
-                            >
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="border-t border-border">
-                <div
-                    class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-6 font-mono text-xs text-muted-foreground sm:flex-row"
-                >
-                    <p>&copy; {{ new Date().getFullYear() }} PostDoffo</p>
-                    <p>Fire away.</p>
-                </div>
-            </div>
-        </footer>
+        <SiteFooter />
     </div>
 </template>
 

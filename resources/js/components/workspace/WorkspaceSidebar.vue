@@ -22,8 +22,8 @@ import {
     SidebarMenuItem,
     SidebarRail,
 } from '@/components/ui/sidebar';
-import CommandPalette from '@/components/workspace/CommandPalette.vue';
 import CollectionTree from '@/components/workspace/CollectionTree.vue';
+import CommandPalette from '@/components/workspace/CommandPalette.vue';
 import { useOpenRequest } from '@/composables/useOpenRequest';
 import { api } from '@/lib/api';
 import { promptDialog } from '@/lib/dialogs';

@@ -277,10 +277,13 @@ const navLinks = [
                                 <ArrowRight class="size-4" />
                             </Link>
                             <a
-                                href="#features"
+                                :href="github"
+                                target="_blank"
+                                rel="noopener"
                                 class="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-6 py-3 text-sm font-semibold transition hover:bg-accent"
                             >
-                                See what's inside
+                                <IconGithub class="size-4" />
+                                Self-host
                             </a>
                         </div>
 
@@ -829,7 +832,7 @@ const navLinks = [
                         class="group border-b border-border"
                     >
                         <summary
-                            class="flex cursor-pointer list-none items-start gap-4 py-5 font-display font-medium transition select-none hover:text-orange-600 dark:hover:text-orange-400 [&::-webkit-details-marker]:hidden"
+                            class="flex cursor-pointer list-none items-start gap-4 py-5 font-display font-medium transition select-none hover:text-foreground [&::-webkit-details-marker]:hidden"
                         >
                             <Plus
                                 class="mt-0.5 size-4 shrink-0 text-orange-500 transition-transform duration-200 group-open:rotate-45"
@@ -872,13 +875,15 @@ const navLinks = [
                         Start building
                         <ArrowRight class="size-4" />
                     </Link>
-                    <Link
-                        v-if="!$page.props.auth.user"
-                        :href="login()"
-                        class="inline-flex w-full items-center justify-center rounded-lg border border-border px-6 py-3 text-sm font-semibold transition hover:bg-accent sm:w-auto"
+                    <a
+                        :href="github"
+                        target="_blank"
+                        rel="noopener"
+                        class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border px-6 py-3 text-sm font-semibold transition hover:bg-accent sm:w-auto"
                     >
-                        Log in
-                    </Link>
+                        <IconGithub class="size-4" />
+                        Self-host on GitHub
+                    </a>
                 </div>
             </div>
         </section>

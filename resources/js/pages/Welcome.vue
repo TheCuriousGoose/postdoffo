@@ -3,17 +3,13 @@ import { Head, Link } from '@inertiajs/vue3';
 import {
     ArrowRight,
     Boxes,
-    Check,
     CheckCircle2,
     Globe,
     History,
-    KeyRound,
     Layers,
     Play,
     Plus,
-    Settings2,
     ShieldCheck,
-    Upload,
     Users,
     XCircle,
 } from '@lucide/vue';
@@ -28,10 +24,9 @@ import { privacy, terms } from '@/routes/legal';
 // entity to its repo (see Organization.sameAs in app.blade.php).
 const github = 'https://github.com/TheCuriousGoose/postdoffo';
 
-// Literal variable tokens, kept out of the template so the `}}` doesn't
+// Literal variable token, kept out of the template so the `}}` doesn't
 // terminate Vue's mustache interpolation early.
 const varBaseUrl = '{{base_url}}';
-const varPlaceholder = '{{ variables }}';
 
 const tickerTokens = [
     'GET',
@@ -102,27 +97,6 @@ const features = [
             'Bearer, Basic and API key, set per request or inherited from a parent collection. No plugins, no scripts to copy around.',
         span: 'md:col-span-12',
         wide: true,
-    },
-];
-
-const steps = [
-    {
-        icon: Upload,
-        title: 'Import or start fresh',
-        description:
-            'Drop in a Postman export or build your first collection by hand. Organized in seconds.',
-    },
-    {
-        icon: Play,
-        title: 'Send and inspect',
-        description:
-            'Fire a request, read the status, timing and body, and watch your assertions run.',
-    },
-    {
-        icon: Users,
-        title: 'Share with your team',
-        description:
-            'Invite teammates and keep every collection and environment in sync.',
     },
 ];
 
@@ -465,128 +439,6 @@ const navLinks = [
             </div>
         </section>
 
-        <!-- Environments & variables -->
-        <section id="environments" class="scroll-mt-20 border-b border-border">
-            <div class="mx-auto max-w-6xl px-6 py-20 sm:py-28">
-                <div class="grid items-center gap-14 lg:grid-cols-2">
-                    <!-- copy -->
-                    <div>
-                        <p
-                            class="flex items-center gap-2 font-mono text-xs tracking-widest text-muted-foreground uppercase"
-                        >
-                            <span class="h-px w-6 bg-orange-500" />
-                            Environments
-                        </p>
-                        <h2
-                            class="mt-6 font-display text-3xl font-semibold tracking-tight sm:text-4xl"
-                        >
-                            One request, every environment
-                        </h2>
-                        <p class="mt-4 max-w-md text-muted-foreground">
-                            Drop
-                            <code
-                                class="rounded bg-muted px-1.5 py-0.5 font-mono text-sm text-orange-600 dark:text-orange-400"
-                                >{{ varPlaceholder }}</code
-                            >
-                            into any URL, header or body. Switch environments to
-                            repoint every request at once, and keep tokens out
-                            of sight by marking them secret.
-                        </p>
-                        <ul class="mt-8 space-y-4 text-sm">
-                            <li
-                                v-for="item in [
-                                    'Reusable variables scoped per workspace',
-                                    'Swap dev, staging and production in a click',
-                                    'Secret values masked everywhere in the UI',
-                                ]"
-                                :key="item"
-                                class="flex items-center gap-3"
-                            >
-                                <span
-                                    class="flex size-5 shrink-0 items-center justify-center rounded-full bg-orange-500/15 text-orange-600 dark:text-orange-400"
-                                >
-                                    <Check class="size-3.5" />
-                                </span>
-                                {{ item }}
-                            </li>
-                        </ul>
-                    </div>
-
-                    <!-- visual -->
-                    <div
-                        class="rounded-xl border border-border bg-card p-5 shadow-lg shadow-black/5 dark:shadow-black/30"
-                    >
-                        <div
-                            class="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2"
-                        >
-                            <div class="flex items-center gap-2 text-sm">
-                                <Settings2 class="size-4 text-orange-500" />
-                                <span class="font-medium">Production</span>
-                            </div>
-                            <span
-                                class="rounded-full bg-green-500/15 px-2 py-0.5 font-mono text-[11px] text-green-600 dark:text-green-400"
-                            >
-                                active
-                            </span>
-                        </div>
-
-                        <div
-                            class="mt-4 flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm"
-                        >
-                            <span
-                                class="rounded bg-sky-500/10 px-1.5 py-0.5 text-xs font-bold text-sky-600 dark:text-sky-400"
-                                >GET</span
-                            >
-                            <span class="truncate text-muted-foreground">
-                                <span
-                                    class="rounded bg-orange-500/15 px-1 text-orange-600 dark:text-orange-400"
-                                    >{{ varBaseUrl }}</span
-                                >/v1/customers</span
-                            >
-                        </div>
-
-                        <div class="mt-4 divide-y divide-border">
-                            <div
-                                v-for="variable in [
-                                    {
-                                        key: 'base_url',
-                                        value: 'https://api.acme.dev',
-                                        secret: false,
-                                    },
-                                    {
-                                        key: 'token',
-                                        value: '••••••••••••',
-                                        secret: true,
-                                    },
-                                    {
-                                        key: 'account_id',
-                                        value: 'acct_4Q7x',
-                                        secret: false,
-                                    },
-                                ]"
-                                :key="variable.key"
-                                class="flex items-center justify-between gap-3 py-2.5 font-mono text-xs"
-                            >
-                                <span
-                                    class="text-orange-600 dark:text-orange-400"
-                                    >{{ variable.key }}</span
-                                >
-                                <span
-                                    class="flex items-center gap-2 truncate text-muted-foreground"
-                                >
-                                    {{ variable.value }}
-                                    <KeyRound
-                                        v-if="variable.secret"
-                                        class="size-3 text-muted-foreground/60"
-                                    />
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
         <!-- Scripting & tests (dark band) -->
         <section id="testing" class="scroll-mt-20 bg-stone-950 text-stone-100">
             <div class="mx-auto max-w-6xl px-6 py-20 sm:py-28">
@@ -670,145 +522,6 @@ const navLinks = [
                                     "
                                     >{{ test.label }}</span
                                 >
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Workflow -->
-        <section class="border-b border-border">
-            <div class="mx-auto max-w-6xl px-6 py-20 sm:py-28">
-                <h2
-                    class="max-w-xl font-display text-3xl font-semibold tracking-tight sm:text-4xl"
-                >
-                    From zero to first response
-                </h2>
-                <p class="mt-4 max-w-md text-muted-foreground">
-                    No install, no config files, no ceremony. You are inspecting
-                    a live response within a minute of signing up.
-                </p>
-
-                <div class="relative mt-16 grid gap-12 md:grid-cols-3 md:gap-8">
-                    <div
-                        class="absolute inset-x-0 top-6 hidden h-px bg-border md:block"
-                        aria-hidden="true"
-                    />
-                    <div
-                        v-for="step in steps"
-                        :key="step.title"
-                        class="relative"
-                    >
-                        <div
-                            class="flex size-12 items-center justify-center rounded-full border border-border bg-background text-orange-600 dark:text-orange-400"
-                        >
-                            <component :is="step.icon" class="size-5" />
-                        </div>
-                        <h3
-                            class="mt-6 font-display text-lg font-semibold tracking-tight"
-                        >
-                            {{ step.title }}
-                        </h3>
-                        <p
-                            class="mt-2 text-sm leading-relaxed text-muted-foreground"
-                        >
-                            {{ step.description }}
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Import -->
-        <section id="import" class="scroll-mt-20 border-b border-border">
-            <div class="mx-auto max-w-6xl px-6 py-20 sm:py-28">
-                <div class="grid items-center gap-14 lg:grid-cols-2">
-                    <div
-                        class="order-last rounded-xl border border-border bg-card p-6 shadow-lg shadow-black/5 lg:order-first dark:shadow-black/30"
-                    >
-                        <div
-                            class="flex items-center justify-between font-mono text-xs text-muted-foreground"
-                        >
-                            <span>payments.postman_collection.json</span>
-                            <Upload class="size-3.5" />
-                        </div>
-                        <div
-                            class="mt-4 space-y-2 border-t border-border pt-4 text-sm text-muted-foreground"
-                        >
-                            <div class="flex items-center gap-2">
-                                <Layers class="size-3.5 text-orange-500" />
-                                Payments API
-                            </div>
-                            <div class="flex items-center gap-2 pl-5">
-                                <Layers class="size-3.5" /> Charges
-                            </div>
-                            <div
-                                class="flex items-center gap-2 pl-10 font-mono text-xs"
-                            >
-                                <span
-                                    class="font-bold text-green-600 dark:text-green-400"
-                                    >POST</span
-                                >
-                                Create charge
-                            </div>
-                            <div
-                                class="flex items-center gap-2 pl-10 font-mono text-xs"
-                            >
-                                <span
-                                    class="font-bold text-sky-600 dark:text-sky-400"
-                                    >GET</span
-                                >
-                                List charges
-                            </div>
-                            <div class="flex items-center gap-2 pl-5">
-                                <Layers class="size-3.5" /> Customers
-                            </div>
-                            <div
-                                class="flex items-center gap-2 pl-10 font-mono text-xs"
-                            >
-                                <span
-                                    class="font-bold text-amber-600 dark:text-amber-400"
-                                    >PUT</span
-                                >
-                                Update customer
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <p
-                            class="flex items-center gap-2 font-mono text-xs tracking-widest text-muted-foreground uppercase"
-                        >
-                            <span class="h-px w-6 bg-orange-500" />
-                            Migrating in
-                        </p>
-                        <h2
-                            class="mt-6 font-display text-3xl font-semibold tracking-tight sm:text-4xl"
-                        >
-                            Bring your Postman collections with you
-                        </h2>
-                        <p class="mt-4 max-w-md text-muted-foreground">
-                            Import any Postman v2.1 export and the entire tree
-                            comes across intact. Folders, requests, headers and
-                            auth land exactly where they belong.
-                        </p>
-                        <ul class="mt-8 space-y-4 text-sm">
-                            <li
-                                v-for="item in [
-                                    'One-click JSON import',
-                                    'Folders and nesting preserved',
-                                    'Headers and auth carried over',
-                                ]"
-                                :key="item"
-                                class="flex items-center gap-3"
-                            >
-                                <span
-                                    class="flex size-5 shrink-0 items-center justify-center rounded-full bg-orange-500/15 text-orange-600 dark:text-orange-400"
-                                >
-                                    <Check class="size-3.5" />
-                                </span>
-                                {{ item }}
                             </li>
                         </ul>
                     </div>
@@ -931,13 +644,6 @@ const navLinks = [
                                 href="#testing"
                                 class="text-muted-foreground transition hover:text-foreground"
                                 >Testing</a
-                            >
-                        </li>
-                        <li>
-                            <a
-                                href="#import"
-                                class="text-muted-foreground transition hover:text-foreground"
-                                >Postman import</a
                             >
                         </li>
                         <li>

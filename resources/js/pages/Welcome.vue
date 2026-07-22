@@ -22,31 +22,6 @@ import { dashboard, register } from '@/routes';
 // terminate Vue's mustache interpolation early.
 const varBaseUrl = '{{base_url}}';
 
-const tickerTokens = [
-    'GET',
-    'POST',
-    'PUT',
-    'PATCH',
-    'DELETE',
-    'HEAD',
-    'OPTIONS',
-    '200 OK',
-    '201 CREATED',
-    '204',
-    '301',
-    '400',
-    '401',
-    '404',
-    '429',
-    '500',
-    'Bearer',
-    'Basic',
-    'API key',
-    'application/json',
-    '{{base_url}}',
-    '{{token}}',
-];
-
 const features = [
     {
         icon: Boxes,
@@ -285,24 +260,6 @@ const faqs = [
                     </div>
                 </div>
             </div>
-
-            <!-- methods ticker -->
-            <div class="border-t border-border">
-                <div class="ticker-mask overflow-hidden py-3">
-                    <div class="ticker-track flex w-max gap-2.5">
-                        <span
-                            v-for="(token, i) in [
-                                ...tickerTokens,
-                                ...tickerTokens,
-                            ]"
-                            :key="i"
-                            class="rounded border border-border px-2.5 py-1 font-mono text-xs text-muted-foreground"
-                        >
-                            {{ token }}
-                        </span>
-                    </div>
-                </div>
-            </div>
         </section>
 
         <!-- Features -->
@@ -528,37 +485,3 @@ const faqs = [
         <SiteFooter />
     </div>
 </template>
-
-<style scoped>
-.ticker-mask {
-    -webkit-mask-image: linear-gradient(
-        to right,
-        transparent,
-        black 6%,
-        black 94%,
-        transparent
-    );
-    mask-image: linear-gradient(
-        to right,
-        transparent,
-        black 6%,
-        black 94%,
-        transparent
-    );
-}
-
-@media (prefers-reduced-motion: no-preference) {
-    .ticker-track {
-        animation: ticker-scroll 42s linear infinite;
-    }
-}
-
-@keyframes ticker-scroll {
-    from {
-        transform: translateX(0);
-    }
-    to {
-        transform: translateX(calc(-50% - 0.3125rem));
-    }
-}
-</style>

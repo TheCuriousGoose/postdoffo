@@ -6,16 +6,12 @@ import IconGithub from '@/components/IconGithub.vue';
 import { GITHUB_URL } from '@/lib/links';
 import { dashboard, login, register } from '@/routes';
 
-// Anchors always resolve back to the homepage's sections, since only the
-// homepage renders them — a bare `#features` href on a different page would
-// just scroll nowhere on that page.
+// Kept deliberately short — the footer carries the full set of pages. A
+// homepage anchor href (/#features) resolves back to the homepage from any
+// page, rather than scrolling nowhere on a subpage.
 const navLinks = [
     { href: '/#features', label: 'Features' },
-    { href: '/import/postman', label: 'Import' },
-    { href: '/vs/postman', label: 'Compare' },
-    { href: '/self-hosting', label: 'Self-host' },
     { href: '/blog', label: 'Blog' },
-    { href: '/#faq', label: 'FAQ' },
 ];
 </script>
 

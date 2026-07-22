@@ -46,25 +46,26 @@
                     'title' => 'Blog',
                     'description' => 'Guides on testing APIs, migrating from Postman, and getting the most out of environments and scripting.',
                 ],
-                'blog/ImportPostmanCollections' => [
-                    'title' => 'What actually happens when you import a Postman collection',
-                    'description' => 'A walk through the Postman v2.1 collection format: what folders, auth and headers look like on the wire, and where they land in PostDoffo.',
-                ],
-                'blog/HowToTestARestApi' => [
-                    'title' => 'How to test a REST API without writing a test suite',
-                    'description' => 'Using PostDoffo\'s pm.test assertions to check status codes, response shape and timing on every request you send.',
-                ],
-                'blog/EnvironmentVariablesExplained' => [
-                    'title' => 'Environment variables in API requests, explained',
-                    'description' => 'What environment variables actually solve, how {{variable}} interpolation works, and why secrets need their own handling.',
-                ],
             ];
 
-            $isIndexable = array_key_exists($component, $seoPages);
-            $seo = $seoPages[$component] ?? [
-                'title' => null,
-                'description' => 'A fast, focused API workspace for teams. Build, test and share HTTP requests without the bloat.',
-            ];
+            $defaultDescription = 'A fast, focused API workspace for teams. Build, test and share HTTP requests without the bloat.';
+
+            // Blog posts are database-backed, so their title/description come
+            // from the post's Inertia props rather than the static map above.
+            if ($component === 'blog/Show') {
+                $post = data_get($page, 'props.post', []);
+                $isIndexable = true;
+                $seo = [
+                    'title' => $post['title'] ?? null,
+                    'description' => $post['excerpt'] ?? $defaultDescription,
+                ];
+            } else {
+                $isIndexable = array_key_exists($component, $seoPages);
+                $seo = $seoPages[$component] ?? [
+                    'title' => null,
+                    'description' => $defaultDescription,
+                ];
+            }
 
             // Mirror the client-side title template in resources/js/app.ts so
             // the server-rendered <title> matches what Inertia sets on mount.

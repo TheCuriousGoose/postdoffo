@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Post;
 use Illuminate\Http\Response;
 
 class SitemapController extends Controller
@@ -26,9 +27,6 @@ class SitemapController extends Controller
         'import.postman' => ['lastmod' => '2026-07-22', 'changefreq' => 'monthly', 'priority' => '0.8'],
         'self-hosting' => ['lastmod' => '2026-07-22', 'changefreq' => 'monthly', 'priority' => '0.7'],
         'blog.index' => ['lastmod' => '2026-07-22', 'changefreq' => 'weekly', 'priority' => '0.6'],
-        'blog.import-postman-collections' => ['lastmod' => '2026-07-22', 'changefreq' => 'yearly', 'priority' => '0.5'],
-        'blog.how-to-test-a-rest-api' => ['lastmod' => '2026-07-22', 'changefreq' => 'yearly', 'priority' => '0.5'],
-        'blog.environment-variables-explained' => ['lastmod' => '2026-07-22', 'changefreq' => 'yearly', 'priority' => '0.5'],
         'docs.scripting' => ['lastmod' => '2026-07-21', 'changefreq' => 'monthly', 'priority' => '0.7'],
         'legal.privacy' => ['lastmod' => '2026-07-01', 'changefreq' => 'yearly', 'priority' => '0.3'],
         'legal.terms' => ['lastmod' => '2026-07-01', 'changefreq' => 'yearly', 'priority' => '0.3'],
@@ -39,18 +37,26 @@ class SitemapController extends Controller
      */
     public function index(): Response
     {
-        $urls = config('marketing.enabled')
-            ? collect(self::PAGES)->map(function (array $meta, string $name): string {
-                return implode('', [
-                    '<url>',
-                    '<loc>'.e(route($name)).'</loc>',
-                    '<lastmod>'.$meta['lastmod'].'</lastmod>',
-                    '<changefreq>'.$meta['changefreq'].'</changefreq>',
-                    '<priority>'.$meta['priority'].'</priority>',
-                    '</url>',
-                ]);
-            })->implode('')
-            : '';
+        if (! config('marketing.enabled')) {
+            $urls = '';
+        } else {
+            $urls = collect(self::PAGES)->map(function (array $meta, string $name): string {
+                return $this->url(route($name), $meta['lastmod'], $meta['changefreq'], $meta['priority']);
+            })->implode('');
+
+            // Published blog posts are database-backed, so append them from
+            // the DB rather than the static list above.
+            $urls .= Post::query()
+                ->published()
+                ->orderByDesc('published_at')
+                ->get()
+                ->map(fn (Post $post): string => $this->url(
+                    route('blog.show', $post->slug),
+                    $post->updated_at->toDateString(),
+                    'monthly',
+                    '0.5',
+                ))->implode('');
+        }
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>'
             .'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
@@ -60,6 +66,18 @@ class SitemapController extends Controller
         return response($xml, 200, [
             'Content-Type' => 'application/xml; charset=utf-8',
             'Cache-Control' => 'public, max-age=3600',
+        ]);
+    }
+
+    private function url(string $loc, string $lastmod, string $changefreq, string $priority): string
+    {
+        return implode('', [
+            '<url>',
+            '<loc>'.e($loc).'</loc>',
+            '<lastmod>'.$lastmod.'</lastmod>',
+            '<changefreq>'.$changefreq.'</changefreq>',
+            '<priority>'.$priority.'</priority>',
+            '</url>',
         ]);
     }
 

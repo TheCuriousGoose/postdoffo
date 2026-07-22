@@ -43,6 +43,7 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'socialProviders' => SocialAuthController::configuredProviders(),
+            'marketingEnabled' => (bool) config('marketing.enabled'),
         ];
     }
 }

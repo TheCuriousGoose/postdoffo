@@ -1,17 +1,24 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
-import { LayoutDashboard, ShieldCheck, Users } from '@lucide/vue';
+import { Link, usePage } from '@inertiajs/vue3';
+import { FileText, LayoutDashboard, ShieldCheck, Users } from '@lucide/vue';
+import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { toUrl } from '@/lib/utils';
 import { dashboard } from '@/routes/admin';
+import { index as postsIndex } from '@/routes/admin/posts';
 import { index as usersIndex } from '@/routes/admin/users';
 import { index as workspacesIndex } from '@/routes/admin/workspaces';
 import type { NavItem } from '@/types';
 
-const sidebarNavItems: NavItem[] = [
+const page = usePage<{ marketingEnabled?: boolean }>();
+
+// Blog management is only meaningful when the public marketing site (and its
+// blog) is switched on. A self-hosted instance with marketing off has no
+// public blog, so the entry is hidden there.
+const sidebarNavItems = computed<NavItem[]>(() => [
     {
         title: 'Dashboard',
         href: dashboard(),
@@ -27,7 +34,10 @@ const sidebarNavItems: NavItem[] = [
         href: workspacesIndex(),
         icon: ShieldCheck,
     },
-];
+    ...(page.props.marketingEnabled
+        ? [{ title: 'Posts', href: postsIndex(), icon: FileText }]
+        : []),
+]);
 
 // Admin routes are flat (/admin, /admin/users, /admin/workspaces) with no
 // nested detail pages, so an exact match is correct here — isCurrentOrParentUrl's

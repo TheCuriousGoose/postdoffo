@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BlogController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SitemapController;
@@ -22,10 +23,8 @@ if (config('marketing.enabled')) {
     Route::inertia('/import/postman', 'ImportPostman')->name('import.postman');
     Route::inertia('/self-hosting', 'SelfHosting')->name('self-hosting');
 
-    Route::inertia('/blog', 'blog/Index')->name('blog.index');
-    Route::inertia('/blog/import-postman-collections', 'blog/ImportPostmanCollections')->name('blog.import-postman-collections');
-    Route::inertia('/blog/how-to-test-a-rest-api', 'blog/HowToTestARestApi')->name('blog.how-to-test-a-rest-api');
-    Route::inertia('/blog/environment-variables-explained', 'blog/EnvironmentVariablesExplained')->name('blog.environment-variables-explained');
+    Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
+    Route::get('/blog/{post:slug}', [BlogController::class, 'show'])->name('blog.show');
 }
 
 Route::inertia('/privacy-policy', 'legal/Privacy')->name('legal.privacy');

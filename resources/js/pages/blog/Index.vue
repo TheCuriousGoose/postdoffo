@@ -4,29 +4,14 @@ import { ArrowRight } from '@lucide/vue';
 import SiteFooter from '@/components/site/SiteFooter.vue';
 import SiteHeader from '@/components/site/SiteHeader.vue';
 
-const posts = [
-    {
-        href: '/blog/import-postman-collections',
-        title: 'What actually happens when you import a Postman collection',
-        description:
-            'A walk through the Postman v2.1 collection format: what folders, auth and headers look like on the wire, and where they land in PostDoffo.',
-        date: 'July 22, 2026',
-    },
-    {
-        href: '/blog/how-to-test-a-rest-api',
-        title: 'How to test a REST API without writing a test suite',
-        description:
-            "Using PostDoffo's pm.test assertions to check status codes, response shape and timing on every request you send.",
-        date: 'July 22, 2026',
-    },
-    {
-        href: '/blog/environment-variables-explained',
-        title: 'Environment variables in API requests, explained',
-        description:
-            'What environment variables actually solve, how {{variable}} interpolation works, and why secrets need their own handling.',
-        date: 'July 22, 2026',
-    },
-];
+defineProps<{
+    posts: {
+        title: string;
+        slug: string;
+        excerpt: string;
+        date: string | null;
+    }[];
+}>();
 </script>
 
 <template>
@@ -47,14 +32,20 @@ const posts = [
                     getting the most out of environments and scripting.
                 </p>
 
-                <div class="mt-12 divide-y divide-border border-t border-border">
+                <div
+                    v-if="posts.length"
+                    class="mt-12 divide-y divide-border border-t border-border"
+                >
                     <Link
                         v-for="post in posts"
-                        :key="post.href"
-                        :href="post.href"
+                        :key="post.slug"
+                        :href="`/blog/${post.slug}`"
                         class="group flex flex-col gap-2 py-8"
                     >
-                        <p class="font-mono text-xs text-muted-foreground">
+                        <p
+                            v-if="post.date"
+                            class="font-mono text-xs text-muted-foreground"
+                        >
                             {{ post.date }}
                         </p>
                         <h2
@@ -68,10 +59,14 @@ const posts = [
                         <p
                             class="max-w-xl text-sm leading-relaxed text-muted-foreground"
                         >
-                            {{ post.description }}
+                            {{ post.excerpt }}
                         </p>
                     </Link>
                 </div>
+
+                <p v-else class="mt-12 text-sm text-muted-foreground">
+                    No posts yet. Check back soon.
+                </p>
             </div>
         </section>
 

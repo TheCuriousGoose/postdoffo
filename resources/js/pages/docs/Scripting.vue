@@ -263,7 +263,7 @@ pm.test("has access token", pm.response.json.access_token != null)
 pm.environment.set("token", pm.response.json.access_token)</pre>
 
             <p><strong>Test:</strong> a compound condition.</p>
-            <pre>pm.test("fast and successful", pm.response.responseTime < 500 && pm.response.status == 200)</pre>
+            <pre>pm.test("fast and successful", pm.response.responseTime &lt; 500 && pm.response.status == 200)</pre>
         </section>
     </DocsLayout>
 </template>

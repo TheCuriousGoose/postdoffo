@@ -18,8 +18,15 @@ import {
     XCircle,
 } from '@lucide/vue';
 import AppLogo from '@/components/AppLogo.vue';
+import IconGithub from '@/components/IconGithub.vue';
 import { dashboard, login, register } from '@/routes';
+import { scripting } from '@/routes/docs';
 import { privacy, terms } from '@/routes/legal';
+
+// Public source repository. Surfaced in the header and footer so the
+// open-source story is one click away and search engines can tie the
+// entity to its repo (see Organization.sameAs in app.blade.php).
+const github = 'https://github.com/TheCuriousGoose/postdoffo';
 
 // Literal variable tokens, kept out of the template so the `}}` doesn't
 // terminate Vue's mustache interpolation early.
@@ -185,6 +192,16 @@ const navLinks = [
                 </nav>
 
                 <div class="flex items-center gap-2">
+                    <a
+                        :href="github"
+                        target="_blank"
+                        rel="noopener"
+                        class="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground transition hover:text-foreground"
+                        title="PostDoffo on GitHub"
+                    >
+                        <IconGithub class="size-5" />
+                        <span class="sr-only">PostDoffo source code on GitHub</span>
+                    </a>
                     <template v-if="$page.props.auth.user">
                         <Link
                             :href="dashboard()"
@@ -228,7 +245,7 @@ const navLinks = [
                             class="flex items-center gap-2 font-mono text-xs tracking-widest text-muted-foreground uppercase"
                         >
                             <span class="h-px w-6 bg-orange-500" />
-                            HTTP client, built for teams
+                            Open-source HTTP client for teams
                         </p>
 
                         <h1
@@ -268,8 +285,8 @@ const navLinks = [
                         </div>
 
                         <p class="mt-5 font-mono text-xs text-muted-foreground">
-                            Free, every feature. Import your Postman collections
-                            in seconds.
+                            Free and open source. Import your Postman
+                            collections in seconds.
                         </p>
                     </div>
 
@@ -879,6 +896,15 @@ const navLinks = [
                         A fast, focused API workspace. Build, test and share
                         without the bloat.
                     </p>
+                    <a
+                        :href="github"
+                        target="_blank"
+                        rel="noopener"
+                        class="mt-5 inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"
+                    >
+                        <IconGithub class="size-4" />
+                        Source on GitHub
+                    </a>
                 </div>
 
                 <div>
@@ -914,6 +940,13 @@ const navLinks = [
                                 href="#faq"
                                 class="text-muted-foreground transition hover:text-foreground"
                                 >FAQ</a
+                            >
+                        </li>
+                        <li>
+                            <Link
+                                :href="scripting()"
+                                class="text-muted-foreground transition hover:text-foreground"
+                                >Scripting docs</Link
                             >
                         </li>
                     </ul>

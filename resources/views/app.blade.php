@@ -100,6 +100,7 @@
                             'name' => $appName,
                             'url' => url('/'),
                             'logo' => $ogImage,
+                            'sameAs' => ['https://github.com/TheCuriousGoose/postdoffo'],
                         ],
                         [
                             '@type' => 'SoftwareApplication',
@@ -108,6 +109,7 @@
                             'operatingSystem' => 'Web',
                             'description' => $seo['description'],
                             'url' => url('/'),
+                            'sameAs' => ['https://github.com/TheCuriousGoose/postdoffo'],
                             'offers' => [
                                 '@type' => 'Offer',
                                 'price' => '0',

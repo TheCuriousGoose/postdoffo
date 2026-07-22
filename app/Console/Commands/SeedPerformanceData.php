@@ -7,6 +7,7 @@ use App\Enums\HttpMethod;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Console\Command;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -162,7 +163,7 @@ class SeedPerformanceData extends Command
      * @param  list<HttpMethod>  $methods
      * @return array<string, mixed>
      */
-    private function fakeRequestRow(array $collectionIds, array $methods, int $order, \Illuminate\Support\Carbon $now): array
+    private function fakeRequestRow(array $collectionIds, array $methods, int $order, Carbon $now): array
     {
         $method = fake()->randomElement($methods);
         $bodyType = $method === HttpMethod::Get || $method === HttpMethod::Head

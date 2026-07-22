@@ -3,7 +3,6 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Auth\Middleware\RequirePassword as BaseRequirePassword;
-use Illuminate\Http\Request;
 
 /**
  * Confirming a password only makes sense if the user has something to

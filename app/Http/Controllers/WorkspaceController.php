@@ -19,7 +19,7 @@ class WorkspaceController extends Controller
         $user = $request->user();
 
         $workspaces = $user->ownedWorkspaces()
-            ->orWhereHas('members', fn($query) => $query->where('user_id', $user->id))
+            ->orWhereHas('members', fn ($query) => $query->where('user_id', $user->id))
             ->withCount('collections')
             ->orderBy('name')
             ->get();
@@ -111,7 +111,7 @@ class WorkspaceController extends Controller
     {
         return $collections
             ->where('parent_id', $parentId)
-            ->map(fn(Collection $collection) => [
+            ->map(fn (Collection $collection) => [
                 'id' => $collection->id,
                 'name' => $collection->name,
                 'parent_id' => $collection->parent_id,

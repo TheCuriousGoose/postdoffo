@@ -293,6 +293,52 @@ const steps = [
             </div>
         </section>
 
+        <!-- Related -->
+        <section class="border-b border-border">
+            <div class="mx-auto max-w-6xl px-6 py-16">
+                <div class="grid gap-6 sm:grid-cols-2">
+                    <Link
+                        :href="'/self-hosting'"
+                        class="group rounded-xl border border-border bg-card p-6 transition hover:bg-accent"
+                    >
+                        <h3
+                            class="flex items-center gap-2 font-display font-semibold tracking-tight"
+                        >
+                            Self-host PostDoffo
+                            <ArrowRight
+                                class="size-4 opacity-0 transition group-hover:opacity-100"
+                            />
+                        </h3>
+                        <p
+                            class="mt-2 text-sm leading-relaxed text-muted-foreground"
+                        >
+                            Moving the whole team? Run PostDoffo on your own
+                            infrastructure.
+                        </p>
+                    </Link>
+                    <Link
+                        :href="'/blog/import-postman-collections'"
+                        class="group rounded-xl border border-border bg-card p-6 transition hover:bg-accent"
+                    >
+                        <h3
+                            class="flex items-center gap-2 font-display font-semibold tracking-tight"
+                        >
+                            What actually happens on import
+                            <ArrowRight
+                                class="size-4 opacity-0 transition group-hover:opacity-100"
+                            />
+                        </h3>
+                        <p
+                            class="mt-2 text-sm leading-relaxed text-muted-foreground"
+                        >
+                            A closer look at the Postman v2.1 format, folder
+                            by folder.
+                        </p>
+                    </Link>
+                </div>
+            </div>
+        </section>
+
         <!-- CTA -->
         <section class="relative overflow-hidden border-b border-border">
             <div

@@ -16,7 +16,6 @@ import {
 import IconGithub from '@/components/IconGithub.vue';
 import SiteFooter from '@/components/site/SiteFooter.vue';
 import SiteHeader from '@/components/site/SiteHeader.vue';
-import { GITHUB_URL } from '@/lib/links';
 import { dashboard, register } from '@/routes';
 
 // Literal variable token, kept out of the template so the `}}` doesn't
@@ -179,15 +178,13 @@ const faqs = [
                                 Start building
                                 <ArrowRight class="size-4" />
                             </Link>
-                            <a
-                                :href="GITHUB_URL"
-                                target="_blank"
-                                rel="noopener"
+                            <Link
+                                :href="'/self-hosting'"
                                 class="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-6 py-3 text-sm font-semibold transition hover:bg-accent"
                             >
                                 <IconGithub class="size-4" />
                                 Self-host
-                            </a>
+                            </Link>
                         </div>
 
                         <p class="mt-5 font-mono text-xs text-muted-foreground">
@@ -517,15 +514,13 @@ const faqs = [
                         Start building
                         <ArrowRight class="size-4" />
                     </Link>
-                    <a
-                        :href="GITHUB_URL"
-                        target="_blank"
-                        rel="noopener"
+                    <Link
+                        :href="'/self-hosting'"
                         class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border px-6 py-3 text-sm font-semibold transition hover:bg-accent sm:w-auto"
                     >
                         <IconGithub class="size-4" />
-                        Self-host on GitHub
-                    </a>
+                        Self-host
+                    </Link>
                 </div>
             </div>
         </section>

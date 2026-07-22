@@ -11,7 +11,10 @@ import { dashboard, login, register } from '@/routes';
 // just scroll nowhere on that page.
 const navLinks = [
     { href: '/#features', label: 'Features' },
-    { href: '/#testing', label: 'Testing' },
+    { href: '/import/postman', label: 'Import' },
+    { href: '/vs/postman', label: 'Compare' },
+    { href: '/self-hosting', label: 'Self-host' },
+    { href: '/blog', label: 'Blog' },
     { href: '/#faq', label: 'FAQ' },
 ];
 </script>

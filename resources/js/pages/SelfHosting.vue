@@ -238,6 +238,51 @@ const stack = [
             </div>
         </section>
 
+        <!-- Related -->
+        <section class="border-b border-border">
+            <div class="mx-auto max-w-6xl px-6 py-16">
+                <div class="grid gap-6 sm:grid-cols-2">
+                    <Link
+                        :href="'/import/postman'"
+                        class="group rounded-xl border border-border bg-card p-6 transition hover:bg-accent"
+                    >
+                        <h3
+                            class="flex items-center gap-2 font-display font-semibold tracking-tight"
+                        >
+                            Import your Postman collections
+                            <ArrowRight
+                                class="size-4 opacity-0 transition group-hover:opacity-100"
+                            />
+                        </h3>
+                        <p
+                            class="mt-2 text-sm leading-relaxed text-muted-foreground"
+                        >
+                            Bring an existing v2.1 export with you, hosted or
+                            self-hosted.
+                        </p>
+                    </Link>
+                    <Link
+                        :href="'/vs/postman'"
+                        class="group rounded-xl border border-border bg-card p-6 transition hover:bg-accent"
+                    >
+                        <h3
+                            class="flex items-center gap-2 font-display font-semibold tracking-tight"
+                        >
+                            PostDoffo vs Postman
+                            <ArrowRight
+                                class="size-4 opacity-0 transition group-hover:opacity-100"
+                            />
+                        </h3>
+                        <p
+                            class="mt-2 text-sm leading-relaxed text-muted-foreground"
+                        >
+                            See how the two compare beyond hosting.
+                        </p>
+                    </Link>
+                </div>
+            </div>
+        </section>
+
         <!-- CTA -->
         <section class="relative overflow-hidden border-b border-border">
             <div

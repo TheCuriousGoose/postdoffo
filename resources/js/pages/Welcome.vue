@@ -157,7 +157,7 @@ const navLinks = [
 </script>
 
 <template>
-    <Head title="PostDoffo, a faster way to build APIs" />
+    <Head title="Free, open-source Postman alternative for teams" />
 
     <div class="min-h-svh bg-background font-sans text-foreground">
         <!-- Nav -->

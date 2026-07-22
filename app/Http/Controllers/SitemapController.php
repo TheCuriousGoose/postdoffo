@@ -15,10 +15,20 @@ class SitemapController extends Controller
      * signal stays honest — do not derive it from the request time, or every
      * crawl reports a fresh change and search engines learn to ignore it.
      *
+     * Only rendered when `marketing.enabled` — see routes/web.php. A
+     * self-hosted instance has none of these routes registered.
+     *
      * @var array<string, array{lastmod: string, changefreq: string, priority: string}>
      */
     private const PAGES = [
         'home' => ['lastmod' => '2026-07-22', 'changefreq' => 'weekly', 'priority' => '1.0'],
+        'vs.postman' => ['lastmod' => '2026-07-22', 'changefreq' => 'monthly', 'priority' => '0.8'],
+        'import.postman' => ['lastmod' => '2026-07-22', 'changefreq' => 'monthly', 'priority' => '0.8'],
+        'self-hosting' => ['lastmod' => '2026-07-22', 'changefreq' => 'monthly', 'priority' => '0.7'],
+        'blog.index' => ['lastmod' => '2026-07-22', 'changefreq' => 'weekly', 'priority' => '0.6'],
+        'blog.import-postman-collections' => ['lastmod' => '2026-07-22', 'changefreq' => 'yearly', 'priority' => '0.5'],
+        'blog.how-to-test-a-rest-api' => ['lastmod' => '2026-07-22', 'changefreq' => 'yearly', 'priority' => '0.5'],
+        'blog.environment-variables-explained' => ['lastmod' => '2026-07-22', 'changefreq' => 'yearly', 'priority' => '0.5'],
         'docs.scripting' => ['lastmod' => '2026-07-21', 'changefreq' => 'monthly', 'priority' => '0.7'],
         'legal.privacy' => ['lastmod' => '2026-07-01', 'changefreq' => 'yearly', 'priority' => '0.3'],
         'legal.terms' => ['lastmod' => '2026-07-01', 'changefreq' => 'yearly', 'priority' => '0.3'],
@@ -29,16 +39,18 @@ class SitemapController extends Controller
      */
     public function index(): Response
     {
-        $urls = collect(self::PAGES)->map(function (array $meta, string $name): string {
-            return implode('', [
-                '<url>',
-                '<loc>'.e(route($name)).'</loc>',
-                '<lastmod>'.$meta['lastmod'].'</lastmod>',
-                '<changefreq>'.$meta['changefreq'].'</changefreq>',
-                '<priority>'.$meta['priority'].'</priority>',
-                '</url>',
-            ]);
-        })->implode('');
+        $urls = config('marketing.enabled')
+            ? collect(self::PAGES)->map(function (array $meta, string $name): string {
+                return implode('', [
+                    '<url>',
+                    '<loc>'.e(route($name)).'</loc>',
+                    '<lastmod>'.$meta['lastmod'].'</lastmod>',
+                    '<changefreq>'.$meta['changefreq'].'</changefreq>',
+                    '<priority>'.$meta['priority'].'</priority>',
+                    '</url>',
+                ]);
+            })->implode('')
+            : '';
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>'
             .'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
@@ -52,11 +64,20 @@ class SitemapController extends Controller
     }
 
     /**
-     * Render robots.txt, keeping crawlers on the marketing surface and out
-     * of the authenticated application, and pointing them at the sitemap.
+     * Render robots.txt. On the hosted marketing site this keeps crawlers on
+     * the public surface and out of the authenticated app. On a self-hosted
+     * instance — someone's private team tool, not meant to rank anywhere —
+     * it blocks crawling entirely.
      */
     public function robots(): Response
     {
+        if (! config('marketing.enabled')) {
+            return response("User-agent: *\nDisallow: /\n", 200, [
+                'Content-Type' => 'text/plain; charset=utf-8',
+                'Cache-Control' => 'public, max-age=3600',
+            ]);
+        }
+
         $disallow = [
             '/dashboard',
             '/settings',

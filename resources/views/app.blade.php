@@ -30,6 +30,34 @@
                     'title' => 'Scripting reference',
                     'description' => 'Write pre-request and test scripts in PostDoffo. Reference for assertions, variables, and the request and response objects available to your scripts.',
                 ],
+                'ImportPostman' => [
+                    'title' => 'Import Postman collections',
+                    'description' => 'Move off Postman in one step. Import any Postman v2.1 collection — folders, requests, headers and auth land intact. Free and open source.',
+                ],
+                'SelfHosting' => [
+                    'title' => 'Self-host PostDoffo',
+                    'description' => 'PostDoffo is open source. Clone the repository, point it at your own database, and run the same app on your own infrastructure.',
+                ],
+                'vs/Postman' => [
+                    'title' => 'PostDoffo vs Postman',
+                    'description' => 'PostDoffo covers the daily Postman workflow — requests, collections, team sharing — free, open source and self-hostable.',
+                ],
+                'blog/Index' => [
+                    'title' => 'Blog',
+                    'description' => 'Guides on testing APIs, migrating from Postman, and getting the most out of environments and scripting.',
+                ],
+                'blog/ImportPostmanCollections' => [
+                    'title' => 'What actually happens when you import a Postman collection',
+                    'description' => 'A walk through the Postman v2.1 collection format: what folders, auth and headers look like on the wire, and where they land in PostDoffo.',
+                ],
+                'blog/HowToTestARestApi' => [
+                    'title' => 'How to test a REST API without writing a test suite',
+                    'description' => 'Using PostDoffo\'s pm.test assertions to check status codes, response shape and timing on every request you send.',
+                ],
+                'blog/EnvironmentVariablesExplained' => [
+                    'title' => 'Environment variables in API requests, explained',
+                    'description' => 'What environment variables actually solve, how {{variable}} interpolation works, and why secrets need their own handling.',
+                ],
             ];
 
             $isIndexable = array_key_exists($component, $seoPages);

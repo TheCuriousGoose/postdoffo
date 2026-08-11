@@ -111,7 +111,9 @@ const faqs = [
                     </p>
                     <div class="mt-9 flex flex-col gap-3 sm:flex-row">
                         <Link
-                            :href="$page.props.auth.user ? dashboard() : register()"
+                            :href="
+                                $page.props.auth.user ? dashboard() : register()
+                            "
                             class="inline-flex items-center justify-center gap-2 rounded-lg bg-orange-500 px-6 py-3 text-sm font-semibold text-stone-950 transition hover:bg-orange-400 active:translate-y-px"
                         >
                             Start building

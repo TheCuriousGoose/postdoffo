@@ -12,7 +12,6 @@ import {
 import AppLogo from '@/components/AppLogo.vue';
 import NavUser from '@/components/NavUser.vue';
 import NotificationBell from '@/components/NotificationBell.vue';
-import { Button } from '@/components/ui/button';
 import {
     Sidebar,
     SidebarContent,
@@ -25,6 +24,7 @@ import {
 } from '@/components/ui/sidebar';
 import CollectionTree from '@/components/workspace/CollectionTree.vue';
 import CommandPalette from '@/components/workspace/CommandPalette.vue';
+import ToolbarButton from '@/components/workspace/ToolbarButton.vue';
 import { useOpenRequest } from '@/composables/useOpenRequest';
 import { api } from '@/lib/api';
 import { promptDialog } from '@/lib/dialogs';
@@ -202,24 +202,20 @@ async function onImportFile(event: Event) {
                     >Collections</span
                 >
                 <div class="flex items-center gap-1">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        class="size-6"
-                        title="Import Postman collection, environment, or bundle"
+                    <ToolbarButton
+                        label="Import a Postman collection, environment, or bundle"
+                        size="sm"
                         @click="importInput?.click()"
                     >
                         <Upload class="size-3.5" />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        class="size-6"
-                        title="New collection"
+                    </ToolbarButton>
+                    <ToolbarButton
+                        label="New collection"
+                        size="sm"
                         @click="newRootCollection"
                     >
                         <Plus class="size-3.5" />
-                    </Button>
+                    </ToolbarButton>
                 </div>
             </div>
             <input

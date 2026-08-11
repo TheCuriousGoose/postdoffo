@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Loader2, Play, Save, TerminalSquare } from '@lucide/vue';
+import {
+    ChevronRight,
+    Loader2,
+    Play,
+    Save,
+    TerminalSquare,
+    Wand2,
+} from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import {
@@ -13,6 +20,11 @@ import {
 } from '@/actions/App/Http/Controllers/RequestFileController';
 import { Button } from '@/components/ui/button';
 import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -20,8 +32,10 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import ToolbarButton from '@/components/workspace/ToolbarButton.vue';
 import { api, ApiError } from '@/lib/api';
 import { runRequest } from '@/lib/executeRequest';
+import { httpMethods, methodColor } from '@/lib/http';
 import { scripting as scriptingDocs } from '@/routes/docs';
 import { useWorkspaceStore } from '@/stores/workspace';
 import type {
@@ -44,15 +58,6 @@ const store = useWorkspaceStore();
 
 const scope = computed(() => store.activeScope);
 
-const methods: HttpMethod[] = [
-    'GET',
-    'POST',
-    'PUT',
-    'PATCH',
-    'DELETE',
-    'HEAD',
-    'OPTIONS',
-];
 const bodyTypes: { value: BodyType; label: string }[] = [
     { value: 'none', label: 'None' },
     { value: 'raw', label: 'Raw' },
@@ -61,19 +66,61 @@ const bodyTypes: { value: BodyType; label: string }[] = [
     { value: 'urlencoded', label: 'URL Encoded' },
 ];
 
-const methodColor: Record<string, string> = {
-    GET: 'text-blue-600 dark:text-blue-400',
-    POST: 'text-green-600 dark:text-green-400',
-    PUT: 'text-amber-600 dark:text-amber-400',
-    PATCH: 'text-amber-600 dark:text-amber-400',
-    DELETE: 'text-red-600 dark:text-red-400',
-    HEAD: 'text-muted-foreground',
-    OPTIONS: 'text-muted-foreground',
-};
-
 const tab = computed(() => store.activeTab);
 
 const rawBodyText = ref('');
+
+/**
+ * What each tab is carrying, surfaced on the tab itself. Without these the only
+ * way to find out whether a request had a body, an auth override or a test was
+ * to open all six tabs and look — the panels were the only evidence they
+ * contained anything.
+ */
+function filledCount(rows: KeyValuePair[] | null | undefined): number {
+    return (rows ?? []).filter(
+        (row) => row.enabled !== false && row.key.trim() !== '',
+    ).length;
+}
+
+const paramCount = computed(() => filledCount(tab.value?.draft.query_params));
+const headerCount = computed(() => filledCount(tab.value?.draft.headers));
+
+const hasAuth = computed(() => {
+    const type = tab.value?.draft.auth_type;
+
+    return type != null && type !== 'none';
+});
+
+const hasBody = computed(() => {
+    const type = tab.value?.draft.body_type;
+
+    return type != null && type !== 'none';
+});
+
+const hasPreRequestScript = computed(
+    () => (tab.value?.draft.pre_request_script ?? '').trim() !== '',
+);
+
+const hasTestScript = computed(
+    () => (tab.value?.draft.test_script ?? '').trim() !== '',
+);
+
+/** Reformat the JSON body in place, leaving invalid JSON untouched. */
+function formatJsonBody() {
+    if (rawBodyText.value.trim() === '') {
+        return;
+    }
+
+    try {
+        rawBodyText.value = JSON.stringify(
+            JSON.parse(rawBodyText.value),
+            null,
+            2,
+        );
+    } catch {
+        toast.error('Body is not valid JSON');
+    }
+}
 
 watch(
     () => tab.value?.requestId,
@@ -395,13 +442,12 @@ async function send() {
 
 <template>
     <div v-if="tab" class="flex h-full min-h-0 flex-col">
-        <!-- title -->
-        <div class="flex items-center gap-2 border-b px-3 py-2">
-            <span
-                class="size-1.5 shrink-0 rounded-full transition-colors"
-                :class="tab.dirty ? 'bg-orange-500' : 'bg-transparent'"
-                :title="tab.dirty ? 'Unsaved changes' : ''"
-            />
+        <!--
+            Unsaved state lives on the tab's dot and on whether Save is
+            available; it used to also have a dot of its own here, which meant
+            two indicators for one fact, neither of them actionable.
+        -->
+        <div class="flex h-10 shrink-0 items-center gap-2 border-b px-3">
             <input
                 :value="tab.draft.name"
                 placeholder="Request name"
@@ -416,13 +462,14 @@ async function send() {
             <VariableScopePopover />
         </div>
 
-        <!-- address bar -->
-        <div class="flex items-center gap-2 px-3 py-2.5">
+        <!-- address bar: every control on the same h-8 chrome scale -->
+        <div class="flex shrink-0 items-center gap-2 px-3 py-2">
             <Select
                 :model-value="tab.draft.method"
                 @update:model-value="(v) => setMethod(String(v))"
             >
                 <SelectTrigger
+                    size="sm"
                     class="w-24 font-mono text-xs font-semibold"
                     :class="methodColor[tab.draft.method]"
                 >
@@ -430,7 +477,7 @@ async function send() {
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem
-                        v-for="m in methods"
+                        v-for="m in httpMethods"
                         :key="m"
                         :value="m"
                         class="font-mono text-xs font-semibold"
@@ -443,25 +490,21 @@ async function send() {
             <VariableHighlightInput
                 :model-value="tab.draft.url"
                 :variables="scope.variables"
+                size="sm"
                 placeholder="https://api.example.com/users/{{userId}}"
                 class="flex-1 font-mono text-sm"
                 @update:model-value="setUrl"
             />
 
-            <Button
-                variant="ghost"
-                size="icon"
-                class="size-8 shrink-0"
-                title="Copy as cURL"
-                @click="copyAsCurl"
-            >
+            <ToolbarButton label="Copy as cURL" @click="copyAsCurl">
                 <TerminalSquare class="size-4" />
-            </Button>
+            </ToolbarButton>
 
             <Button
                 variant="outline"
                 size="sm"
-                :disabled="tab.saving"
+                :disabled="tab.saving || !tab.dirty"
+                :title="tab.dirty ? 'Save changes' : 'No unsaved changes'"
                 @click="save"
             >
                 <Loader2 v-if="tab.saving" class="size-4 animate-spin" />
@@ -480,13 +523,56 @@ async function send() {
             default-value="params"
             class="flex min-h-0 flex-1 flex-col px-3 pb-3"
         >
+            <!--
+                Counts for the things you can count, a dot for the things that
+                are simply on or off, so the tab row is a summary of the request
+                rather than six identical words.
+            -->
             <TabsList>
-                <TabsTrigger value="params">Params</TabsTrigger>
-                <TabsTrigger value="headers">Headers</TabsTrigger>
-                <TabsTrigger value="auth">Auth</TabsTrigger>
-                <TabsTrigger value="body">Body</TabsTrigger>
-                <TabsTrigger value="scripts">Scripts</TabsTrigger>
-                <TabsTrigger value="tests">Tests</TabsTrigger>
+                <TabsTrigger value="params">
+                    Params
+                    <span
+                        v-if="paramCount"
+                        class="font-mono text-[10px] text-muted-foreground"
+                        >{{ paramCount }}</span
+                    >
+                </TabsTrigger>
+                <TabsTrigger value="auth">
+                    Auth
+                    <span
+                        v-if="hasAuth"
+                        class="size-1.5 rounded-full bg-muted-foreground"
+                    />
+                </TabsTrigger>
+                <TabsTrigger value="headers">
+                    Headers
+                    <span
+                        v-if="headerCount"
+                        class="font-mono text-[10px] text-muted-foreground"
+                        >{{ headerCount }}</span
+                    >
+                </TabsTrigger>
+                <TabsTrigger value="body">
+                    Body
+                    <span
+                        v-if="hasBody"
+                        class="size-1.5 rounded-full bg-muted-foreground"
+                    />
+                </TabsTrigger>
+                <TabsTrigger value="scripts">
+                    Pre-request
+                    <span
+                        v-if="hasPreRequestScript"
+                        class="size-1.5 rounded-full bg-muted-foreground"
+                    />
+                </TabsTrigger>
+                <TabsTrigger value="tests">
+                    Tests
+                    <span
+                        v-if="hasTestScript"
+                        class="size-1.5 rounded-full bg-muted-foreground"
+                    />
+                </TabsTrigger>
             </TabsList>
 
             <div class="min-h-0 flex-1 overflow-y-auto pt-3">
@@ -497,83 +583,95 @@ async function send() {
                         key-placeholder="Param"
                         @update:model-value="setQueryParams"
                     />
+                    <p class="mt-2 text-xs text-muted-foreground">
+                        These are the query string in the URL bar, split into
+                        rows. Editing either updates the other.
+                    </p>
                 </TabsContent>
 
-                <TabsContent value="headers" class="flex flex-col gap-4">
-                    <!-- inherited / default headers, in the same table shape -->
-                    <div v-if="scope.inheritedHeaders.length">
-                        <p
-                            class="mb-1.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase"
-                        >
-                            Inherited from collections
-                        </p>
-                        <div class="overflow-hidden rounded-md border">
-                            <table class="w-full table-fixed border-collapse">
-                                <thead>
-                                    <tr
-                                        class="border-b bg-muted/40 text-[11px] font-medium tracking-wide text-muted-foreground uppercase"
-                                    >
-                                        <th
-                                            class="border-r px-2.5 py-1.5 text-left"
-                                        >
-                                            Header
-                                        </th>
-                                        <th
-                                            class="border-r px-2.5 py-1.5 text-left"
-                                        >
-                                            Value
-                                        </th>
-                                        <th
-                                            class="w-32 px-2.5 py-1.5 text-left"
-                                        >
-                                            Source
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr
-                                        v-for="header in scope.inheritedHeaders"
-                                        :key="header.key"
-                                        class="border-b font-mono text-xs last:border-b-0"
-                                    >
-                                        <td
-                                            class="truncate border-r px-2.5 py-1.5"
-                                        >
-                                            {{ header.key }}
-                                        </td>
-                                        <td
-                                            class="truncate border-r px-2.5 py-1.5 text-muted-foreground"
-                                        >
-                                            {{ header.value }}
-                                        </td>
-                                        <td
-                                            class="truncate px-2.5 py-1.5 text-muted-foreground"
-                                        >
-                                            {{ header.sourceName }}
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <p class="mt-1.5 text-[11px] text-muted-foreground">
-                            Add a header with the same name below to override
-                            it.
-                        </p>
-                    </div>
+                <TabsContent value="headers" class="flex flex-col gap-3">
+                    <KeyValueEditor
+                        :model-value="tab.draft.headers"
+                        :variables="scope.variables"
+                        key-placeholder="Header"
+                        @update:model-value="setHeaders"
+                    />
 
-                    <div>
-                        <p
-                            class="mb-1.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase"
+                    <!--
+                        Inherited headers are reference material, not something
+                        you edit here, so they fold away instead of pushing the
+                        editable table down the panel on every request that has
+                        a parent collection.
+                    -->
+                    <Collapsible v-if="scope.inheritedHeaders.length">
+                        <CollapsibleTrigger
+                            class="group flex w-full items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
                         >
-                            Request headers
-                        </p>
-                        <KeyValueEditor
-                            :model-value="tab.draft.headers"
-                            :variables="scope.variables"
-                            key-placeholder="Header"
-                            @update:model-value="setHeaders"
-                        />
-                    </div>
+                            <ChevronRight
+                                class="size-3.5 transition-transform group-data-[state=open]:rotate-90"
+                            />
+                            {{ scope.inheritedHeaders.length }} header{{
+                                scope.inheritedHeaders.length === 1 ? '' : 's'
+                            }}
+                            inherited from parent collections
+                        </CollapsibleTrigger>
+                        <CollapsibleContent class="pt-2">
+                            <div class="overflow-hidden rounded-md border">
+                                <table
+                                    class="w-full table-fixed border-collapse"
+                                >
+                                    <thead>
+                                        <tr
+                                            class="border-b bg-muted/40 text-[11px] font-medium tracking-wide text-muted-foreground uppercase"
+                                        >
+                                            <th
+                                                class="border-r px-2.5 py-1.5 text-left"
+                                            >
+                                                Header
+                                            </th>
+                                            <th
+                                                class="border-r px-2.5 py-1.5 text-left"
+                                            >
+                                                Value
+                                            </th>
+                                            <th
+                                                class="w-32 px-2.5 py-1.5 text-left"
+                                            >
+                                                From
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr
+                                            v-for="header in scope.inheritedHeaders"
+                                            :key="header.key"
+                                            class="border-b font-mono text-xs last:border-b-0"
+                                        >
+                                            <td
+                                                class="truncate border-r px-2.5 py-1.5"
+                                            >
+                                                {{ header.key }}
+                                            </td>
+                                            <td
+                                                class="truncate border-r px-2.5 py-1.5 text-muted-foreground"
+                                            >
+                                                {{ header.value }}
+                                            </td>
+                                            <td
+                                                class="truncate px-2.5 py-1.5 text-muted-foreground"
+                                            >
+                                                {{ header.sourceName }}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <p class="mt-2 text-xs text-muted-foreground">
+                                Add a header with the same name above to
+                                override one of these.
+                            </p>
+                        </CollapsibleContent>
+                    </Collapsible>
                 </TabsContent>
 
                 <TabsContent value="auth">
@@ -588,22 +686,36 @@ async function send() {
                 </TabsContent>
 
                 <TabsContent value="body" class="flex flex-col gap-3">
-                    <Select
-                        :model-value="tab.draft.body_type"
-                        @update:model-value="(v) => setBodyType(String(v))"
-                    >
-                        <SelectTrigger class="w-40 text-xs">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem
-                                v-for="bt in bodyTypes"
-                                :key="bt.value"
-                                :value="bt.value"
-                                >{{ bt.label }}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <!-- body toolbar: what kind of body, and acting on it -->
+                    <div class="flex items-center gap-2">
+                        <Select
+                            :model-value="tab.draft.body_type"
+                            @update:model-value="(v) => setBodyType(String(v))"
+                        >
+                            <SelectTrigger size="sm" class="w-40 text-xs">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem
+                                    v-for="bt in bodyTypes"
+                                    :key="bt.value"
+                                    :value="bt.value"
+                                    >{{ bt.label }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        <Button
+                            v-if="tab.draft.body_type === 'json'"
+                            variant="ghost"
+                            size="sm"
+                            class="ml-auto"
+                            @click="formatJsonBody"
+                        >
+                            <Wand2 class="size-3.5" />
+                            Format
+                        </Button>
+                    </div>
 
                     <CodeEditor
                         v-if="
@@ -636,25 +748,22 @@ async function send() {
                         @update:model-value="setFormFields"
                     />
 
-                    <p v-else class="text-sm text-muted-foreground">
-                        This request has no body.
+                    <p
+                        v-else
+                        class="rounded-md border border-dashed px-4 py-6 text-center text-xs text-muted-foreground"
+                    >
+                        No body is sent with this request. Pick a type above to
+                        add one.
                     </p>
                 </TabsContent>
 
+                <!--
+                    Editor first, reference underneath. The cheat sheet used to
+                    sit on top, so the editor started a paragraph down the panel
+                    and every glance at a script had to step over the same three
+                    lines of documentation.
+                -->
                 <TabsContent value="scripts" class="flex h-full flex-col gap-2">
-                    <p class="text-xs text-muted-foreground">
-                        Runs before the request. Available:
-                        <code class="font-mono">pm.variables.set(k, v)</code>,
-                        <code class="font-mono"
-                            >pm.request.headers.set(k, v)</code
-                        >.
-                        <Link
-                            :href="scriptingDocs()"
-                            target="_blank"
-                            class="underline hover:text-foreground"
-                            >Full scripting reference</Link
-                        >
-                    </p>
                     <CodeEditor
                         :model-value="tab.draft.pre_request_script ?? ''"
                         language="script"
@@ -665,22 +774,22 @@ async function send() {
                             (v) => setPreRequestScript(String(v))
                         "
                     />
-                </TabsContent>
-
-                <TabsContent value="tests" class="flex h-full flex-col gap-2">
-                    <p class="text-xs text-muted-foreground">
-                        Runs after the response. Example:
+                    <p class="shrink-0 text-xs text-muted-foreground">
+                        Runs before the request.
+                        <code class="font-mono">pm.variables.set(k, v)</code>,
                         <code class="font-mono"
-                            >pm.test("status is 200", pm.response.status ==
-                            200)</code
-                        >
+                            >pm.request.headers.set(k, v)</code
+                        >.
                         <Link
                             :href="scriptingDocs()"
                             target="_blank"
                             class="underline hover:text-foreground"
-                            >Full scripting reference</Link
+                            >Scripting reference</Link
                         >
                     </p>
+                </TabsContent>
+
+                <TabsContent value="tests" class="flex h-full flex-col gap-2">
                     <CodeEditor
                         :model-value="tab.draft.test_script ?? ''"
                         language="script"
@@ -689,6 +798,20 @@ async function send() {
                         class="min-h-48 flex-1"
                         @update:model-value="(v) => setTestScript(String(v))"
                     />
+                    <p class="shrink-0 text-xs text-muted-foreground">
+                        Runs after the response, and the results show in the
+                        Tests tab below.
+                        <code class="font-mono"
+                            >pm.test("status is 200", pm.response.status ==
+                            200)</code
+                        >.
+                        <Link
+                            :href="scriptingDocs()"
+                            target="_blank"
+                            class="underline hover:text-foreground"
+                            >Scripting reference</Link
+                        >
+                    </p>
                 </TabsContent>
             </div>
         </Tabs>

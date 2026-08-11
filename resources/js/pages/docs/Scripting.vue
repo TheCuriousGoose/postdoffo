@@ -29,19 +29,18 @@ const sections = [
             <p>
                 Every request has two script boxes: a
                 <strong>pre-request script</strong>, which runs before the
-                request goes out, and a <strong>test script</strong>, which
-                runs after the response comes back. Both use the same small
-                language built around a single <code>pm</code> object.
+                request goes out, and a <strong>test script</strong>, which runs
+                after the response comes back. Both use the same small language
+                built around a single <code>pm</code> object.
             </p>
             <p>
                 This is <strong>not JavaScript</strong>. It's a deliberately
                 tiny, closed grammar &mdash; there's no interpreter and no
                 <code>eval()</code> anywhere behind it, so the only things a
                 script can do are the exact <code>pm.*</code> calls listed on
-                this page. That's a safety property, not a limitation we plan
-                to lift, so don't expect loops, <code>if</code>/<code
-                    >else</code
-                >, or arithmetic to start working later.
+                this page. That's a safety property, not a limitation we plan to
+                lift, so don't expect loops, <code>if</code>/<code>else</code>,
+                or arithmetic to start working later.
             </p>
         </section>
 
@@ -50,8 +49,8 @@ const sections = [
             <p>
                 A script is <strong>one statement per line</strong>. Each line
                 is evaluated independently &mdash; there's no way for one line
-                to affect the parsing of another, and a mistake on one line
-                only fails that line, not the rest of the script.
+                to affect the parsing of another, and a mistake on one line only
+                fails that line, not the rest of the script.
             </p>
             <ul>
                 <li>Blank lines are ignored.</li>
@@ -60,10 +59,10 @@ const sections = [
                     and optional &mdash; you can include one or leave it off.
                 </li>
                 <li>
-                    A line is a statement, either a bare expression (most
-                    useful when it's a <code>pm.test(...)</code> or a
-                    <code>pm.*.set(...)</code> call — the return value of
-                    other expressions is simply discarded).
+                    A line is a statement, either a bare expression (most useful
+                    when it's a <code>pm.test(...)</code> or a
+                    <code>pm.*.set(...)</code> call — the return value of other
+                    expressions is simply discarded).
                 </li>
             </ul>
         </section>
@@ -71,9 +70,10 @@ const sections = [
         <section id="response-data">
             <h2>Reading the response</h2>
             <p>
-                These are only meaningful in a <strong>test script</strong>
-                &mdash; in a pre-request script the response hasn't happened
-                yet, so they'll all read as <code>null</code>.
+                These are only meaningful in a
+                <strong>test script</strong> &mdash; in a pre-request script the
+                response hasn't happened yet, so they'll all read as
+                <code>null</code>.
             </p>
             <table>
                 <thead>
@@ -99,8 +99,7 @@ const sections = [
                         <td><code>pm.response.header("Name")</code></td>
                         <td>
                             A response header value, or <code>null</code> if
-                            missing. The name is matched
-                            case-insensitively.
+                            missing. The name is matched case-insensitively.
                         </td>
                     </tr>
                     <tr>
@@ -134,17 +133,16 @@ const sections = [
                 </li>
                 <li>
                     <code>pm.variables.set("key", value)</code> /
-                    <code>pm.environment.set("key", value)</code> &mdash;
-                    writes a variable. The value is always stored as a
-                    string.
+                    <code>pm.environment.set("key", value)</code> &mdash; writes
+                    a variable. The value is always stored as a string.
                 </li>
             </ul>
             <p>
                 Variables set from a script are saved back to the active
-                environment, so a pre-request script that generates a
-                timestamp, or a test script that captures a token from the
-                response, is visible to every later request that uses
-                <code v-pre>{{variable}}</code> placeholders.
+                environment, so a pre-request script that generates a timestamp,
+                or a test script that captures a token from the response, is
+                visible to every later request that uses
+                <code v-pre>{{ variable }}</code> placeholders.
             </p>
         </section>
 
@@ -174,11 +172,14 @@ const sections = [
             <p><strong>Literals:</strong></p>
             <ul>
                 <li>
-                    Strings: <code>"double"</code> or <code>'single'</code>
-                    quoted, with <code>\"</code>, <code>\'</code>,
-                    <code>\\</code> escapes.
+                    Strings: <code>"double"</code> or
+                    <code>'single'</code> quoted, with <code>\"</code>,
+                    <code>\'</code>, <code>\\</code> escapes.
                 </li>
-                <li>Numbers: <code>42</code>, <code>3.14</code>, <code>-1</code>.</li>
+                <li>
+                    Numbers: <code>42</code>, <code>3.14</code>,
+                    <code>-1</code>.
+                </li>
                 <li>
                     <code>true</code>, <code>false</code>, <code>null</code>.
                 </li>
@@ -186,21 +187,27 @@ const sections = [
             <p><strong>Operators:</strong></p>
             <ul>
                 <li>
-                    Comparison: <code>==</code> <code>!=</code> <code>&gt;</code>
-                    <code>&gt;=</code> <code>&lt;</code> <code>&lt;=</code>.
-                    If both sides look numeric (including numeric strings),
-                    they're compared as numbers.
+                    Comparison: <code>==</code> <code>!=</code>
+                    <code>&gt;</code> <code>&gt;=</code> <code>&lt;</code>
+                    <code>&lt;=</code>. If both sides look numeric (including
+                    numeric strings), they're compared as numbers.
                 </li>
-                <li>Logical: <code>&amp;&amp;</code> <code>||</code> <code>!</code>.</li>
-                <li>Parentheses for grouping: <code>(a == b) &amp;&amp; c</code>.</li>
+                <li>
+                    Logical: <code>&amp;&amp;</code> <code>||</code>
+                    <code>!</code>.
+                </li>
+                <li>
+                    Parentheses for grouping:
+                    <code>(a == b) &amp;&amp; c</code>.
+                </li>
             </ul>
             <p>
-                <strong>Truthiness</strong> follows one rule: an empty string
-                is falsy, everything else is truthy. That means the string
-                <code>"0"</code> is <em>truthy</em> here, which is the
-                opposite of JavaScript &mdash; a common surprise when a
-                <code>pm.response.json.someField</code> path happens to hold
-                the string <code>"0"</code>.
+                <strong>Truthiness</strong> follows one rule: an empty string is
+                falsy, everything else is truthy. That means the string
+                <code>"0"</code> is <em>truthy</em> here, which is the opposite
+                of JavaScript &mdash; a common surprise when a
+                <code>pm.response.json.someField</code> path happens to hold the
+                string <code>"0"</code>.
             </p>
         </section>
 
@@ -208,14 +215,14 @@ const sections = [
             <h2>Comments</h2>
             <p>
                 A line is a comment only when it starts with <code>//</code>
-                once leading whitespace is trimmed. The whole line is
-                ignored.
+                once leading whitespace is trimmed. The whole line is ignored.
             </p>
-            <pre>// capture the auth token for later requests
+            <pre>
+// capture the auth token for later requests
 pm.environment.set("token", pm.response.json.access_token)</pre>
             <p>
-                There's no support for a trailing comment after code on the
-                same line &mdash; keep comments on their own line.
+                There's no support for a trailing comment after code on the same
+                line &mdash; keep comments on their own line.
             </p>
         </section>
 
@@ -223,8 +230,8 @@ pm.environment.set("token", pm.response.json.access_token)</pre>
             <h2>What's not supported</h2>
             <p>
                 Because the grammar is intentionally closed, none of the
-                following exist, even though they're common in Postman or
-                plain JavaScript:
+                following exist, even though they're common in Postman or plain
+                JavaScript:
             </p>
             <ul>
                 <li>
@@ -252,18 +259,21 @@ pm.environment.set("token", pm.response.json.access_token)</pre>
         <section id="examples">
             <h2>Examples</h2>
             <p><strong>Pre-request:</strong> set a header from a variable.</p>
-            <pre v-pre>pm.request.headers.set("X-Trace-Id", "{{traceId}}")</pre>
+            <pre v-pre>
+pm.request.headers.set("X-Trace-Id", "{{ traceId }}")</pre>
 
             <p><strong>Pre-request:</strong> stamp a variable for later use.</p>
             <pre>pm.variables.set("timestamp", "123")</pre>
 
             <p><strong>Test:</strong> check the status and capture a token.</p>
-            <pre>pm.test("status is 200", pm.response.status == 200)
+            <pre>
+pm.test("status is 200", pm.response.status == 200)
 pm.test("has access token", pm.response.json.access_token != null)
 pm.environment.set("token", pm.response.json.access_token)</pre>
 
             <p><strong>Test:</strong> a compound condition.</p>
-            <pre>pm.test("fast and successful", pm.response.responseTime &lt; 500 && pm.response.status == 200)</pre>
+            <pre>
+pm.test("fast and successful", pm.response.responseTime &lt; 500 && pm.response.status == 200)</pre>
         </section>
     </DocsLayout>
 </template>

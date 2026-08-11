@@ -9,17 +9,17 @@ import {
     ResizablePanel,
     ResizablePanelGroup,
 } from '@/components/ui/resizable';
+import { Separator } from '@/components/ui/separator';
 import CookieManagerDialog from '@/components/workspace/CookieManagerDialog.vue';
 import EnvironmentSwitcher from '@/components/workspace/EnvironmentSwitcher.vue';
 import HistoryPanel from '@/components/workspace/HistoryPanel.vue';
 import RequestEditor from '@/components/workspace/RequestEditor.vue';
 import ResponsePanel from '@/components/workspace/ResponsePanel.vue';
 import ShareDialog from '@/components/workspace/ShareDialog.vue';
-import WorkspaceVariablesDialog from '@/components/workspace/WorkspaceVariablesDialog.vue';
 import { useOpenRequest } from '@/composables/useOpenRequest';
 import { api } from '@/lib/api';
 import { promptDialog } from '@/lib/dialogs';
-import { cn } from '@/lib/utils';
+import { methodColor } from '@/lib/http';
 import { useWorkspaceStore } from '@/stores/workspace';
 import type {
     ApiRequest,
@@ -41,16 +41,6 @@ const props = defineProps<{
 
 const store = useWorkspaceStore();
 const { openRequest } = useOpenRequest();
-
-const methodColor: Record<string, string> = {
-    GET: 'text-blue-600 dark:text-blue-400',
-    POST: 'text-green-600 dark:text-green-400',
-    PUT: 'text-amber-600 dark:text-amber-400',
-    PATCH: 'text-amber-600 dark:text-amber-400',
-    DELETE: 'text-red-600 dark:text-red-400',
-    HEAD: 'text-muted-foreground',
-    OPTIONS: 'text-muted-foreground',
-};
 
 onMounted(() => {
     const active = props.environments.find((e) => e.is_active) ?? null;
@@ -148,65 +138,99 @@ watch(
     <Head :title="workspace.name" />
 
     <div class="flex h-full min-h-0 flex-1 flex-col">
-        <div class="flex items-center justify-between border-b px-3 py-2">
-            <h1 class="text-sm font-semibold">{{ workspace.name }}</h1>
-            <div class="flex items-center gap-2">
-                <ShareDialog :workspace="workspace" :role="role" />
-                <CookieManagerDialog :workspace-id="workspace.id" />
-                <WorkspaceVariablesDialog :workspace-id="workspace.id" />
+        <!--
+            Tools are grouped by what they act on rather than lined up in the
+            order they happened to be built: the environment (which changes what
+            every request resolves to), then the workspace's own data, then
+            sharing. Everything in here is on the h-8 chrome scale.
+        -->
+        <header class="flex h-10 shrink-0 items-center gap-2 border-b px-3">
+            <h1 class="min-w-0 truncate text-sm font-semibold">
+                {{ workspace.name }}
+            </h1>
+
+            <div class="ml-auto flex items-center gap-1">
                 <EnvironmentSwitcher
                     :workspace-id="workspace.id"
                     :environments="environments"
                 />
-                <HistoryPanel :history="history" />
-            </div>
-        </div>
 
+                <Separator orientation="vertical" class="mx-1 !h-5" />
+
+                <CookieManagerDialog :workspace-id="workspace.id" />
+                <HistoryPanel :history="history" />
+
+                <Separator orientation="vertical" class="mx-1 !h-5" />
+
+                <ShareDialog :workspace="workspace" :role="role" />
+            </div>
+        </header>
+
+        <!--
+            Close is its own button rather than an icon nested inside the tab's
+            button, so it is reachable by keyboard and announces itself; the
+            unsaved dot and the close cross share one fixed-width slot so tabs
+            don't resize under the pointer.
+        -->
         <div
             v-if="store.tabs.length"
-            class="flex items-center gap-0.5 overflow-x-auto border-b px-2"
+            class="flex h-9 shrink-0 items-stretch overflow-x-auto border-b px-2"
         >
-            <button
+            <div
                 v-for="tab in store.tabs"
                 :key="tab.requestId"
-                class="group -mb-px flex shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-xs transition-colors"
+                class="group relative flex shrink-0 items-center pr-1 text-xs transition-colors"
                 :class="
-                    cn(
-                        tab.requestId === store.activeTabId
-                            ? 'border-orange-500 font-medium text-foreground'
-                            : 'border-transparent text-muted-foreground hover:text-foreground',
-                    )
+                    tab.requestId === store.activeTabId
+                        ? 'font-medium text-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
                 "
-                @click="store.setActiveTab(tab.requestId)"
             >
-                <span
-                    class="font-mono text-[10px] font-semibold"
-                    :class="methodColor[tab.draft.method]"
-                    >{{ tab.draft.method }}</span
+                <button
+                    type="button"
+                    class="flex items-center gap-2 py-2 pr-1 pl-3"
+                    @click="store.setActiveTab(tab.requestId)"
                 >
-                <span class="max-w-40 truncate">{{
-                    tab.draft.name || 'Untitled'
-                }}</span>
-                <span
-                    class="relative flex size-3.5 items-center justify-center"
+                    <span
+                        class="font-mono text-[10px] font-semibold"
+                        :class="methodColor[tab.draft.method]"
+                        >{{ tab.draft.method }}</span
+                    >
+                    <span class="max-w-40 truncate">{{
+                        tab.draft.name || 'Untitled'
+                    }}</span>
+                </button>
+
+                <button
+                    type="button"
+                    class="flex size-4 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+                    :aria-label="`Close ${tab.draft.name || 'Untitled'}`"
+                    @click="store.closeTab(tab.requestId)"
                 >
                     <span
                         v-if="tab.dirty"
                         class="size-1.5 rounded-full bg-orange-500 group-hover:hidden"
+                        :title="'Unsaved changes'"
                     />
-                    <X
-                        class="hidden size-3.5 rounded-sm p-0.5 text-muted-foreground group-hover:block hover:bg-accent hover:text-foreground"
-                        @click.stop="store.closeTab(tab.requestId)"
-                    />
-                </span>
-            </button>
+                    <X class="hidden size-3 group-hover:block" />
+                </button>
+
+                <span
+                    v-if="tab.requestId === store.activeTabId"
+                    class="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-orange-500"
+                />
+            </div>
         </div>
 
         <ResizablePanelGroup direction="vertical" class="min-h-0 flex-1">
             <ResizablePanel :default-size="55" :min-size="20">
                 <RequestEditor />
             </ResizablePanel>
-            <ResizableHandle with-handle />
+            <!--
+                The divider itself is the drag target, the way the sidebar's
+                edge is, rather than a grip widget you have to aim at.
+            -->
+            <ResizableHandle />
             <ResizablePanel :default-size="45" :min-size="15">
                 <ResponsePanel />
             </ResizablePanel>

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { History } from '@lucide/vue';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
     Sheet,
     SheetContent,
@@ -9,6 +8,7 @@ import {
     SheetTitle,
     SheetTrigger,
 } from '@/components/ui/sheet';
+import ToolbarButton from '@/components/workspace/ToolbarButton.vue';
 import type { RequestHistoryEntry } from '@/types/workspace';
 
 defineProps<{
@@ -39,9 +39,9 @@ function formatTime(iso: string) {
 <template>
     <Sheet>
         <SheetTrigger as-child>
-            <Button variant="outline" size="icon">
+            <ToolbarButton label="Request history">
                 <History class="size-4" />
-            </Button>
+            </ToolbarButton>
         </SheetTrigger>
         <SheetContent class="w-96 sm:max-w-md">
             <SheetHeader>

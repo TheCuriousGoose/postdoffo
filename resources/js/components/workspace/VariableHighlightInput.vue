@@ -13,6 +13,8 @@ import { variableAtOffset } from '@/lib/variableScope';
  * is hidden, so the backdrop's highlights show through underneath.
  *
  * `plain` drops the border/shadow so it can sit flush inside a table cell.
+ * `size` picks the height: `sm` (h-8) lines up with the workspace chrome bars,
+ * the default (h-9) matches the `Input` primitive it sits beside in forms.
  */
 defineOptions({
     inheritAttrs: false,
@@ -23,6 +25,7 @@ const props = defineProps<{
     placeholder?: string;
     class?: string;
     plain?: boolean;
+    size?: 'sm' | 'default';
     /**
      * Resolved variable keys in scope for this request. When provided, a
      * `{{variable}}` that resolves is highlighted amber and one that doesn't is
@@ -86,9 +89,13 @@ const segments = computed<Segment[]>(() => {
 
 // Padding must be identical on the input and its backdrop or the highlight
 // drifts out of alignment with the real glyphs.
-const padClass = computed(() =>
-    props.plain ? 'h-8 px-2.5 py-1.5' : 'h-9 px-3 py-1',
-);
+const padClass = computed(() => {
+    if (props.plain) {
+        return 'h-8 px-2.5 py-1.5';
+    }
+
+    return props.size === 'sm' ? 'h-8 px-3 py-1' : 'h-9 px-3 py-1';
+});
 
 const { open: openInspector } = useVariableInspector();
 

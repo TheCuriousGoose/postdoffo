@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import {
-    ArrowRight,
-    Database,
-    KeyRound,
-    Layers,
-    ServerCog,
-} from '@lucide/vue';
+import { ArrowRight, Database, KeyRound, Layers, ServerCog } from '@lucide/vue';
 import IconGithub from '@/components/IconGithub.vue';
 import SiteFooter from '@/components/site/SiteFooter.vue';
 import SiteHeader from '@/components/site/SiteHeader.vue';
@@ -81,7 +75,9 @@ const stack = [
                 aria-hidden="true"
             />
 
-            <div class="mx-auto max-w-3xl px-6 pt-20 pb-16 text-center lg:pt-28">
+            <div
+                class="mx-auto max-w-3xl px-6 pt-20 pb-16 text-center lg:pt-28"
+            >
                 <p
                     class="mx-auto flex w-fit items-center gap-2 font-mono text-xs tracking-widest text-muted-foreground uppercase"
                 >
@@ -172,10 +168,9 @@ const stack = [
                         :key="step.command"
                         class="flex flex-col gap-2 border-b border-white/10 p-5 last:border-b-0 sm:flex-row sm:items-center sm:gap-6"
                     >
-                        <span
-                            class="font-mono text-xs text-stone-500"
-                            >{{ String(i + 1).padStart(2, '0') }}</span
-                        >
+                        <span class="font-mono text-xs text-stone-500">{{
+                            String(i + 1).padStart(2, '0')
+                        }}</span>
                         <code
                             class="rounded bg-black/40 px-3 py-1.5 font-mono text-sm text-orange-300"
                             >{{ step.command }}</code
@@ -296,9 +291,9 @@ const stack = [
                     Not ready to self-host? Start hosted, free.
                 </h2>
                 <p class="mx-auto mt-5 max-w-md text-muted-foreground">
-                    Try PostDoffo on the hosted instance first. Move to your
-                    own infrastructure whenever you're ready — it's the same
-                    app either way.
+                    Try PostDoffo on the hosted instance first. Move to your own
+                    infrastructure whenever you're ready — it's the same app
+                    either way.
                 </p>
                 <div
                     class="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row"

@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import {
-    ArrowRight,
-    FileBraces,
-    KeyRound,
-    Layers,
-    Upload,
-} from '@lucide/vue';
+import { ArrowRight, FileBraces, KeyRound, Layers, Upload } from '@lucide/vue';
 import IconGithub from '@/components/IconGithub.vue';
 import SiteFooter from '@/components/site/SiteFooter.vue';
 import SiteHeader from '@/components/site/SiteHeader.vue';
@@ -88,8 +82,8 @@ const steps = [
                         >
                             Export any Postman v2.1 collection and drop it in.
                             The entire tree comes across intact — folders,
-                            requests, headers and auth land exactly where
-                            they belong.
+                            requests, headers and auth land exactly where they
+                            belong.
                         </p>
 
                         <div class="mt-9 flex flex-col gap-3 sm:flex-row">
@@ -131,9 +125,7 @@ const steps = [
                                 class="mt-4 space-y-2 border-t border-border pt-4 text-sm text-muted-foreground"
                             >
                                 <div class="flex items-center gap-2">
-                                    <Layers
-                                        class="size-3.5 text-orange-500"
-                                    />
+                                    <Layers class="size-3.5 text-orange-500" />
                                     Payments API
                                 </div>
                                 <div class="flex items-center gap-2 pl-5">
@@ -224,9 +216,7 @@ const steps = [
                     Three steps, no re-work
                 </h2>
 
-                <div
-                    class="relative mt-16 grid gap-12 md:grid-cols-3 md:gap-8"
-                >
+                <div class="relative mt-16 grid gap-12 md:grid-cols-3 md:gap-8">
                     <div
                         class="absolute inset-x-0 top-6 hidden h-px bg-border md:block"
                         aria-hidden="true"
@@ -274,13 +264,11 @@ const steps = [
                     <p class="mt-4 text-stone-400">
                         Postman's pre-request and test scripts are plain
                         JavaScript. PostDoffo's are not — they run on a small,
-                        closed <code class="text-stone-200">pm.*</code>
-                        grammar with no <code class="text-stone-200"
-                            >eval()</code
-                        >
-                        behind it, so imported scripts won't run as-is and
-                        need to be rewritten by hand. It's a deliberate
-                        trade-off for safety, not an oversight.
+                        closed <code class="text-stone-200">pm.*</code> grammar
+                        with no <code class="text-stone-200">eval()</code>
+                        behind it, so imported scripts won't run as-is and need
+                        to be rewritten by hand. It's a deliberate trade-off for
+                        safety, not an oversight.
                     </p>
                     <Link
                         :href="scripting()"
@@ -331,8 +319,8 @@ const steps = [
                         <p
                             class="mt-2 text-sm leading-relaxed text-muted-foreground"
                         >
-                            A closer look at the Postman v2.1 format, folder
-                            by folder.
+                            A closer look at the Postman v2.1 format, folder by
+                            folder.
                         </p>
                     </Link>
                 </div>

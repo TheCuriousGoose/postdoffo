@@ -17,8 +17,8 @@ import { privacy, terms } from '@/routes/legal';
                     <AppLogo />
                 </Link>
                 <p class="mt-4 max-w-xs text-sm text-muted-foreground">
-                    A fast, focused API workspace. Build, test and share
-                    without the bloat.
+                    A fast, focused API workspace. Build, test and share without
+                    the bloat.
                 </p>
                 <a
                     :href="GITHUB_URL"

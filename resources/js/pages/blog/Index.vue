@@ -28,8 +28,8 @@ defineProps<{
                     Blog
                 </h1>
                 <p class="mt-4 max-w-xl text-muted-foreground">
-                    Guides on testing APIs, migrating from Postman, and
-                    getting the most out of environments and scripting.
+                    Guides on testing APIs, migrating from Postman, and getting
+                    the most out of environments and scripting.
                 </p>
 
                 <div

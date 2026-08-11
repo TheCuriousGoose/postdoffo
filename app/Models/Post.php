@@ -4,8 +4,22 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 
+/**
+ * Dates are CarbonImmutable rather than Carbon: AppServiceProvider calls
+ * Date::use(CarbonImmutable::class), so that's what a datetime cast hands back.
+ *
+ * @property int $id
+ * @property string $title
+ * @property string $slug
+ * @property string|null $excerpt
+ * @property string $body
+ * @property CarbonImmutable|null $published_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
+ */
 class Post extends Model
 {
     /** @var list<string> */

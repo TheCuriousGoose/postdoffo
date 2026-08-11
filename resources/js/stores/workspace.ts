@@ -144,6 +144,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         tab.dirty = true;
     }
 
+    /**
+     * Apply a change that has already been persisted elsewhere — renaming a
+     * request from the collection tree, say — so an open tab follows along
+     * without claiming it now has unsaved edits.
+     */
+    function patchSaved(requestId: number, patch: Partial<ApiRequest>): void {
+        const tab = tabs.value.find((t) => t.requestId === requestId);
+
+        if (tab) {
+            Object.assign(tab.draft, patch);
+        }
+    }
+
     function markSaved(requestId: number, saved: ApiRequest): void {
         const tab = tabs.value.find((t) => t.requestId === requestId);
 
@@ -202,6 +215,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         closeTab,
         setActiveTab,
         updateDraft,
+        patchSaved,
         markSaved,
         setExecuting,
         setSaving,

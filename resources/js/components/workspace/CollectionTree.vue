@@ -56,7 +56,9 @@ import { api, ApiError } from '@/lib/api';
 import { confirmDialog, promptDialog } from '@/lib/dialogs';
 import { draggedItem, reorderIds } from '@/lib/dragState';
 import type { DraggedItem } from '@/lib/dragState';
+import { methodColor } from '@/lib/http';
 import { cn } from '@/lib/utils';
+import { useWorkspaceStore } from '@/stores/workspace';
 import type {
     AuthType,
     CollectionNode,
@@ -88,6 +90,7 @@ const emit = defineEmits<{
 }>();
 
 const open = ref(true);
+const store = useWorkspaceStore();
 
 function reload() {
     router.reload({ only: ['collectionTree'] });
@@ -415,6 +418,23 @@ async function remove() {
     reload();
 }
 
+async function renameRequest(request: RequestSummary) {
+    const name = await promptDialog({
+        title: 'Rename request',
+        label: 'Request name',
+        defaultValue: request.name,
+        confirmText: 'Rename',
+    });
+
+    if (!name || name === request.name) {
+        return;
+    }
+
+    await api.patch(updateRequest.url(request.id), { name });
+    store.patchSaved(request.id, { name });
+    reload();
+}
+
 async function removeRequest(request: RequestSummary) {
     const confirmed = await confirmDialog({
         title: `Delete request "${request.name}"?`,
@@ -428,6 +448,9 @@ async function removeRequest(request: RequestSummary) {
     }
 
     await api.delete(destroyRequest.url(request.id));
+    // The tab is now pointing at a request that no longer exists; leaving it
+    // open means the next save or send 404s against a deleted id.
+    store.closeTab(request.id);
     reload();
 }
 
@@ -527,16 +550,6 @@ const configuredCount = computed(() => ({
     headers: settingsHeaders.value.filter((h) => h.key.trim() !== '').length,
     auth: settingsAuthType.value && settingsAuthType.value !== 'none' ? 1 : 0,
 }));
-
-const methodColor: Record<string, string> = {
-    GET: 'text-blue-600 dark:text-blue-400',
-    POST: 'text-green-600 dark:text-green-400',
-    PUT: 'text-amber-600 dark:text-amber-400',
-    PATCH: 'text-amber-600 dark:text-amber-400',
-    DELETE: 'text-red-600 dark:text-red-400',
-    HEAD: 'text-muted-foreground',
-    OPTIONS: 'text-muted-foreground',
-};
 </script>
 
 <template>
@@ -593,7 +606,8 @@ const methodColor: Record<string, string> = {
                     <Button
                         variant="ghost"
                         size="icon"
-                        class="size-6 shrink-0 opacity-0 group-hover/row:opacity-100"
+                        :aria-label="`Actions for ${node.name}`"
+                        class="size-6 shrink-0 opacity-0 group-hover/row:opacity-100 data-[state=open]:opacity-100"
                     >
                         <MoreHorizontal class="size-3.5" />
                     </Button>
@@ -679,20 +693,41 @@ const methodColor: Record<string, string> = {
                     @click="emit('open-request', request)"
                 >
                     <span
-                        class="w-12 shrink-0 text-[10px] font-semibold"
+                        class="w-12 shrink-0 font-mono text-[10px] font-semibold"
                         :class="methodColor[request.method] ?? ''"
                         >{{ request.method }}</span
                     >
                     <span class="truncate">{{ request.name }}</span>
                 </button>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    class="size-6 shrink-0 opacity-0 group-hover/row:opacity-100"
-                    @click="removeRequest(request)"
-                >
-                    <Trash2 class="size-3.5" />
-                </Button>
+
+                <!--
+                    Same overflow menu as a folder row. A request used to expose
+                    a bare delete button instead: the one destructive action in
+                    the tree was also the only one you could hit by accident.
+                -->
+                <DropdownMenu>
+                    <DropdownMenuTrigger as-child>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            :aria-label="`Actions for ${request.name}`"
+                            class="size-6 shrink-0 opacity-0 group-hover/row:opacity-100 data-[state=open]:opacity-100"
+                        >
+                            <MoreHorizontal class="size-3.5" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                        <DropdownMenuItem @click="renameRequest(request)">
+                            Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            variant="destructive"
+                            @click="removeRequest(request)"
+                        >
+                            <Trash2 class="size-3.5" /> Delete
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
 
             <CollectionTree

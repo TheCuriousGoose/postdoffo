@@ -52,7 +52,12 @@ function visit(pageNumber?: number) {
     router.get(
         index().url,
         { page: pageNumber },
-        { preserveState: true, preserveScroll: true, replace: true, only: ['posts'] },
+        {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            only: ['posts'],
+        },
     );
 }
 
@@ -89,9 +94,7 @@ async function deletePost(post: AdminPost) {
             </div>
 
             <Button as-child size="sm">
-                <Link :href="create()">
-                    <Plus class="size-4" /> New post
-                </Link>
+                <Link :href="create()"> <Plus class="size-4" /> New post </Link>
             </Button>
         </CardHeader>
 
@@ -163,9 +166,7 @@ async function deletePost(post: AdminPost) {
                 class="flex flex-col items-center gap-2 py-16 text-center"
             >
                 <FileText class="size-8 text-muted-foreground/50" />
-                <p class="text-sm text-muted-foreground">
-                    No posts yet.
-                </p>
+                <p class="text-sm text-muted-foreground">No posts yet.</p>
             </div>
         </CardContent>
 

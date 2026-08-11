@@ -1,15 +1,9 @@
 <script setup lang="ts">
 import { CornerDownLeft, Search } from '@lucide/vue';
-import {
-    computed,
-    nextTick,
-    onMounted,
-    onUnmounted,
-    ref,
-    watch,
-} from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useOpenRequest } from '@/composables/useOpenRequest';
+import { methodColor } from '@/lib/http';
 import { useWorkspaceStore } from '@/stores/workspace';
 import type { CollectionNode } from '@/types/workspace';
 
@@ -123,16 +117,6 @@ function onGlobalKeydown(event: KeyboardEvent) {
 
 onMounted(() => window.addEventListener('keydown', onGlobalKeydown));
 onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
-
-const methodColor: Record<string, string> = {
-    GET: 'text-blue-600 dark:text-blue-400',
-    POST: 'text-green-600 dark:text-green-400',
-    PUT: 'text-amber-600 dark:text-amber-400',
-    PATCH: 'text-amber-600 dark:text-amber-400',
-    DELETE: 'text-red-600 dark:text-red-400',
-    HEAD: 'text-muted-foreground',
-    OPTIONS: 'text-muted-foreground',
-};
 </script>
 
 <template>
@@ -171,7 +155,7 @@ const methodColor: Record<string, string> = {
                     @click="select(entry)"
                 >
                     <span
-                        class="w-12 shrink-0 text-[10px] font-semibold"
+                        class="w-12 shrink-0 font-mono text-[10px] font-semibold"
                         :class="methodColor[entry.method] ?? ''"
                         >{{ entry.method }}</span
                     >

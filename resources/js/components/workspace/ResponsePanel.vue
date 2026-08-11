@@ -1,6 +1,13 @@
 <script setup lang="ts">
-import { AlertTriangle, CheckCircle2, XCircle } from '@lucide/vue';
+import {
+    AlertTriangle,
+    CheckCircle2,
+    Copy,
+    Download,
+    XCircle,
+} from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
+import { toast } from 'vue-sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,6 +19,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import ToolbarButton from '@/components/workspace/ToolbarButton.vue';
 import { highlight, tokenClass } from '@/lib/highlight';
 import { formatBytes } from '@/lib/utils';
 import { useWorkspaceStore } from '@/stores/workspace';
@@ -55,9 +63,26 @@ function downloadBody() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = 'response-body';
+    // Read off the header rather than off the parsed body, so a response too
+    // large to pretty-print still lands with the right extension.
+    anchor.download = contentType.value.toLowerCase().includes('json')
+        ? 'response.json'
+        : 'response.txt';
     anchor.click();
     URL.revokeObjectURL(url);
+}
+
+async function copyBody() {
+    if (!response.value?.body) {
+        return;
+    }
+
+    try {
+        await navigator.clipboard.writeText(response.value.body);
+        toast.success('Response body copied');
+    } catch {
+        toast.error('Failed to copy response body');
+    }
 }
 
 const statusColor = computed(() => {
@@ -174,22 +199,28 @@ const passedCount = computed(
 
 <template>
     <div class="flex h-full min-h-0 flex-col">
-        <!-- header / status bar -->
+        <!--
+            Status bar, matching the request panel's header height so the two
+            rules across the split line up. Size used to be visible only inside
+            the "this body is enormous" warning, and downloading it was only
+            possible from that same warning.
+        -->
         <div class="flex h-10 shrink-0 items-center gap-3 border-b px-3">
-            <span
-                class="text-[11px] font-medium tracking-wide text-muted-foreground uppercase"
-                >Response</span
-            >
+            <span class="shrink-0 text-xs text-muted-foreground">Response</span>
             <template v-if="response && !response.error">
                 <Badge :variant="statusColor" class="font-mono">{{
                     response.status
                 }}</Badge>
-                <span class="font-mono text-xs text-muted-foreground"
+                <span class="shrink-0 font-mono text-xs text-muted-foreground"
                     >{{ response.duration_ms }} ms</span
                 >
                 <span
+                    class="shrink-0 font-mono text-xs text-muted-foreground"
+                    >{{ formattedBodySize }}</span
+                >
+                <span
                     v-if="response.test_results.length"
-                    class="font-mono text-xs"
+                    class="shrink-0 font-mono text-xs"
                     :class="
                         passedCount === response.test_results.length
                             ? 'text-green-600 dark:text-green-400'
@@ -200,9 +231,21 @@ const passedCount = computed(
                 </span>
                 <span
                     v-if="contentType"
-                    class="ml-auto max-w-[45%] truncate font-mono text-xs text-muted-foreground"
+                    class="ml-auto truncate font-mono text-xs text-muted-foreground"
                     >{{ contentType }}</span
                 >
+                <div
+                    v-if="bodyLength"
+                    class="flex shrink-0 items-center gap-1"
+                    :class="contentType ? '-mr-2' : '-mr-2 ml-auto'"
+                >
+                    <ToolbarButton label="Copy body" @click="copyBody">
+                        <Copy class="size-4" />
+                    </ToolbarButton>
+                    <ToolbarButton label="Download body" @click="downloadBody">
+                        <Download class="size-4" />
+                    </ToolbarButton>
+                </div>
             </template>
         </div>
 

@@ -171,7 +171,17 @@ function highlightJson(
 const SCRIPT_PATTERN =
     /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|-?\d+(?:\.\d+)?|==|!=|>=|<=|&&|\|\||[><!]|[A-Za-z_][A-Za-z0-9_]*|[.(),]|\s+|./g;
 
-const SCRIPT_OPERATORS = new Set(['==', '!=', '>=', '<=', '&&', '||', '>', '<', '!']);
+const SCRIPT_OPERATORS = new Set([
+    '==',
+    '!=',
+    '>=',
+    '<=',
+    '&&',
+    '||',
+    '>',
+    '<',
+    '!',
+]);
 
 function classifyScriptToken(token: string): HighlightTokenType {
     if (token[0] === '"' || token[0] === "'") {

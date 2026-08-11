@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { store, update } from '@/actions/App/Http/Controllers/Admin/PostController';
+import {
+    store,
+    update,
+} from '@/actions/App/Http/Controllers/Admin/PostController';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';

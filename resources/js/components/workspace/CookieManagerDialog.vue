@@ -16,6 +16,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import ToolbarButton from '@/components/workspace/ToolbarButton.vue';
 import { api } from '@/lib/api';
 import type { RequestCookie } from '@/types/workspace';
 
@@ -82,9 +83,9 @@ async function clearAll() {
 <template>
     <Dialog :open="open" @update:open="onOpenChange">
         <DialogTrigger as-child>
-            <Button variant="ghost" size="icon" title="Cookies" class="size-8">
+            <ToolbarButton label="Cookies">
                 <Cookie class="size-4" />
-            </Button>
+            </ToolbarButton>
         </DialogTrigger>
         <DialogContent class="sm:max-w-2xl">
             <DialogHeader>

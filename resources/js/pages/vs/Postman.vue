@@ -8,14 +8,23 @@ import { GITHUB_URL } from '@/lib/links';
 import { dashboard, register } from '@/routes';
 
 const rows = [
-    { postman: 'Cloud account required', postdoffo: 'Hosted or self-hosted, your choice' },
-    { postman: 'Paid tiers and seat limits', postdoffo: 'Every feature free, no seat counting' },
+    {
+        postman: 'Cloud account required',
+        postdoffo: 'Hosted or self-hosted, your choice',
+    },
+    {
+        postman: 'Paid tiers and seat limits',
+        postdoffo: 'Every feature free, no seat counting',
+    },
     { postman: 'Closed source', postdoffo: 'Open source on GitHub' },
     {
         postman: 'Scripts run full Node.js',
         postdoffo: 'Scripts run a small, closed pm.* grammar — no eval()',
     },
-    { postman: 'Workspaces, collections, environments', postdoffo: 'Workspaces, collections, environments' },
+    {
+        postman: 'Workspaces, collections, environments',
+        postdoffo: 'Workspaces, collections, environments',
+    },
 ];
 
 const notOurFocus = [
@@ -38,7 +47,9 @@ const notOurFocus = [
                 aria-hidden="true"
             />
 
-            <div class="mx-auto max-w-3xl px-6 pt-20 pb-16 text-center lg:pt-28">
+            <div
+                class="mx-auto max-w-3xl px-6 pt-20 pb-16 text-center lg:pt-28"
+            >
                 <p
                     class="mx-auto flex w-fit items-center gap-2 font-mono text-xs tracking-widest text-muted-foreground uppercase"
                 >
@@ -64,9 +75,7 @@ const notOurFocus = [
                     class="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row"
                 >
                     <Link
-                        :href="
-                            $page.props.auth.user ? dashboard() : register()
-                        "
+                        :href="$page.props.auth.user ? dashboard() : register()"
                         class="inline-flex items-center justify-center gap-2 rounded-lg bg-orange-500 px-6 py-3 text-sm font-semibold text-stone-950 transition hover:bg-orange-400"
                     >
                         Start building
@@ -136,9 +145,9 @@ const notOurFocus = [
                     Postman does more, on purpose we don't chase all of it
                 </h2>
                 <p class="mt-4 text-stone-400">
-                    Postman is a much larger platform. If any of these are
-                    what you actually need day to day, PostDoffo may not be a
-                    fit yet:
+                    Postman is a much larger platform. If any of these are what
+                    you actually need day to day, PostDoffo may not be a fit
+                    yet:
                 </p>
                 <ul class="mt-6 space-y-3 text-sm">
                     <li
@@ -174,8 +183,7 @@ const notOurFocus = [
                         <p
                             class="mt-2 text-sm leading-relaxed text-muted-foreground"
                         >
-                            Requirements, setup steps, and the stack it runs
-                            on.
+                            Requirements, setup steps, and the stack it runs on.
                         </p>
                     </Link>
                     <Link

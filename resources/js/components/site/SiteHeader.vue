@@ -48,9 +48,7 @@ const navLinks = [
                     title="PostDoffo on GitHub"
                 >
                     <IconGithub class="size-5" />
-                    <span class="sr-only"
-                        >PostDoffo source code on GitHub</span
-                    >
+                    <span class="sr-only">PostDoffo source code on GitHub</span>
                 </a>
                 <template v-if="$page.props.auth.user">
                     <Link

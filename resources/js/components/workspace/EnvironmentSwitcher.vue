@@ -1,120 +1,64 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { Settings2 } from '@lucide/vue';
+import { Plus, SlidersHorizontal } from '@lucide/vue';
 import { ref } from 'vue';
-import { toast } from 'vue-sonner';
-import {
-    activate,
-    store as storeEnvironment,
-} from '@/actions/App/Http/Controllers/EnvironmentController';
-import {
-    destroy as destroyVariable,
-    store as storeVariable,
-    update as updateVariable,
-} from '@/actions/App/Http/Controllers/EnvironmentVariableController';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import { activate } from '@/actions/App/Http/Controllers/EnvironmentController';
 import {
     Select,
     SelectContent,
     SelectItem,
+    SelectSeparator,
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import ToolbarButton from '@/components/workspace/ToolbarButton.vue';
+import VariablesDialog from '@/components/workspace/VariablesDialog.vue';
+import { useCreateEnvironment } from '@/composables/useCreateEnvironment';
 import { api } from '@/lib/api';
-import { promptDialog } from '@/lib/dialogs';
 import { useWorkspaceStore } from '@/stores/workspace';
-import type { Environment, EnvironmentVariable } from '@/types/workspace';
+import type { Environment } from '@/types/workspace';
 
+/**
+ * Picking which environment is in effect, and the way into everything else
+ * about variables. Editing used to live behind a second dialog here with its
+ * own environment picker; it now opens the one manager, so switching and
+ * editing can't disagree about which environment they mean.
+ */
 const props = defineProps<{
     workspaceId: number;
     environments: Environment[];
 }>();
 
 const store = useWorkspaceStore();
-const dialogOpen = ref(false);
-const managingId = ref<number | null>(null);
-
-function currentEnvironment(): Environment | null {
-    return props.environments.find((e) => e.id === managingId.value) ?? null;
-}
-
-async function onSwitch(value: string) {
-    const id = Number(value);
-    store.setActiveEnvironment(id);
-    await api.post(activate.url(id));
-    router.reload({ only: ['environments'] });
-}
-
-async function newEnvironment() {
-    const name = await promptDialog({
-        title: 'New environment',
-        label: 'Environment name',
-        defaultValue: 'New Environment',
-        confirmText: 'Create',
-    });
-
-    if (!name) {
-        return;
-    }
-
-    await api.post(storeEnvironment.url(props.workspaceId), { name });
-    router.reload({ only: ['environments'] });
-}
-
-function openManage(id: number) {
-    managingId.value = id;
-    dialogOpen.value = true;
-}
-
-async function addVariable() {
-    if (!managingId.value) {
-        return;
-    }
-
-    try {
-        await api.post(storeVariable.url(managingId.value), {
-            key: `new_variable_${Date.now()}`,
-            value: '',
-        });
-        router.reload({ only: ['environments'] });
-    } catch {
-        toast.error('Failed to add variable');
-    }
-}
+const { createEnvironment } = useCreateEnvironment();
+const managerOpen = ref(false);
 
 /**
- * The row is patched locally as well as on the server: Checkbox is a controlled
- * component, so the Secret toggle renders whatever `variable.is_secret` says and
- * springs straight back to its old state on click unless the local row moves
- * with it. Value's password/text masking reads the same flag.
+ * Creating from inside the list is a select value rather than a button in the
+ * dropdown's footer: the popup owns pointer handling for everything inside it,
+ * and an item is the one shape it reliably delivers a click for.
  */
-async function saveVariable(
-    variable: EnvironmentVariable,
-    patch: { key?: string; value?: string; is_secret?: boolean },
-) {
-    const previous = { ...variable };
+const NEW_ENVIRONMENT = '__new_environment__';
 
-    Object.assign(variable, patch);
+async function onSelect(value: string) {
+    if (value === NEW_ENVIRONMENT) {
+        const id = await createEnvironment(props.workspaceId);
 
-    try {
-        await api.patch(updateVariable.url(variable.id), patch);
-    } catch {
-        Object.assign(variable, previous);
-        toast.error('Failed to save variable');
+        // Created from the "which environment is active" control, so it becomes
+        // the active one — picking it from this list is the whole point.
+        if (id !== null) {
+            await switchTo(id);
+        }
+
+        return;
     }
+
+    await switchTo(Number(value));
 }
 
-async function removeVariable(variableId: number) {
-    await api.delete(destroyVariable.url(variableId));
+async function switchTo(id: number) {
+    store.setActiveEnvironment(id);
+    await api.post(activate.url(id));
     router.reload({ only: ['environments'] });
 }
 </script>
@@ -127,10 +71,16 @@ async function removeVariable(variableId: number) {
                     ? String(store.activeEnvironmentId)
                     : undefined
             "
-            @update:model-value="(v) => onSwitch(String(v))"
+            @update:model-value="(v) => onSelect(String(v))"
         >
-            <SelectTrigger class="w-48 text-xs">
-                <SelectValue placeholder="No environment" />
+            <SelectTrigger size="sm" class="w-44 text-xs">
+                <SelectValue
+                    :placeholder="
+                        environments.length
+                            ? 'No environment'
+                            : 'No environments yet'
+                    "
+                />
             </SelectTrigger>
             <SelectContent>
                 <SelectItem
@@ -139,127 +89,26 @@ async function removeVariable(variableId: number) {
                     :value="String(env.id)"
                     >{{ env.name }}</SelectItem
                 >
+
+                <SelectSeparator v-if="environments.length" />
+
+                <SelectItem
+                    :value="NEW_ENVIRONMENT"
+                    class="text-muted-foreground"
+                >
+                    <Plus class="size-3.5" />
+                    New environment
+                </SelectItem>
             </SelectContent>
         </Select>
 
-        <Dialog v-model:open="dialogOpen">
-            <DialogTrigger as-child>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    @click="
-                        openManage(
-                            store.activeEnvironmentId ?? environments[0]?.id,
-                        )
-                    "
-                >
-                    <Settings2 class="size-4" />
-                </Button>
-            </DialogTrigger>
-            <DialogContent class="sm:max-w-xl">
-                <DialogHeader>
-                    <DialogTitle>Environments</DialogTitle>
-                </DialogHeader>
+        <ToolbarButton label="Manage variables" @click="managerOpen = true">
+            <SlidersHorizontal class="size-4" />
+        </ToolbarButton>
 
-                <div class="flex items-center gap-2">
-                    <Select
-                        :model-value="
-                            managingId ? String(managingId) : undefined
-                        "
-                        @update:model-value="(v) => (managingId = Number(v))"
-                    >
-                        <SelectTrigger class="w-56">
-                            <SelectValue placeholder="Select environment" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem
-                                v-for="env in environments"
-                                :key="env.id"
-                                :value="String(env.id)"
-                                >{{ env.name }}</SelectItem
-                            >
-                        </SelectContent>
-                    </Select>
-                    <Button variant="outline" size="sm" @click="newEnvironment"
-                        >New environment</Button
-                    >
-                </div>
-
-                <div
-                    v-if="currentEnvironment()"
-                    class="flex max-h-80 flex-col gap-2 overflow-y-auto"
-                >
-                    <div
-                        v-for="variable in currentEnvironment()!.variables"
-                        :key="variable.id"
-                        class="flex items-center gap-2"
-                    >
-                        <Input
-                            :model-value="variable.key"
-                            placeholder="Key"
-                            autocomplete="off"
-                            data-lpignore="true"
-                            data-1p-ignore="true"
-                            data-bwignore="true"
-                            data-form-type="other"
-                            class="font-mono text-sm"
-                            @change="
-                                (e: Event) =>
-                                    saveVariable(variable, {
-                                        key: (e.target as HTMLInputElement)
-                                            .value,
-                                    })
-                            "
-                        />
-                        <Input
-                            :model-value="variable.value ?? ''"
-                            :type="variable.is_secret ? 'password' : 'text'"
-                            placeholder="Value"
-                            autocomplete="off"
-                            data-lpignore="true"
-                            data-1p-ignore="true"
-                            data-bwignore="true"
-                            data-form-type="other"
-                            class="font-mono text-sm"
-                            @change="
-                                (e: Event) =>
-                                    saveVariable(variable, {
-                                        value: (e.target as HTMLInputElement)
-                                            .value,
-                                    })
-                            "
-                        />
-                        <label
-                            class="flex shrink-0 items-center gap-1 text-xs text-muted-foreground"
-                        >
-                            <Checkbox
-                                :model-value="variable.is_secret"
-                                @update:model-value="
-                                    (v) =>
-                                        saveVariable(variable, {
-                                            is_secret: !!v,
-                                        })
-                                "
-                            />
-                            Secret
-                        </label>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            @click="removeVariable(variable.id)"
-                            >Remove</Button
-                        >
-                    </div>
-
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        class="w-fit"
-                        @click="addVariable"
-                        >Add variable</Button
-                    >
-                </div>
-            </DialogContent>
-        </Dialog>
+        <VariablesDialog
+            v-model:open="managerOpen"
+            :workspace-id="workspaceId"
+        />
     </div>
 </template>

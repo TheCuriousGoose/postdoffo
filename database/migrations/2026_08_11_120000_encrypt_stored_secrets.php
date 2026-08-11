@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -64,6 +65,12 @@ return new class extends Migration
             });
     }
 
+    /**
+     * encryptString, not the encrypt() helper: the helper serializes what it is
+     * given, while the `encrypted` cast on the models reads with unserialize
+     * turned off. Mixing the two hands the application back the serialized
+     * payload — `s:32:"https://…";` — instead of the value.
+     */
     private function encrypt(?string $value): ?string
     {
         if ($value === null) {
@@ -73,11 +80,11 @@ return new class extends Migration
         // Decryptable already means a previous run got here first — leave it be
         // rather than wrapping the ciphertext in a second layer.
         try {
-            decrypt($value);
+            Crypt::decryptString($value);
 
             return $value;
         } catch (Throwable) {
-            return encrypt($value);
+            return Crypt::encryptString($value);
         }
     }
 
@@ -88,7 +95,7 @@ return new class extends Migration
         }
 
         try {
-            return decrypt($value);
+            return Crypt::decryptString($value);
         } catch (Throwable) {
             return $value;
         }

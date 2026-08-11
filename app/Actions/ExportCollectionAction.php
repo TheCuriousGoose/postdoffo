@@ -118,7 +118,11 @@ class ExportCollectionAction
     }
 
     /**
-     * @param  array<int, array{key: string, value: string, enabled?: bool}>|null  $list
+     * `mixed` entries, not a strict shape: these lists come straight out of a
+     * json column, so a hand-edited or imported row can hold anything — which is
+     * what the is_array/?? guards below are for.
+     *
+     * @param  array<int, mixed>|null  $list
      * @return array<int, array<string, mixed>>
      */
     private function keyValueList(?array $list): array

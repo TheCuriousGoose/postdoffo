@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Actions\ExportCollectionAction;
 use App\Actions\ExportOpenApiAction;
 use App\Actions\ImportCollectionAction;
+use App\Actions\ImportEnvironmentAction;
 use App\Enums\AuthType;
 use App\Models\Collection;
+use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,8 +18,22 @@ use Illuminate\Validation\Rule;
 
 class CollectionController extends Controller
 {
-    public function import(Request $request, Workspace $workspace, ImportCollectionAction $action): JsonResponse
-    {
+    /**
+     * Import a Postman export. The endpoint accepts three shapes and routes each
+     * to the right place, keyed off the payload rather than a separate endpoint
+     * per type:
+     *   - an environment export (`_postman_variable_scope`) -> a new Environment
+     *     in this workspace;
+     *   - a bundle (a list of collections/environments, or `{collections, environments}`)
+     *     -> a brand-new workspace holding them all;
+     *   - a single collection (the common case) -> a root collection here.
+     */
+    public function import(
+        Request $request,
+        Workspace $workspace,
+        ImportCollectionAction $action,
+        ImportEnvironmentAction $environmentAction,
+    ): JsonResponse {
         $this->authorize('edit', $workspace);
 
         // A single top-level rule keeps the whole nested tree intact — adding dot-notated
@@ -27,13 +43,139 @@ class CollectionController extends Controller
             'collection' => ['required', 'array'],
         ]);
 
-        if (! is_array($data['collection']['info'] ?? null) || ! is_string($data['collection']['info']['name'] ?? null)) {
+        $payload = $data['collection'];
+
+        if ($this->isEnvironmentExport($payload)) {
+            $environment = $environmentAction->handle($workspace, $payload);
+
+            return response()->json([
+                'type' => 'environment',
+                'environment' => $environment->load('variables'),
+            ]);
+        }
+
+        if ($this->isBundle($payload)) {
+            $newWorkspace = $this->importBundle($request->user(), $payload, $action, $environmentAction);
+
+            return response()->json([
+                'type' => 'workspace',
+                'workspace_id' => $newWorkspace->id,
+                'name' => $newWorkspace->name,
+            ]);
+        }
+
+        if (! is_array($payload['info'] ?? null) || ! is_string($payload['info']['name'] ?? null)) {
             abort(422, 'Invalid Postman collection: missing info.name.');
         }
 
-        $collection = $action->handle($workspace, $data['collection']);
+        $collection = $action->handle($workspace, $payload);
 
+        // Unwrapped for backwards compatibility — callers predate the typed
+        // envelope above and read the collection fields off the response root.
         return response()->json($collection->load('requests', 'children'));
+    }
+
+    /**
+     * A Postman environment export: the tell-tale `_postman_variable_scope`, or
+     * (for hand-rolled files) a `values` array with no collection markers.
+     *
+     * @param  array<array-key, mixed>  $payload
+     */
+    private function isEnvironmentExport(array $payload): bool
+    {
+        if (($payload['_postman_variable_scope'] ?? null) === 'environment') {
+            return true;
+        }
+
+        return is_array($payload['values'] ?? null)
+            && ! isset($payload['info'])
+            && ! isset($payload['item']);
+    }
+
+    /**
+     * A multi-collection bundle: either a plain list of collection/environment
+     * objects, or a `{collections: [...], environments: [...]}` wrapper. A lone
+     * collection is an associative array (info/item keys), so it isn't a list.
+     *
+     * @param  array<array-key, mixed>  $payload
+     */
+    private function isBundle(array $payload): bool
+    {
+        if (is_array($payload['collections'] ?? null)) {
+            return true;
+        }
+
+        return array_is_list($payload) && $payload !== [];
+    }
+
+    /**
+     * Create a new workspace owned by the importer and fill it with every
+     * collection and environment found in the bundle.
+     *
+     * @param  array<array-key, mixed>  $payload
+     */
+    private function importBundle(
+        User $user,
+        array $payload,
+        ImportCollectionAction $action,
+        ImportEnvironmentAction $environmentAction,
+    ): Workspace {
+        [$collections, $environments] = $this->splitBundle($payload);
+
+        $name = is_string($payload['name'] ?? null) && $payload['name'] !== ''
+            ? $payload['name']
+            : 'Imported Workspace';
+
+        $workspace = new Workspace(['name' => $name]);
+        $workspace->owner_id = $user->id;
+        $workspace->save();
+
+        foreach ($collections as $collection) {
+            if (is_array($collection) && is_string($collection['info']['name'] ?? null)) {
+                $action->handle($workspace, $collection);
+            }
+        }
+
+        foreach ($environments as $environment) {
+            if (is_array($environment)) {
+                $environmentAction->handle($workspace, $environment);
+            }
+        }
+
+        return $workspace;
+    }
+
+    /**
+     * Normalise either bundle shape into [collections, environments] lists.
+     *
+     * @param  array<array-key, mixed>  $payload
+     * @return array{0: array<int, mixed>, 1: array<int, mixed>}
+     */
+    private function splitBundle(array $payload): array
+    {
+        if (is_array($payload['collections'] ?? null)) {
+            return [
+                $payload['collections'],
+                is_array($payload['environments'] ?? null) ? $payload['environments'] : [],
+            ];
+        }
+
+        $collections = [];
+        $environments = [];
+
+        foreach ($payload as $entry) {
+            if (! is_array($entry)) {
+                continue;
+            }
+
+            if ($this->isEnvironmentExport($entry)) {
+                $environments[] = $entry;
+            } elseif (is_array($entry['info'] ?? null)) {
+                $collections[] = $entry;
+            }
+        }
+
+        return [$collections, $environments];
     }
 
     public function store(Request $request, Workspace $workspace): JsonResponse

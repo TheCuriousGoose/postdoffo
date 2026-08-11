@@ -32,7 +32,7 @@ import {
 import { api } from '@/lib/api';
 import { promptDialog } from '@/lib/dialogs';
 import { useWorkspaceStore } from '@/stores/workspace';
-import type { Environment } from '@/types/workspace';
+import type { Environment, EnvironmentVariable } from '@/types/workspace';
 
 const props = defineProps<{
     workspaceId: number;
@@ -91,13 +91,24 @@ async function addVariable() {
     }
 }
 
+/**
+ * The row is patched locally as well as on the server: Checkbox is a controlled
+ * component, so the Secret toggle renders whatever `variable.is_secret` says and
+ * springs straight back to its old state on click unless the local row moves
+ * with it. Value's password/text masking reads the same flag.
+ */
 async function saveVariable(
-    variableId: number,
+    variable: EnvironmentVariable,
     patch: { key?: string; value?: string; is_secret?: boolean },
 ) {
+    const previous = { ...variable };
+
+    Object.assign(variable, patch);
+
     try {
-        await api.patch(updateVariable.url(variableId), patch);
+        await api.patch(updateVariable.url(variable.id), patch);
     } catch {
+        Object.assign(variable, previous);
         toast.error('Failed to save variable');
     }
 }
@@ -194,7 +205,7 @@ async function removeVariable(variableId: number) {
                             class="font-mono text-sm"
                             @change="
                                 (e: Event) =>
-                                    saveVariable(variable.id, {
+                                    saveVariable(variable, {
                                         key: (e.target as HTMLInputElement)
                                             .value,
                                     })
@@ -212,7 +223,7 @@ async function removeVariable(variableId: number) {
                             class="font-mono text-sm"
                             @change="
                                 (e: Event) =>
-                                    saveVariable(variable.id, {
+                                    saveVariable(variable, {
                                         value: (e.target as HTMLInputElement)
                                             .value,
                                     })
@@ -225,7 +236,7 @@ async function removeVariable(variableId: number) {
                                 :model-value="variable.is_secret"
                                 @update:model-value="
                                     (v) =>
-                                        saveVariable(variable.id, {
+                                        saveVariable(variable, {
                                             is_secret: !!v,
                                         })
                                 "

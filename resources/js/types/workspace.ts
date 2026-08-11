@@ -11,6 +11,26 @@ export type KeyValuePair = {
     enabled?: boolean;
 };
 
+/**
+ * A row in a form-data body. A `file` row carries an uploaded request_files id
+ * instead of a value — the file itself lives on the server, and `filename` /
+ * `size` are only kept so the row can describe it without another round trip.
+ */
+export type FormField = KeyValuePair & {
+    type?: 'text' | 'file';
+    file_id?: number | null;
+    filename?: string | null;
+    size?: number | null;
+};
+
+export type RequestFile = {
+    id: number;
+    request_id: number;
+    filename: string;
+    mime_type: string | null;
+    size: number;
+};
+
 export type AuthType = 'bearer' | 'basic' | 'apikey' | 'none';
 
 export type RequestAuth = {
@@ -25,7 +45,7 @@ export type RequestAuth = {
 export type RequestBody = {
     raw?: string;
     json?: unknown;
-    fields?: KeyValuePair[];
+    fields?: FormField[];
 } | null;
 
 export type ApiRequest = {
@@ -88,6 +108,18 @@ export type Environment = {
     name: string;
     is_active: boolean;
     variables: EnvironmentVariable[];
+};
+
+/**
+ * A workspace-level "global" variable — the lowest-precedence layer, applied
+ * whatever environment is active. Mirrors {@link EnvironmentVariable}.
+ */
+export type WorkspaceVariable = {
+    id: number;
+    workspace_id: number;
+    key: string;
+    value: string | null;
+    is_secret: boolean;
 };
 
 export type Workspace = {

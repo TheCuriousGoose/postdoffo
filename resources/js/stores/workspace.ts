@@ -7,6 +7,7 @@ import type {
     CollectionNode,
     Environment,
     ExecutedResponse,
+    WorkspaceVariable,
 } from '@/types/workspace';
 
 export type OpenTab = {
@@ -32,6 +33,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const activeTabId = ref<number | null>(null);
     const collectionTree = ref<CollectionNode[]>([]);
     const environments = ref<Environment[]>([]);
+    const workspaceVariables = ref<WorkspaceVariable[]>([]);
 
     const activeTab = computed(
         () =>
@@ -62,6 +64,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
             collectionTree.value,
             draft.collection_id,
             activeEnvironment.value,
+            workspaceVariables.value,
         );
     });
 
@@ -71,6 +74,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
     function setEnvironments(next: Environment[]): void {
         environments.value = next;
+    }
+
+    function setWorkspaceVariables(next: WorkspaceVariable[]): void {
+        workspaceVariables.value = next;
     }
 
     function setWorkspace(id: number, environmentId: number | null): void {
@@ -182,6 +189,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         activeTabId,
         collectionTree,
         environments,
+        workspaceVariables,
         activeTab,
         activeEnvironment,
         activeScope,
@@ -189,6 +197,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         setActiveEnvironment,
         setCollectionTree,
         setEnvironments,
+        setWorkspaceVariables,
         openRequest,
         closeTab,
         setActiveTab,

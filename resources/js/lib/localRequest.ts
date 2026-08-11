@@ -1,4 +1,5 @@
-import type { BodyType, HttpMethod, KeyValuePair } from '@/types/workspace';
+import { show as showRequestFile } from '@/actions/App/Http/Controllers/RequestFileController';
+import type { BodyType, FormField, HttpMethod } from '@/types/workspace';
 
 const LOCAL_SUFFIXES = ['.test', '.local', '.localhost'];
 
@@ -37,6 +38,16 @@ export type BrowserExecutionResult = {
     error: string | null;
 };
 
+/** Pulls a stored form-data upload back off the server. Null if it's gone. */
+async function fetchUpload(fileId: number): Promise<Blob | null> {
+    const response = await fetch(showRequestFile.url(fileId), {
+        credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    });
+
+    return response.ok ? await response.blob() : null;
+}
+
 function buildUrl(outgoing: PreparedOutgoingRequest): string {
     const url = new URL(outgoing.url);
 
@@ -47,11 +58,13 @@ function buildUrl(outgoing: PreparedOutgoingRequest): string {
     return url.toString();
 }
 
-function buildBody(outgoing: PreparedOutgoingRequest): BodyInit | undefined {
+async function buildBody(
+    outgoing: PreparedOutgoingRequest,
+): Promise<BodyInit | undefined> {
     const body = (outgoing.body ?? {}) as {
         raw?: string;
         json?: unknown;
-        fields?: KeyValuePair[];
+        fields?: FormField[];
     };
 
     switch (outgoing.body_type) {
@@ -82,7 +95,21 @@ function buildBody(outgoing: PreparedOutgoingRequest): BodyInit | undefined {
                     continue;
                 }
 
-                form.set(field.key, field.value ?? '');
+                if (field.type !== 'file') {
+                    form.set(field.key, field.value ?? '');
+
+                    continue;
+                }
+
+                // Uploads live on the server, so firing from the browser means
+                // pulling each one back down before it can be attached here.
+                const blob = field.file_id
+                    ? await fetchUpload(field.file_id)
+                    : null;
+
+                if (blob) {
+                    form.set(field.key, blob, field.filename ?? 'file');
+                }
             }
 
             return form;
@@ -122,7 +149,7 @@ export async function sendViaBrowser(
         const response = await fetch(buildUrl(outgoing), {
             method: outgoing.method,
             headers,
-            body: canHaveBody ? buildBody(outgoing) : undefined,
+            body: canHaveBody ? await buildBody(outgoing) : undefined,
         });
 
         const durationMs = Math.round(performance.now() - start);

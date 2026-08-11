@@ -4,10 +4,12 @@ use App\Http\Controllers\CollectionController;
 use App\Http\Controllers\EnvironmentController;
 use App\Http\Controllers\EnvironmentVariableController;
 use App\Http\Controllers\RequestController;
+use App\Http\Controllers\RequestFileController;
 use App\Http\Controllers\RequestHistoryController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\WorkspaceInvitationController;
 use App\Http\Controllers\WorkspaceMemberController;
+use App\Http\Controllers\WorkspaceVariableController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -37,6 +39,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('requests/{apiRequest}/send', [RequestController::class, 'send'])->name('requests.send');
         Route::post('requests/{apiRequest}/record', [RequestController::class, 'record'])->name('requests.record');
 
+        Route::post('requests/{apiRequest}/files', [RequestFileController::class, 'store'])->name('request-files.store');
+        Route::get('request-files/{requestFile}', [RequestFileController::class, 'show'])->name('request-files.show');
+        Route::delete('request-files/{requestFile}', [RequestFileController::class, 'destroy'])->name('request-files.destroy');
+
         Route::post('workspaces/{workspace}/environments', [EnvironmentController::class, 'store'])->name('environments.store');
         Route::patch('environments/{environment}', [EnvironmentController::class, 'update'])->name('environments.update');
         Route::post('environments/{environment}/activate', [EnvironmentController::class, 'activate'])->name('environments.activate');
@@ -45,6 +51,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('environments/{environment}/variables', [EnvironmentVariableController::class, 'store'])->name('environment-variables.store');
         Route::patch('environment-variables/{environmentVariable}', [EnvironmentVariableController::class, 'update'])->name('environment-variables.update');
         Route::delete('environment-variables/{environmentVariable}', [EnvironmentVariableController::class, 'destroy'])->name('environment-variables.destroy');
+
+        Route::post('workspaces/{workspace}/variables', [WorkspaceVariableController::class, 'store'])->name('workspace-variables.store');
+        Route::patch('workspace-variables/{workspaceVariable}', [WorkspaceVariableController::class, 'update'])->name('workspace-variables.update');
+        Route::delete('workspace-variables/{workspaceVariable}', [WorkspaceVariableController::class, 'destroy'])->name('workspace-variables.destroy');
 
         Route::get('workspaces/{workspace}/history', [RequestHistoryController::class, 'index'])->name('history.index');
         Route::get('history/{requestHistory}', [RequestHistoryController::class, 'show'])->name('history.show');

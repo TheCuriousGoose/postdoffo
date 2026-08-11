@@ -135,6 +135,37 @@ class ExportCollectionAction
     }
 
     /**
+     * Form-data rows, where a field may hold an uploaded file rather than a value.
+     * A collection file is JSON, so the upload itself can't travel with it — the
+     * row exports as Postman's `{"type": "file", "src": ...}` naming the file that
+     * was attached, which is the same thing Postman writes for a file it can only
+     * point at rather than embed. Importing this back gives a file row asking to
+     * be re-picked.
+     *
+     * @param  array<int, mixed>  $fields
+     * @return array<int, array<string, mixed>>
+     */
+    private function formDataList(array $fields): array
+    {
+        return array_values(array_map(function (array $field) {
+            $mapped = ['key' => $field['key'] ?? ''];
+
+            if (($field['type'] ?? 'text') === 'file') {
+                $mapped['type'] = 'file';
+                $mapped['src'] = $field['filename'] ?? null;
+            } else {
+                $mapped['value'] = $field['value'] ?? '';
+            }
+
+            if (($field['enabled'] ?? true) === false) {
+                $mapped['disabled'] = true;
+            }
+
+            return $mapped;
+        }, array_filter($fields, fn ($f) => is_array($f))));
+    }
+
+    /**
      * @param  array<string, string>|null  $variables
      * @return array<int, array{key: string, value: string}>
      */
@@ -197,7 +228,7 @@ class ExportCollectionAction
                 'raw' => json_encode($body['json'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
                 'options' => ['raw' => ['language' => 'json']],
             ],
-            BodyType::FormData => ['mode' => 'formdata', 'formdata' => $this->keyValueList($body['fields'] ?? [])],
+            BodyType::FormData => ['mode' => 'formdata', 'formdata' => $this->formDataList($body['fields'] ?? [])],
             BodyType::UrlEncoded => ['mode' => 'urlencoded', 'urlencoded' => $this->keyValueList($body['fields'] ?? [])],
             default => null,
         };

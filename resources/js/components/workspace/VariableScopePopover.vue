@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Braces, Globe, Layers, TriangleAlert } from '@lucide/vue';
+import { Braces, Building2, Globe, Layers, TriangleAlert } from '@lucide/vue';
 import { computed } from 'vue';
 import {
     Popover,
@@ -112,6 +112,10 @@ function mask(value: string): string {
                     >
                         <Globe
                             v-if="variable.sourceType === 'environment'"
+                            class="size-3"
+                        />
+                        <Building2
+                            v-else-if="variable.sourceType === 'workspace'"
                             class="size-3"
                         />
                         <Layers v-else class="size-3" />

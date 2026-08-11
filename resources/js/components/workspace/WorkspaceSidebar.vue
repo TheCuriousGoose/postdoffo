@@ -7,6 +7,7 @@ import {
     importMethod as importCollection,
     reorder as reorderCollections,
     store as storeCollection,
+    update as updateCollection,
 } from '@/actions/App/Http/Controllers/CollectionController';
 import AppLogo from '@/components/AppLogo.vue';
 import NavUser from '@/components/NavUser.vue';
@@ -27,8 +28,11 @@ import CommandPalette from '@/components/workspace/CommandPalette.vue';
 import { useOpenRequest } from '@/composables/useOpenRequest';
 import { api } from '@/lib/api';
 import { promptDialog } from '@/lib/dialogs';
-import { reorderIds } from '@/lib/dragState';
-import { index as workspacesIndex } from '@/routes/workspaces';
+import { draggedItem, reorderIds } from '@/lib/dragState';
+import {
+    index as workspacesIndex,
+    show as workspacesShow,
+} from '@/routes/workspaces';
 import { useWorkspaceStore } from '@/stores/workspace';
 import type { Workspace } from '@/types/workspace';
 
@@ -82,6 +86,47 @@ async function onRootReorder(
     router.reload({ only: ['collectionTree'] });
 }
 
+// Dropping a folder onto the empty area of the collections list (i.e. not onto
+// another row — those drops call stopPropagation) promotes it back to the root.
+// Cross-folder moves onto a *row* are handled inside CollectionTree itself.
+const rootDropActive = ref(false);
+
+function onRootDragOver() {
+    const item = draggedItem.value;
+    // Only a folder that isn't already at the root has anywhere to go here.
+    rootDropActive.value =
+        item?.type === 'collection' && item.parentId !== null;
+}
+
+function onRootDragLeave() {
+    rootDropActive.value = false;
+}
+
+async function onRootDrop() {
+    const item = draggedItem.value;
+    rootDropActive.value = false;
+
+    if (!item || item.type !== 'collection' || item.parentId === null) {
+        return;
+    }
+
+    draggedItem.value = null;
+    await api.patch(updateCollection.url(item.id), {
+        parent_id: null,
+        order: store.collectionTree.length,
+    });
+    router.reload({ only: ['collectionTree'] });
+}
+
+// The import endpoint sniffs the payload: a single collection lands here, a
+// Postman environment export becomes an environment, and a multi-collection
+// bundle spins up a whole new workspace we navigate to. `type` is absent on the
+// (backwards-compatible) single-collection response.
+type ImportResult =
+    | { type: 'environment' }
+    | { type: 'workspace'; workspace_id: number; name: string }
+    | { type?: never };
+
 async function onImportFile(event: Event) {
     const file = (event.target as HTMLInputElement).files?.[0];
 
@@ -91,14 +136,30 @@ async function onImportFile(event: Event) {
 
     try {
         const collection = JSON.parse(await file.text());
-        await api.post(importCollection.url(workspace.value.id), {
-            collection,
-        });
+        const result = await api.post<ImportResult>(
+            importCollection.url(workspace.value.id),
+            { collection },
+        );
+
+        if (result.type === 'workspace') {
+            toast.success(`Imported into a new workspace "${result.name}"`);
+            router.visit(workspacesShow(result.workspace_id).url);
+
+            return;
+        }
+
+        if (result.type === 'environment') {
+            router.reload({ only: ['environments'] });
+            toast.success('Environment imported');
+
+            return;
+        }
+
         router.reload({ only: ['collectionTree', 'environments'] });
         toast.success('Collection imported, with a base environment');
     } catch {
         toast.error(
-            'Failed to import collection — is this a valid Postman v2.1 export?',
+            'Failed to import — is this a valid Postman collection, environment, or bundle?',
         );
     } finally {
         if (importInput.value) {
@@ -123,7 +184,7 @@ async function onImportFile(event: Event) {
 
             <button
                 type="button"
-                class="mx-2 mb-1 flex items-center gap-2 rounded-md border bg-background px-2.5 py-1.5 text-left text-muted-foreground transition hover:bg-accent group-data-[collapsible=icon]:hidden"
+                class="mx-2 mb-1 flex items-center gap-2 rounded-md border bg-background px-2.5 py-1.5 text-left text-muted-foreground transition group-data-[collapsible=icon]:hidden hover:bg-accent"
                 @click="paletteOpen = true"
             >
                 <Search class="size-3.5 shrink-0" />
@@ -145,7 +206,7 @@ async function onImportFile(event: Event) {
                         variant="ghost"
                         size="icon"
                         class="size-6"
-                        title="Import Postman collection"
+                        title="Import Postman collection, environment, or bundle"
                         @click="importInput?.click()"
                     >
                         <Upload class="size-3.5" />
@@ -171,21 +232,29 @@ async function onImportFile(event: Event) {
         </SidebarHeader>
 
         <SidebarContent class="px-1 pb-2 group-data-[collapsible=icon]:hidden">
-            <CollectionTree
-                v-for="node in store.collectionTree"
-                :key="node.id"
-                :node="node"
-                :workspace-id="workspace.id"
-                :active-request-id="store.activeTabId"
-                @open-request="openRequest"
-                @reorder-child="onRootReorder"
-            />
-            <p
-                v-if="!store.collectionTree.length"
-                class="px-2 py-4 text-xs text-muted-foreground"
+            <div
+                class="min-h-full rounded-md transition-shadow ring-inset"
+                :class="rootDropActive && 'bg-primary/5 ring-2 ring-primary'"
+                @dragover.prevent="onRootDragOver"
+                @dragleave="onRootDragLeave"
+                @drop.prevent="onRootDrop"
             >
-                No collections yet.
-            </p>
+                <CollectionTree
+                    v-for="node in store.collectionTree"
+                    :key="node.id"
+                    :node="node"
+                    :workspace-id="workspace.id"
+                    :active-request-id="store.activeTabId"
+                    @open-request="openRequest"
+                    @reorder-child="onRootReorder"
+                />
+                <p
+                    v-if="!store.collectionTree.length"
+                    class="px-2 py-4 text-xs text-muted-foreground"
+                >
+                    No collections yet.
+                </p>
+            </div>
         </SidebarContent>
 
         <SidebarFooter>

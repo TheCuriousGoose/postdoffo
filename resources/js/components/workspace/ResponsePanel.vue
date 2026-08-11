@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { highlight, tokenClass } from '@/lib/highlight';
+import { formatBytes } from '@/lib/utils';
 import { useWorkspaceStore } from '@/stores/workspace';
 
 const store = useWorkspaceStore();
@@ -36,22 +37,12 @@ watch(response, () => {
 
 const bodyLength = computed(() => response.value?.body?.length ?? 0);
 const isHugeBody = computed(() => bodyLength.value > MAX_DISPLAY_CHARS);
-const shouldRenderBody = computed(() => !isHugeBody.value || forceShowBody.value);
+const shouldRenderBody = computed(
+    () => !isHugeBody.value || forceShowBody.value,
+);
 const isHighlightable = computed(() => bodyLength.value <= MAX_HIGHLIGHT_CHARS);
 
-const formattedBodySize = computed(() => {
-    const bytes = bodyLength.value;
-
-    if (bytes < 1024) {
-        return `${bytes} B`;
-    }
-
-    if (bytes < 1024 * 1024) {
-        return `${(bytes / 1024).toFixed(1)} KB`;
-    }
-
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-});
+const formattedBodySize = computed(() => formatBytes(bodyLength.value));
 
 function downloadBody() {
     if (!response.value?.body) {
@@ -147,7 +138,9 @@ const contentType = computed(() => {
 });
 
 const isPreviewableHtml = computed(
-    () => contentType.value.toLowerCase().includes('html') && shouldRenderBody.value,
+    () =>
+        contentType.value.toLowerCase().includes('html') &&
+        shouldRenderBody.value,
 );
 
 const passedCount = computed(

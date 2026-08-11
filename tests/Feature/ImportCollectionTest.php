@@ -371,4 +371,146 @@ class ImportCollectionTest extends TestCase
 
         Http::assertSent(fn ($sentRequest) => ! $sentRequest->hasHeader('Authorization'));
     }
+
+    public function test_it_derives_query_params_from_the_raw_url_when_there_is_no_query_array(): void
+    {
+        // Plenty of exports (and hand-written collections) carry the params
+        // only inside the URL string, with no structured `query` array. Those
+        // should still land in the Params tab, not just the URL bar.
+        $user = User::factory()->create();
+        $workspace = Workspace::factory()->create(['owner_id' => $user->id]);
+
+        $postman = [
+            'info' => ['name' => 'Raw Query Demo'],
+            'item' => [
+                [
+                    'name' => 'String url with query',
+                    'request' => [
+                        'method' => 'GET',
+                        'url' => '{{base_url}}/search?q=hello%20world&page=2&flag',
+                    ],
+                ],
+                [
+                    'name' => 'Url object without query array',
+                    'request' => [
+                        'method' => 'GET',
+                        'url' => ['raw' => 'https://api.example.com/items?limit=10'],
+                    ],
+                ],
+            ],
+        ];
+
+        $this->actingAs($user)
+            ->postJson(route('api.collections.import', $workspace), ['collection' => $postman])
+            ->assertOk();
+
+        $stringUrl = Request::where('name', 'String url with query')->firstOrFail();
+        $this->assertSame(
+            [
+                ['key' => 'q', 'value' => 'hello world', 'enabled' => true],
+                ['key' => 'page', 'value' => '2', 'enabled' => true],
+                ['key' => 'flag', 'value' => '', 'enabled' => true],
+            ],
+            $stringUrl->query_params,
+        );
+
+        $objectUrl = Request::where('name', 'Url object without query array')->firstOrFail();
+        $this->assertSame('limit', $objectUrl->query_params[0]['key']);
+        $this->assertSame('10', $objectUrl->query_params[0]['value']);
+    }
+
+    public function test_it_imports_a_postman_environment_export_as_an_environment(): void
+    {
+        $user = User::factory()->create();
+        $workspace = Workspace::factory()->create(['owner_id' => $user->id]);
+
+        $export = [
+            'name' => 'Staging',
+            '_postman_variable_scope' => 'environment',
+            'values' => [
+                ['key' => 'base_url', 'value' => 'https://staging.example.com', 'type' => 'default', 'enabled' => true],
+                ['key' => 'api_token', 'value' => 'sk_test_123', 'type' => 'secret', 'enabled' => true],
+                ['key' => 'plain', 'value' => 'nothing', 'type' => 'default', 'enabled' => true],
+            ],
+        ];
+
+        $this->actingAs($user)
+            ->postJson(route('api.collections.import', $workspace), ['collection' => $export])
+            ->assertOk()
+            ->assertJsonPath('type', 'environment')
+            ->assertJsonPath('environment.name', 'Staging');
+
+        $environment = Environment::where('workspace_id', $workspace->id)->firstOrFail();
+        $this->assertSame('Staging', $environment->name);
+        // First environment in the workspace, so it's activated.
+        $this->assertTrue($environment->is_active);
+
+        // `type: secret` and a credential-looking key are both stored masked.
+        $this->assertTrue($environment->variables->firstWhere('key', 'api_token')->is_secret);
+        $this->assertFalse($environment->variables->firstWhere('key', 'plain')->is_secret);
+
+        // No collection was created from an environment file.
+        $this->assertSame(0, Collection::where('workspace_id', $workspace->id)->count());
+    }
+
+    public function test_it_imports_a_bundle_into_a_brand_new_workspace(): void
+    {
+        $user = User::factory()->create();
+        $current = Workspace::factory()->create(['owner_id' => $user->id]);
+
+        $bundle = [
+            'name' => 'Acme Platform',
+            'collections' => [
+                ['info' => ['name' => 'Billing API'], 'item' => [
+                    ['name' => 'List invoices', 'request' => ['method' => 'GET', 'url' => 'https://api.acme.test/invoices']],
+                ]],
+                ['info' => ['name' => 'Auth API'], 'item' => []],
+            ],
+            'environments' => [
+                ['name' => 'Prod', '_postman_variable_scope' => 'environment', 'values' => [
+                    ['key' => 'base_url', 'value' => 'https://api.acme.test'],
+                ]],
+            ],
+        ];
+
+        $response = $this->actingAs($user)
+            ->postJson(route('api.collections.import', $current), ['collection' => $bundle])
+            ->assertOk()
+            ->assertJsonPath('type', 'workspace')
+            ->json();
+
+        $newWorkspace = Workspace::findOrFail($response['workspace_id']);
+        $this->assertNotSame($current->id, $newWorkspace->id);
+        $this->assertSame('Acme Platform', $newWorkspace->name);
+        $this->assertSame($user->id, $newWorkspace->owner_id);
+
+        // Both collections and the environment landed in the NEW workspace...
+        $this->assertSame(2, Collection::where('workspace_id', $newWorkspace->id)->whereNull('parent_id')->count());
+        $this->assertSame(1, Environment::where('workspace_id', $newWorkspace->id)->count());
+
+        // ...and nothing leaked into the workspace the import was triggered from.
+        $this->assertSame(0, Collection::where('workspace_id', $current->id)->count());
+    }
+
+    public function test_it_imports_a_bundle_given_as_a_plain_list_of_collections(): void
+    {
+        $user = User::factory()->create();
+        $current = Workspace::factory()->create(['owner_id' => $user->id]);
+
+        $bundle = [
+            ['info' => ['name' => 'First'], 'item' => []],
+            ['info' => ['name' => 'Second'], 'item' => []],
+        ];
+
+        $response = $this->actingAs($user)
+            ->postJson(route('api.collections.import', $current), ['collection' => $bundle])
+            ->assertOk()
+            ->assertJsonPath('type', 'workspace')
+            ->json();
+
+        $this->assertSame(
+            2,
+            Collection::where('workspace_id', $response['workspace_id'])->count(),
+        );
+    }
 }

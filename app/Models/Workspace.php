@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\WorkspaceRole;
+use App\Services\VariableResolver;
 use Database\Factories\WorkspaceFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -69,6 +70,17 @@ class Workspace extends Model
     public function environments(): HasMany
     {
         return $this->hasMany(Environment::class);
+    }
+
+    /**
+     * Workspace-level "globals" — the lowest-precedence variable layer, applied
+     * whatever environment is active. See {@see VariableResolver}.
+     *
+     * @return HasMany<WorkspaceVariable, $this>
+     */
+    public function variables(): HasMany
+    {
+        return $this->hasMany(WorkspaceVariable::class);
     }
 
     /**

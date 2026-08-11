@@ -16,12 +16,17 @@ function getCookie(name: string): string | null {
 async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
     const token = getCookie('XSRF-TOKEN');
 
+    // FormData bodies have to set their own multipart Content-Type, boundary and
+    // all — pinning it to application/json would leave the server unable to parse
+    // the upload.
+    const isFormData = options.body instanceof FormData;
+
     const response = await fetch(url, {
         ...options,
         credentials: 'same-origin',
         headers: {
             Accept: 'application/json',
-            'Content-Type': 'application/json',
+            ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
             'X-Requested-With': 'XMLHttpRequest',
             ...(token ? { 'X-XSRF-TOKEN': token } : {}),
             ...options.headers,
@@ -45,6 +50,12 @@ export const api = {
     get: <T>(url: string): Promise<T> => request<T>(url),
     post: <T>(url: string, data?: unknown): Promise<T> =>
         request<T>(url, { method: 'POST', body: JSON.stringify(data ?? {}) }),
+    upload: <T>(url: string, field: string, file: File): Promise<T> => {
+        const form = new FormData();
+        form.append(field, file);
+
+        return request<T>(url, { method: 'POST', body: form });
+    },
     patch: <T>(url: string, data?: unknown): Promise<T> =>
         request<T>(url, { method: 'PATCH', body: JSON.stringify(data ?? {}) }),
     delete: <T>(url: string): Promise<T> =>

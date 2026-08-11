@@ -42,6 +42,17 @@ class Collection extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        // Deleting the subtree through Eloquent rather than letting the database
+        // cascade do it means Request::deleting still runs for every descendant,
+        // which is what clears their uploaded form-data files off the disk.
+        static::deleting(function (self $collection): void {
+            $collection->children->each->delete();
+            $collection->requests->each->delete();
+        });
+    }
+
     /**
      * @return BelongsTo<Workspace, $this>
      */

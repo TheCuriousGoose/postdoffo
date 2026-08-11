@@ -3,6 +3,7 @@ import type {
     AuthType,
     CollectionNode,
     Environment,
+    WorkspaceVariable,
 } from '@/types/workspace';
 
 /**
@@ -15,7 +16,7 @@ import type {
  * UI show "what's inherited and from where" without a server round-trip.
  */
 
-export type VariableSourceType = 'environment' | 'collection';
+export type VariableSourceType = 'environment' | 'collection' | 'workspace';
 
 export type ResolvedVariable = {
     key: string;
@@ -89,11 +90,23 @@ export function buildVariableScope(
     tree: CollectionNode[],
     collectionId: number | null | undefined,
     environment: Environment | null,
+    workspaceVariables: WorkspaceVariable[] = [],
 ): VariableScope {
     const chain = findCollectionChain(tree, collectionId);
     const variables: Record<string, ResolvedVariable> = {};
 
-    // Collections first, root-first, so a nearer folder overrides its parent.
+    // Workspace globals are the base layer — everything below overrides them.
+    for (const variable of workspaceVariables) {
+        variables[variable.key] = {
+            key: variable.key,
+            value: variable.value ?? '',
+            isSecret: variable.is_secret,
+            sourceType: 'workspace',
+            sourceName: 'Workspace globals',
+        };
+    }
+
+    // Collections next, root-first, so a nearer folder overrides its parent.
     for (const node of chain) {
         for (const [key, value] of Object.entries(node.variables ?? {})) {
             variables[key] = {

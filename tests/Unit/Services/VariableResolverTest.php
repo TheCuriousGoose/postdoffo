@@ -5,6 +5,8 @@ namespace Tests\Unit\Services;
 use App\Models\Collection;
 use App\Models\Environment;
 use App\Models\EnvironmentVariable;
+use App\Models\Workspace;
+use App\Models\WorkspaceVariable;
 use App\Services\VariableResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -92,6 +94,58 @@ class VariableResolverTest extends TestCase
         $variables = $resolver->resolve($collection, $environment, ['token' => 'runtime-token']);
 
         $this->assertSame('runtime-token', $variables['token']);
+    }
+
+    public function test_workspace_globals_are_the_base_layer(): void
+    {
+        $resolver = new VariableResolver;
+
+        $workspace = Workspace::factory()->create();
+        WorkspaceVariable::factory()->create([
+            'workspace_id' => $workspace->id,
+            'key' => 'base_url',
+            'value' => 'https://global.example.com',
+        ]);
+        WorkspaceVariable::factory()->create([
+            'workspace_id' => $workspace->id,
+            'key' => 'api_key',
+            'value' => 'global-key',
+        ]);
+
+        $collection = Collection::factory()->create([
+            'workspace_id' => $workspace->id,
+            'variables' => ['base_url' => 'https://collection.example.com'],
+        ]);
+
+        $variables = $resolver->resolve($collection, null, [], $workspace);
+
+        // Collection overrides the workspace global of the same name...
+        $this->assertSame('https://collection.example.com', $variables['base_url']);
+        // ...but the global with no override still comes through.
+        $this->assertSame('global-key', $variables['api_key']);
+    }
+
+    public function test_environment_overrides_workspace_globals(): void
+    {
+        $resolver = new VariableResolver;
+
+        $workspace = Workspace::factory()->create();
+        WorkspaceVariable::factory()->create([
+            'workspace_id' => $workspace->id,
+            'key' => 'token',
+            'value' => 'global-token',
+        ]);
+
+        $environment = Environment::factory()->create(['workspace_id' => $workspace->id]);
+        EnvironmentVariable::factory()->create([
+            'environment_id' => $environment->id,
+            'key' => 'token',
+            'value' => 'env-token',
+        ]);
+
+        $variables = $resolver->resolve(null, $environment, [], $workspace);
+
+        $this->assertSame('env-token', $variables['token']);
     }
 
     public function test_interpolate_array_walks_nested_structures(): void

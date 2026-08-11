@@ -73,6 +73,25 @@ class Request extends Model
     }
 
     /**
+     * Files uploaded for this request's form-data body.
+     *
+     * @return HasMany<RequestFile, $this>
+     */
+    public function files(): HasMany
+    {
+        return $this->hasMany(RequestFile::class);
+    }
+
+    protected static function booted(): void
+    {
+        // The database would cascade these rows away on its own, but going through
+        // Eloquent is what gets the uploaded blobs off the disk with them.
+        static::deleting(function (self $request): void {
+            $request->files->each->delete();
+        });
+    }
+
+    /**
      * @param  Builder<self>  $query
      */
     #[Scope]

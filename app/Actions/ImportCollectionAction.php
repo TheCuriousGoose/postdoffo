@@ -258,15 +258,68 @@ class ImportCollectionAction
      */
     private function mapQueryParams(mixed $url): array
     {
-        if (! is_array($url) || ! isset($url['query']) || ! is_array($url['query'])) {
+        if (is_array($url) && isset($url['query']) && is_array($url['query'])) {
+            $params = array_values(array_map(fn (array $q) => [
+                'key' => $q['key'] ?? '',
+                'value' => $q['value'] ?? '',
+                'enabled' => ! ($q['disabled'] ?? false),
+            ], array_filter($url['query'], fn ($q) => is_array($q))));
+
+            if ($params !== []) {
+                return $params;
+            }
+        }
+
+        // Many exports (and hand-written collections) carry the params only in
+        // the raw URL itself, with no structured `query` array — parse them out
+        // so the Params tab isn't empty when the URL clearly has a query string.
+        return $this->parseQueryString($this->extractUrl($url));
+    }
+
+    /**
+     * Split a raw URL's query string into rows, leaving {{placeholders}} intact
+     * (a manual split rather than parse_url, which chokes on `{{baseUrl}}`).
+     *
+     * @return array<int, array{key: string, value: string, enabled: bool}>
+     */
+    private function parseQueryString(string $url): array
+    {
+        $start = strpos($url, '?');
+
+        if ($start === false) {
             return [];
         }
 
-        return array_values(array_map(fn (array $q) => [
-            'key' => $q['key'] ?? '',
-            'value' => $q['value'] ?? '',
-            'enabled' => ! ($q['disabled'] ?? false),
-        ], array_filter($url['query'], fn ($q) => is_array($q))));
+        $query = substr($url, $start + 1);
+        $fragment = strpos($query, '#');
+
+        if ($fragment !== false) {
+            $query = substr($query, 0, $fragment);
+        }
+
+        if ($query === '') {
+            return [];
+        }
+
+        $params = [];
+
+        foreach (explode('&', $query) as $pair) {
+            if ($pair === '') {
+                continue;
+            }
+
+            $eq = strpos($pair, '=');
+            $key = $eq === false ? $pair : substr($pair, 0, $eq);
+            $value = $eq === false ? '' : substr($pair, $eq + 1);
+
+            $params[] = [
+                'key' => urldecode($key),
+                'value' => urldecode($value),
+                'enabled' => true,
+            ];
+        }
+
+        return $params;
     }
 
     /**
@@ -307,16 +360,37 @@ class ImportCollectionAction
     }
 
     /**
+     * A Postman form-data row can be a file rather than a value, in which case
+     * it carries `src` — a path on whichever machine exported the collection,
+     * which is no use to us. The row still comes across as a file field naming
+     * the file it wants, so it shows up in the editor as one waiting to be
+     * re-picked rather than silently arriving as an empty text field.
+     *
      * @param  array<int, mixed>  $fields
-     * @return array<int, array{key: string, value: string, enabled: bool}>
+     * @return array<int, array<string, mixed>>
      */
     private function mapFields(array $fields): array
     {
-        return array_values(array_map(fn (array $f) => [
-            'key' => $f['key'] ?? '',
-            'value' => $f['value'] ?? '',
-            'enabled' => ! ($f['disabled'] ?? false),
-        ], array_filter($fields, fn ($f) => is_array($f))));
+        return array_values(array_map(function (array $f) {
+            $field = [
+                'key' => $f['key'] ?? '',
+                'value' => is_scalar($f['value'] ?? null) ? (string) $f['value'] : '',
+                'enabled' => ! ($f['disabled'] ?? false),
+            ];
+
+            if (($f['type'] ?? null) === 'file') {
+                $src = is_array($f['src'] ?? null) ? ($f['src'][0] ?? null) : ($f['src'] ?? null);
+
+                $field['value'] = '';
+                $field['type'] = 'file';
+                $field['file_id'] = null;
+                $field['filename'] = is_string($src) && $src !== ''
+                    ? basename(str_replace('\\', '/', $src))
+                    : null;
+            }
+
+            return $field;
+        }, array_filter($fields, fn ($f) => is_array($f))));
     }
 
     /**

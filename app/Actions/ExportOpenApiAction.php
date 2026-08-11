@@ -275,7 +275,7 @@ class ExportOpenApiAction
     }
 
     /**
-     * @param  array<int, array{key: string, value: string, enabled?: bool}>  $fields
+     * @param  array<int, array{key: string, value: string, enabled?: bool, type?: string}>  $fields
      * @return array<string, mixed>
      */
     private function fieldSchema(array $fields): array
@@ -284,7 +284,10 @@ class ExportOpenApiAction
 
         foreach ($fields as $field) {
             if (is_array($field) && ($field['key'] ?? '') !== '') {
-                $properties[$field['key']] = ['type' => 'string'];
+                // "string/binary" is how OpenAPI 3.0 spells a file upload.
+                $properties[$field['key']] = ($field['type'] ?? 'text') === 'file'
+                    ? ['type' => 'string', 'format' => 'binary']
+                    : ['type' => 'string'];
             }
         }
 

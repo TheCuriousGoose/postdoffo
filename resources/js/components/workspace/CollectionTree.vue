@@ -147,6 +147,27 @@ function positionFromEvent(event: DragEvent): 'before' | 'after' {
     return event.clientY - rect.top < rect.height / 2 ? 'before' : 'after';
 }
 
+/**
+ * Three-zone split for a folder row when the dragged folder is a sibling: the
+ * top/bottom edges reorder (before/after), while the middle nests the sibling
+ * *into* this folder. Without the middle zone two siblings — including two
+ * root folders — could only ever be reordered, never nested.
+ */
+function zoneFromEvent(event: DragEvent): DropIntent {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const offset = event.clientY - rect.top;
+
+    if (offset < rect.height * 0.25) {
+        return 'before';
+    }
+
+    if (offset > rect.height * 0.75) {
+        return 'after';
+    }
+
+    return 'into';
+}
+
 const isDragging = computed(
     () =>
         draggedItem.value?.type === 'collection' &&
@@ -179,7 +200,7 @@ function onFolderDragOver(event: DragEvent) {
 
     folderDropIntent.value =
         item.type === 'collection' && item.parentId === props.node.parent_id
-            ? positionFromEvent(event)
+            ? zoneFromEvent(event)
             : 'into';
 }
 
@@ -498,9 +519,9 @@ const methodColor: Record<string, string> = {
             :style="{ paddingLeft: `${(depth ?? 0) * 12}px` }"
             @dragstart="onFolderDragStart"
             @dragend="onFolderDragEnd"
-            @dragover.prevent="onFolderDragOver"
+            @dragover.prevent.stop="onFolderDragOver"
             @dragleave="onFolderDragLeave"
-            @drop.prevent="onFolderDrop"
+            @drop.prevent.stop="onFolderDrop"
         >
             <div
                 v-if="folderDropIntent === 'before'"
@@ -584,12 +605,12 @@ const methodColor: Record<string, string> = {
                 :style="{ paddingLeft: `${((depth ?? 0) + 1) * 12 + 18}px` }"
                 @dragstart="onRequestDragStart(request)"
                 @dragend="onRequestDragEnd"
-                @dragover.prevent="onRequestDragOver($event, request)"
+                @dragover.prevent.stop="onRequestDragOver($event, request)"
                 @dragleave="
                     dragOverRequestId === request.id &&
                     ((dragOverRequestId = null), (requestDropIntent = null))
                 "
-                @drop.prevent="onRequestDrop(request)"
+                @drop.prevent.stop="onRequestDrop(request)"
             >
                 <div
                     v-if="

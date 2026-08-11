@@ -8,10 +8,12 @@ use App\DTOs\PreparedRequestData;
 use App\Enums\BodyType;
 use App\Models\Environment;
 use App\Models\Request;
+use App\Models\RequestFile;
 use App\Services\Scripting\ScriptContext;
 use App\Services\Scripting\ScriptRunner;
 use Illuminate\Http\Client\Response as HttpResponse;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 /**
@@ -51,7 +53,7 @@ class RequestExecutorService
         $error = null;
 
         try {
-            $response = $this->send($prepared->outgoing);
+            $response = $this->send($prepared->outgoing, $request);
             $status = $response->status();
             $headers = $response->headers();
             $body = $response->body();
@@ -69,9 +71,14 @@ class RequestExecutorService
      */
     public function prepare(Request $request, ?Environment $environment, array $runtimeOverrides = []): PreparedRequestData
     {
-        $request->loadMissing('collection');
+        $request->loadMissing('collection.workspace');
 
-        $variables = $this->variableResolver->resolve($request->collection, $environment, $runtimeOverrides);
+        $variables = $this->variableResolver->resolve(
+            $request->collection,
+            $environment,
+            $runtimeOverrides,
+            $request->collection?->workspace,
+        );
 
         $preContext = new ScriptContext($variables);
         $this->scriptRunner->run($request->pre_request_script, $preContext);
@@ -148,14 +155,36 @@ class RequestExecutorService
         );
     }
 
-    private function send(OutgoingRequestData $data): HttpResponse
+    private function send(OutgoingRequestData $data, Request $request): HttpResponse
     {
-        return Http::withHeaders($data->headers)
+        return Http::withHeaders($this->sendableHeaders($data))
             ->timeout(30)
             ->send($data->method->value, $data->url, [
                 'query' => $data->queryParams,
-                ...$this->bodyOptions($data->bodyType, $data->body),
+                ...$this->bodyOptions($data->bodyType, $data->body, $request),
             ]);
+    }
+
+    /**
+     * Guzzle only fills in a Content-Type for form bodies when one isn't already
+     * set, so an explicit `multipart/form-data` header — which imported Postman
+     * collections often carry — would ship without the boundary Guzzle just
+     * generated, leaving the target unable to parse the body. Drop it and let
+     * Guzzle write the real one, the same way the browser path does.
+     *
+     * @return array<string, string>
+     */
+    private function sendableHeaders(OutgoingRequestData $data): array
+    {
+        if (! in_array($data->bodyType, [BodyType::FormData, BodyType::UrlEncoded], strict: true)) {
+            return $data->headers;
+        }
+
+        return array_filter(
+            $data->headers,
+            fn (string $name) => strtolower($name) !== 'content-type',
+            ARRAY_FILTER_USE_KEY,
+        );
     }
 
     /**
@@ -163,7 +192,7 @@ class RequestExecutorService
      *
      * @return array<string, mixed>
      */
-    private function bodyOptions(BodyType $type, mixed $body): array
+    private function bodyOptions(BodyType $type, mixed $body, Request $request): array
     {
         $body = is_array($body) ? $body : [];
 
@@ -171,17 +200,23 @@ class RequestExecutorService
             BodyType::None => [],
             BodyType::Raw => ['body' => (string) ($body['raw'] ?? '')],
             BodyType::Json => ['json' => $body['json'] ?? []],
-            BodyType::FormData => ['multipart' => $this->fieldsToMultipart($body['fields'] ?? [])],
+            BodyType::FormData => ['multipart' => $this->fieldsToMultipart($body['fields'] ?? [], $request)],
             BodyType::UrlEncoded => ['form_params' => $this->keyValueListToMap($body['fields'] ?? [])],
         };
     }
 
     /**
+     * Build the multipart parts for a form-data body. A `{"type": "file"}` field
+     * carries a request_files id rather than a value, and is streamed off disk
+     * here so a large upload never has to sit in memory. A field pointing at a
+     * file that no longer exists is dropped, the same as a blank or disabled row.
+     *
      * @param  array<int, mixed>  $fields
-     * @return array<int, array{name: string, contents: string}>
+     * @return array<int, array{name: string, contents: mixed, filename?: string, headers?: array<string, string>}>
      */
-    private function fieldsToMultipart(array $fields): array
+    private function fieldsToMultipart(array $fields, Request $request): array
     {
+        $files = $this->uploadedFiles($fields, $request);
         $parts = [];
 
         foreach ($fields as $field) {
@@ -195,10 +230,58 @@ class RequestExecutorService
                 continue;
             }
 
-            $parts[] = ['name' => $key, 'contents' => (string) ($field['value'] ?? '')];
+            if (($field['type'] ?? 'text') !== 'file') {
+                $parts[] = ['name' => $key, 'contents' => (string) ($field['value'] ?? '')];
+
+                continue;
+            }
+
+            $file = $files[(int) ($field['file_id'] ?? 0)] ?? null;
+            $stream = $file ? Storage::disk(RequestFile::DISK)->readStream($file->path) : null;
+
+            if (! $file || ! $stream) {
+                continue;
+            }
+
+            $parts[] = [
+                'name' => $key,
+                'contents' => $stream,
+                'filename' => $file->filename,
+                'headers' => ['Content-Type' => $file->mime_type ?? 'application/octet-stream'],
+            ];
         }
 
         return $parts;
+    }
+
+    /**
+     * Load the uploads a form-data body refers to, scoped to the request being
+     * executed. The scoping is the security boundary: send() accepts an outgoing
+     * body straight from the browser, so without it a crafted file_id could
+     * stream another workspace's upload out to any URL.
+     *
+     * @param  array<int, mixed>  $fields
+     * @return array<int, RequestFile>
+     */
+    private function uploadedFiles(array $fields, Request $request): array
+    {
+        $ids = [];
+
+        foreach ($fields as $field) {
+            if (is_array($field) && ($field['type'] ?? null) === 'file' && isset($field['file_id'])) {
+                $ids[] = (int) $field['file_id'];
+            }
+        }
+
+        if ($ids === []) {
+            return [];
+        }
+
+        return RequestFile::forRequest($request->id)
+            ->whereKey($ids)
+            ->get()
+            ->keyBy('id')
+            ->all();
     }
 
     /**

@@ -4,6 +4,10 @@ import { Loader2, Play, Save } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import { update as updateRequest } from '@/actions/App/Http/Controllers/RequestController';
+import {
+    destroy as destroyRequestFile,
+    store as storeRequestFile,
+} from '@/actions/App/Http/Controllers/RequestFileController';
 import { Button } from '@/components/ui/button';
 import {
     Select,
@@ -13,16 +17,18 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { runRequest } from '@/lib/executeRequest';
 import { scripting as scriptingDocs } from '@/routes/docs';
 import { useWorkspaceStore } from '@/stores/workspace';
 import type {
     AuthType,
     BodyType,
+    FormField,
     HttpMethod,
     KeyValuePair,
     RequestAuth,
+    RequestFile,
 } from '@/types/workspace';
 import AuthEditor from './AuthEditor.vue';
 import CodeEditor from './CodeEditor.vue';
@@ -198,12 +204,47 @@ function setBodyType(bodyType: string) {
     store.updateDraft(tab.value.requestId, { body_type: bodyType as BodyType });
 }
 
-function setFormFields(fields: KeyValuePair[]) {
+function setFormFields(fields: FormField[]) {
     if (!tab.value) {
         return;
     }
 
     store.updateDraft(tab.value.requestId, { body: { fields } });
+}
+
+/**
+ * Stores a picked file against the request straight away, before the request
+ * itself is saved — the field only ever carries the id it gets back, so the
+ * upload has to exist server-side first for saving the body to mean anything.
+ */
+async function uploadFormFile(file: File): Promise<RequestFile> {
+    if (!tab.value) {
+        throw new Error('No request open');
+    }
+
+    try {
+        return await api.upload<RequestFile>(
+            storeRequestFile.url(tab.value.requestId),
+            'file',
+            file,
+        );
+    } catch (error) {
+        toast.error(
+            error instanceof ApiError && error.status === 422
+                ? 'That file is too large to upload'
+                : 'Failed to upload file',
+        );
+
+        throw error;
+    }
+}
+
+async function deleteFormFile(fileId: number) {
+    try {
+        await api.delete(destroyRequestFile.url(fileId));
+    } catch {
+        toast.error('Failed to remove file');
+    }
 }
 
 function setPreRequestScript(pre_request_script: string) {
@@ -545,6 +586,9 @@ async function send() {
                         "
                         :model-value="tab.draft.body?.fields ?? []"
                         :variables="scope.variables"
+                        :allow-files="tab.draft.body_type === 'form_data'"
+                        :upload-file="uploadFormFile"
+                        :delete-file="deleteFormFile"
                         @update:model-value="setFormFields"
                     />
 

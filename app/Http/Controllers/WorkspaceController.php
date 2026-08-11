@@ -66,6 +66,7 @@ class WorkspaceController extends Controller
             ->with(['requests:id,collection_id,name,method,order'])
             ->get();
         $environments = $workspace->environments()->with('variables')->orderBy('name')->get();
+        $workspaceVariables = $workspace->variables()->orderBy('key')->get();
 
         $history = $workspace->requestHistory()
             ->recent()
@@ -76,6 +77,7 @@ class WorkspaceController extends Controller
             'workspace' => $workspace,
             'collectionTree' => $this->buildTree($collections),
             'environments' => $environments,
+            'workspaceVariables' => $workspaceVariables,
             'history' => $history,
             'role' => $workspace->roleFor($request->user())?->value,
         ]);

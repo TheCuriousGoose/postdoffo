@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { Eye, EyeOff, Globe, Layers, TriangleAlert } from '@lucide/vue';
+import {
+    Building2,
+    Eye,
+    EyeOff,
+    Globe,
+    Layers,
+    TriangleAlert,
+} from '@lucide/vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useVariableInspector } from '@/composables/useVariableInspector';
 import { useWorkspaceStore } from '@/stores/workspace';
@@ -78,6 +85,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
                         >
                             <Globe
                                 v-if="current.sourceType === 'environment'"
+                                class="size-3"
+                            />
+                            <Building2
+                                v-else-if="current.sourceType === 'workspace'"
                                 class="size-3"
                             />
                             <Layers v-else class="size-3" />

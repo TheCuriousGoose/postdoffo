@@ -6,12 +6,14 @@ use App\Enums\AuthType;
 use App\Models\Collection;
 use App\Models\Environment;
 use App\Models\Request;
+use App\Models\Workspace;
 
 /**
- * Resolves {{variable}} interpolation with collection -> environment -> runtime
- * precedence (later sources override earlier ones). "Runtime" overrides stand in
- * for Postman's global scope: values a pre-request script sets for the current
- * execution take the highest precedence.
+ * Resolves {{variable}} interpolation with workspace -> collection -> environment
+ * -> runtime precedence (later sources override earlier ones). Workspace "globals"
+ * are the always-on base layer, applied whatever environment is active. "Runtime"
+ * overrides stand in for Postman's per-execution global scope: values a pre-request
+ * script sets for the current execution take the highest precedence.
  */
 class VariableResolver
 {
@@ -19,13 +21,21 @@ class VariableResolver
 
     /**
      * Build the flattened key => value variable map for a request execution.
+     * Workspace globals form the base, overridden in turn by the collection
+     * chain, the active environment, then any runtime overrides.
      *
      * @param  array<string, string>  $runtimeOverrides
      * @return array<string, string>
      */
-    public function resolve(?Collection $collection, ?Environment $environment, array $runtimeOverrides = []): array
+    public function resolve(?Collection $collection, ?Environment $environment, array $runtimeOverrides = [], ?Workspace $workspace = null): array
     {
         $variables = [];
+
+        if ($workspace) {
+            foreach ($workspace->variables as $variable) {
+                $variables[$variable->key] = $variable->value ?? '';
+            }
+        }
 
         foreach ($this->collectionChain($collection) as $ancestor) {
             $variables = [...$variables, ...($ancestor->variables ?? [])];

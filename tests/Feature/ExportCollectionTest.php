@@ -117,6 +117,56 @@ class ExportCollectionTest extends TestCase
         $this->assertStringContainsString('pm.test', $createUser->test_script);
     }
 
+    public function test_form_data_file_fields_survive_an_export_import_round_trip(): void
+    {
+        $user = User::factory()->create();
+        $workspace = Workspace::factory()->create(['owner_id' => $user->id]);
+        $collection = $workspace->collections()->create(['name' => 'Uploads', 'order' => 0]);
+
+        $collection->requests()->create([
+            'name' => 'Upload Avatar',
+            'method' => 'POST',
+            'url' => 'https://api.example.com/avatars',
+            'order' => 0,
+            'body_type' => BodyType::FormData,
+            'body' => ['fields' => [
+                ['key' => 'name', 'value' => 'Ada', 'enabled' => true],
+                ['key' => 'avatar', 'value' => '', 'enabled' => true, 'type' => 'file', 'file_id' => 7, 'filename' => 'avatar.png'],
+                ['key' => 'note', 'value' => 'skip me', 'enabled' => false],
+            ]],
+        ]);
+
+        $export = $this->actingAs($user)
+            ->get(route('api.collections.download', $collection))
+            ->json();
+
+        $formdata = $export['item'][0]['request']['body']['formdata'];
+
+        $this->assertSame(['key' => 'name', 'value' => 'Ada'], $formdata[0]);
+        // The upload itself can't travel in JSON, so the row names the file instead.
+        $this->assertSame(['key' => 'avatar', 'type' => 'file', 'src' => 'avatar.png'], $formdata[1]);
+        $this->assertTrue($formdata[2]['disabled']);
+
+        $target = Workspace::factory()->create(['owner_id' => $user->id]);
+
+        $this->actingAs($user)
+            ->postJson(route('api.collections.import', $target), ['collection' => $export])
+            ->assertOk();
+
+        $reimported = Request::where('name', 'Upload Avatar')
+            ->whereHas('collection', fn ($q) => $q->where('workspace_id', $target->id))
+            ->firstOrFail();
+
+        $this->assertSame(BodyType::FormData, $reimported->body_type);
+        // Re-imported without a file behind it, so it shows as one to re-pick
+        // rather than as a text field that quietly sends nothing.
+        $this->assertSame('file', $reimported->body['fields'][1]['type']);
+        $this->assertSame('avatar.png', $reimported->body['fields'][1]['filename']);
+        $this->assertNull($reimported->body['fields'][1]['file_id']);
+        $this->assertSame('Ada', $reimported->body['fields'][0]['value']);
+        $this->assertFalse($reimported->body['fields'][2]['enabled']);
+    }
+
     public function test_a_non_member_cannot_export_a_collection(): void
     {
         $owner = User::factory()->create();

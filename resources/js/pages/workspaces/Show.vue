@@ -9,6 +9,7 @@ import {
     ResizablePanel,
     ResizablePanelGroup,
 } from '@/components/ui/resizable';
+import CookieManagerDialog from '@/components/workspace/CookieManagerDialog.vue';
 import EnvironmentSwitcher from '@/components/workspace/EnvironmentSwitcher.vue';
 import HistoryPanel from '@/components/workspace/HistoryPanel.vue';
 import RequestEditor from '@/components/workspace/RequestEditor.vue';
@@ -151,6 +152,7 @@ watch(
             <h1 class="text-sm font-semibold">{{ workspace.name }}</h1>
             <div class="flex items-center gap-2">
                 <ShareDialog :workspace="workspace" :role="role" />
+                <CookieManagerDialog :workspace-id="workspace.id" />
                 <WorkspaceVariablesDialog :workspace-id="workspace.id" />
                 <EnvironmentSwitcher
                     :workspace-id="workspace.id"

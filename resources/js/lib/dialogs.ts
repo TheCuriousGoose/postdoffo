@@ -24,6 +24,8 @@ type PromptOptions = {
     placeholder?: string;
     confirmText?: string;
     cancelText?: string;
+    /** Swaps the single-line input for a textarea — pasted curl commands wrap. */
+    multiline?: boolean;
 };
 
 export const confirmState = reactive<
@@ -56,6 +58,7 @@ export const promptState = reactive<
     placeholder: '',
     confirmText: 'Save',
     cancelText: 'Cancel',
+    multiline: false,
     value: '',
     resolve: () => {},
 });
@@ -83,6 +86,7 @@ export function promptDialog(
         promptState.placeholder = options.placeholder ?? '';
         promptState.confirmText = options.confirmText ?? 'Save';
         promptState.cancelText = options.cancelText ?? 'Cancel';
+        promptState.multiline = options.multiline ?? false;
         promptState.value = options.defaultValue ?? '';
         promptState.resolve = resolve;
         promptState.open = true;

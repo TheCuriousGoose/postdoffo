@@ -4,6 +4,7 @@ use App\Http\Controllers\CollectionController;
 use App\Http\Controllers\EnvironmentController;
 use App\Http\Controllers\EnvironmentVariableController;
 use App\Http\Controllers\RequestController;
+use App\Http\Controllers\RequestCookieController;
 use App\Http\Controllers\RequestFileController;
 use App\Http\Controllers\RequestHistoryController;
 use App\Http\Controllers\WorkspaceController;
@@ -30,14 +31,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('collections/{collection}', [CollectionController::class, 'destroy'])->name('collections.destroy');
 
         Route::post('collections/{collection}/requests', [RequestController::class, 'store'])->name('requests.store');
+        Route::post('collections/{collection}/requests/from-curl', [RequestController::class, 'fromCurl'])->name('requests.from-curl');
+        Route::get('requests/{apiRequest}/curl', [RequestController::class, 'curl'])->name('requests.curl');
         Route::patch('collections/{collection}/requests/reorder', [RequestController::class, 'reorder'])->name('requests.reorder');
         Route::get('requests/{apiRequest}', [RequestController::class, 'show'])->name('requests.show');
         Route::patch('requests/{apiRequest}', [RequestController::class, 'update'])->name('requests.update');
         Route::delete('requests/{apiRequest}', [RequestController::class, 'destroy'])->name('requests.destroy');
-        Route::post('requests/{apiRequest}/execute', [RequestController::class, 'execute'])->name('requests.execute');
-        Route::post('requests/{apiRequest}/prepare', [RequestController::class, 'prepare'])->name('requests.prepare');
-        Route::post('requests/{apiRequest}/send', [RequestController::class, 'send'])->name('requests.send');
-        Route::post('requests/{apiRequest}/record', [RequestController::class, 'record'])->name('requests.record');
+        // Throttled together: these four are the ones that make this server fetch
+        // something on a user's behalf, so they share one per-user budget.
+        Route::middleware('throttle:execute-request')->group(function () {
+            Route::post('requests/{apiRequest}/execute', [RequestController::class, 'execute'])->name('requests.execute');
+            Route::post('requests/{apiRequest}/prepare', [RequestController::class, 'prepare'])->name('requests.prepare');
+            Route::post('requests/{apiRequest}/send', [RequestController::class, 'send'])->name('requests.send');
+            Route::post('requests/{apiRequest}/record', [RequestController::class, 'record'])->name('requests.record');
+        });
 
         Route::post('requests/{apiRequest}/files', [RequestFileController::class, 'store'])->name('request-files.store');
         Route::get('request-files/{requestFile}', [RequestFileController::class, 'show'])->name('request-files.show');
@@ -55,6 +62,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('workspaces/{workspace}/variables', [WorkspaceVariableController::class, 'store'])->name('workspace-variables.store');
         Route::patch('workspace-variables/{workspaceVariable}', [WorkspaceVariableController::class, 'update'])->name('workspace-variables.update');
         Route::delete('workspace-variables/{workspaceVariable}', [WorkspaceVariableController::class, 'destroy'])->name('workspace-variables.destroy');
+
+        Route::get('workspaces/{workspace}/cookies', [RequestCookieController::class, 'index'])->name('cookies.index');
+        Route::delete('workspaces/{workspace}/cookies', [RequestCookieController::class, 'clear'])->name('cookies.clear');
+        Route::delete('cookies/{requestCookie}', [RequestCookieController::class, 'destroy'])->name('cookies.destroy');
 
         Route::get('workspaces/{workspace}/history', [RequestHistoryController::class, 'index'])->name('history.index');
         Route::get('history/{requestHistory}', [RequestHistoryController::class, 'show'])->name('history.show');

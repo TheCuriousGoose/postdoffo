@@ -9,6 +9,7 @@ use App\Enums\BodyType;
 use App\Models\Environment;
 use App\Models\Request;
 use App\Models\RequestFile;
+use App\Models\User;
 use App\Services\Scripting\ScriptContext;
 use App\Services\Scripting\ScriptRunner;
 use Illuminate\Http\Client\Response as HttpResponse;
@@ -32,19 +33,23 @@ class RequestExecutorService
     public function __construct(
         private readonly VariableResolver $variableResolver,
         private readonly ScriptRunner $scriptRunner,
+        private readonly OutboundUrlGuard $urlGuard,
+        private readonly CookieJarService $cookieJar,
     ) {}
 
-    public function execute(Request $request, ?Environment $environment): ExecutedResponseData
+    public function execute(Request $request, ?Environment $environment, ?User $user = null): ExecutedResponseData
     {
-        return $this->sendAndFinalize($request, $this->prepare($request, $environment));
+        return $this->sendAndFinalize($request, $this->prepare($request, $environment), $user);
     }
 
     /**
      * Fires an already-prepared request server-side. Split out from execute() so a
      * request can be prepared once and either fired here or handed to the browser —
      * without re-running the pre-request script a second time.
+     *
+     * `$user` identifies whose cookie jar this send draws from and writes back to.
      */
-    public function sendAndFinalize(Request $request, PreparedRequestData $prepared): ExecutedResponseData
+    public function sendAndFinalize(Request $request, PreparedRequestData $prepared, ?User $user = null): ExecutedResponseData
     {
         $start = microtime(true);
         $status = null;
@@ -53,7 +58,7 @@ class RequestExecutorService
         $error = null;
 
         try {
-            $response = $this->send($prepared->outgoing, $request);
+            $response = $this->send($prepared->outgoing, $request, $user);
             $status = $response->status();
             $headers = $response->headers();
             $body = $response->body();
@@ -155,14 +160,50 @@ class RequestExecutorService
         );
     }
 
-    private function send(OutgoingRequestData $data, Request $request): HttpResponse
+    private function send(OutgoingRequestData $data, Request $request, ?User $user): HttpResponse
     {
-        return Http::withHeaders($this->sendableHeaders($data))
+        $this->urlGuard->assertAllowed($data->url);
+
+        $request->loadMissing('collection');
+        $workspaceId = $request->collection->workspace_id;
+
+        // Guzzle's own jar does the domain/path/secure matching on the way out and
+        // the Set-Cookie parsing on the way back; we only load it and save it.
+        $jar = $this->cookieJar->jarFor($workspaceId, $user);
+
+        $response = Http::withHeaders($this->sendableHeaders($data))
+            ->withOptions(['cookies' => $jar])
             ->timeout(30)
             ->send($data->method->value, $data->url, [
                 'query' => $data->queryParams,
+                'allow_redirects' => $this->redirectOptions(),
                 ...$this->bodyOptions($data->bodyType, $data->body, $request),
             ]);
+
+        $this->cookieJar->persist($jar, $workspaceId, $user);
+
+        return $response;
+    }
+
+    /**
+     * Guzzle follows redirects itself, which would otherwise walk straight around
+     * the guard: a public URL is free to answer 302 with a Location pointing at
+     * 169.254.169.254. Every hop gets checked, and a refused one aborts the chain.
+     *
+     * @return array<string, mixed>
+     */
+    private function redirectOptions(): array
+    {
+        return [
+            'max' => 5,
+            'strict' => true,
+            'referer' => false,
+            'protocols' => ['http', 'https'],
+            'track_redirects' => false,
+            'on_redirect' => function ($request, $response, $uri): void {
+                $this->urlGuard->assertAllowed((string) $uri);
+            },
+        ];
     }
 
     /**

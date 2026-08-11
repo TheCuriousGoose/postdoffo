@@ -27,6 +27,8 @@ class WorkspaceVariable extends Model
     protected function casts(): array
     {
         return [
+            // Encrypted at rest for the same reason as EnvironmentVariable::value.
+            'value' => 'encrypted',
             'is_secret' => 'boolean',
         ];
     }

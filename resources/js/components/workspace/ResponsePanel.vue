@@ -137,6 +137,30 @@ const contentType = computed(() => {
     return key ? headers[key].join('; ') : '';
 });
 
+/**
+ * Cookies this response set, read off its own Set-Cookie headers. The jar the
+ * server keeps is the source of truth for what gets sent next time (see the
+ * Cookies dialog in the workspace header); this is the per-response view of
+ * what changed it.
+ */
+const cookieRows = computed(() => {
+    const headers = response.value?.headers ?? {};
+    const key = Object.keys(headers).find(
+        (name) => name.toLowerCase() === 'set-cookie',
+    );
+
+    return (key ? headers[key] : []).map((raw) => {
+        const [pair, ...attributes] = raw.split(';');
+        const equals = pair.indexOf('=');
+
+        return {
+            name: equals === -1 ? pair.trim() : pair.slice(0, equals).trim(),
+            value: equals === -1 ? '' : pair.slice(equals + 1).trim(),
+            attributes: attributes.map((a) => a.trim()).join('; '),
+        };
+    });
+});
+
 const isPreviewableHtml = computed(
     () =>
         contentType.value.toLowerCase().includes('html') &&
@@ -222,6 +246,9 @@ const passedCount = computed(
                 <TabsTrigger value="preview">Preview</TabsTrigger>
                 <TabsTrigger value="headers"
                     >Headers ({{ headerRows.length }})</TabsTrigger
+                >
+                <TabsTrigger v-if="cookieRows.length" value="cookies"
+                    >Cookies ({{ cookieRows.length }})</TabsTrigger
                 >
                 <TabsTrigger value="tests"
                     >Tests ({{ response.test_results.length }})</TabsTrigger
@@ -330,6 +357,41 @@ const passedCount = computed(
                             </TableRow>
                         </TableBody>
                     </Table>
+                </TabsContent>
+
+                <TabsContent value="cookies">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Value</TableHead>
+                                <TableHead>Attributes</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow
+                                v-for="(cookie, index) in cookieRows"
+                                :key="index"
+                            >
+                                <TableCell class="font-mono text-xs">{{
+                                    cookie.name
+                                }}</TableCell>
+                                <TableCell
+                                    class="max-w-40 truncate font-mono text-xs"
+                                    >{{ cookie.value }}</TableCell
+                                >
+                                <TableCell
+                                    class="font-mono text-xs text-muted-foreground"
+                                    >{{ cookie.attributes }}</TableCell
+                                >
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                    <p class="pt-2 text-xs text-muted-foreground">
+                        Stored and sent back on matching requests. Manage the
+                        whole jar from the cookie button in the workspace
+                        header.
+                    </p>
                 </TabsContent>
 
                 <TabsContent value="tests">

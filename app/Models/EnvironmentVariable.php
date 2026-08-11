@@ -27,6 +27,13 @@ class EnvironmentVariable extends Model
     protected function casts(): array
     {
         return [
+            // Encrypted at rest so a database dump or backup doesn't hand over
+            // the workspace's tokens. Every value, not just the is_secret ones —
+            // that flag is a UI masking hint the user can forget to set, and
+            // making it decide encryption would mean the forgetful case is the
+            // unprotected one. Members of the workspace still see the plaintext;
+            // this guards the database, not the people with access to it.
+            'value' => 'encrypted',
             'is_secret' => 'boolean',
         ];
     }

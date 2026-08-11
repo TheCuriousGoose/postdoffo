@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Loader2, Play, Save } from '@lucide/vue';
+import { Loader2, Play, Save, TerminalSquare } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
-import { update as updateRequest } from '@/actions/App/Http/Controllers/RequestController';
+import {
+    curl as curlRequest,
+    update as updateRequest,
+} from '@/actions/App/Http/Controllers/RequestController';
 import {
     destroy as destroyRequestFile,
     store as storeRequestFile,
@@ -239,6 +242,37 @@ async function uploadFormFile(file: File): Promise<RequestFile> {
     }
 }
 
+/**
+ * Copies the request as a curl command. The snippet is built server-side from
+ * the same resolved payload a send would use, so what lands on the clipboard
+ * runs as-is in a terminal — variables interpolated, auth already computed —
+ * rather than being a template full of {{placeholders}}.
+ */
+async function copyAsCurl() {
+    if (!tab.value || !commitBodyText()) {
+        return;
+    }
+
+    const id = tab.value.requestId;
+
+    if (tab.value.dirty) {
+        await save();
+    }
+
+    try {
+        const environmentId = store.activeEnvironmentId;
+        const { command } = await api.get<{ command: string }>(
+            curlRequest.url(id) +
+                (environmentId ? `?environment_id=${environmentId}` : ''),
+        );
+
+        await navigator.clipboard.writeText(command);
+        toast.success('Copied as cURL');
+    } catch {
+        toast.error('Failed to copy as cURL');
+    }
+}
+
 async function deleteFormFile(fileId: number) {
     try {
         await api.delete(destroyRequestFile.url(fileId));
@@ -413,6 +447,16 @@ async function send() {
                 class="flex-1 font-mono text-sm"
                 @update:model-value="setUrl"
             />
+
+            <Button
+                variant="ghost"
+                size="icon"
+                class="size-8 shrink-0"
+                title="Copy as cURL"
+                @click="copyAsCurl"
+            >
+                <TerminalSquare class="size-4" />
+            </Button>
 
             <Button
                 variant="outline"

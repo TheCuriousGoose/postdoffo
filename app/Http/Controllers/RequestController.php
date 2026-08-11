@@ -11,13 +11,17 @@ use App\DTOs\PreparedRequestData;
 use App\Enums\AuthType;
 use App\Enums\BodyType;
 use App\Enums\HttpMethod;
+use App\Exceptions\InvalidCurlCommandException;
 use App\Models\Collection;
 use App\Models\Environment;
 use App\Models\Request as ApiRequest;
+use App\Services\CurlCommandGenerator;
+use App\Services\CurlCommandParser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class RequestController extends Controller
 {
@@ -220,6 +224,54 @@ class RequestController extends Controller
         );
 
         return response()->json($result->toArray());
+    }
+
+    /**
+     * The request as a curl command, resolved the same way sending it would be —
+     * variables interpolated, collection headers merged, auth computed — so the
+     * snippet reproduces the call rather than describing it.
+     */
+    public function curl(Request $request, ApiRequest $apiRequest, PrepareRequestAction $action, CurlCommandGenerator $generator): JsonResponse
+    {
+        $this->authorize('view', $apiRequest->collection->workspace);
+
+        $environment = null;
+
+        if ($request->filled('environment_id')) {
+            $environment = Environment::forWorkspace($apiRequest->collection->workspace_id)
+                ->findOrFail($request->integer('environment_id'));
+        }
+
+        $prepared = $action->handle($apiRequest, $environment);
+
+        return response()->json(['command' => $generator->generate($prepared->outgoing)]);
+    }
+
+    /**
+     * Creates a request from a pasted curl command — the other half of the
+     * copy-as-curl workflow, and the quickest route from someone else's API docs
+     * into a collection.
+     */
+    public function fromCurl(Request $request, Collection $collection, CurlCommandParser $parser): JsonResponse
+    {
+        $this->authorize('edit', $collection->workspace);
+
+        $data = $request->validate([
+            'command' => ['required', 'string', 'max:100000'],
+        ]);
+
+        try {
+            $attributes = $parser->parse($data['command']);
+        } catch (InvalidCurlCommandException $e) {
+            throw ValidationException::withMessages(['command' => $e->getMessage()]);
+        }
+
+        $apiRequest = $collection->requests()->create([
+            ...$attributes,
+            'order' => $collection->requests()->count(),
+        ]);
+
+        return response()->json($apiRequest, 201);
     }
 
     /**

@@ -25,7 +25,7 @@ class SendPreparedRequestAction
     {
         $request->loadMissing('collection');
 
-        $result = $this->executor->sendAndFinalize($request, $prepared);
+        $result = $this->executor->sendAndFinalize($request, $prepared, $user);
 
         $this->recordHistory($request, $user, $result);
 

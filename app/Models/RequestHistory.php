@@ -39,7 +39,10 @@ class RequestHistory extends Model
     protected function casts(): array
     {
         return [
-            'response_snapshot' => 'array',
+            // A snapshot holds the whole response body, which for a login call is
+            // the access token itself — the same secret an environment variable
+            // gets encrypted for, just arriving by a different route.
+            'response_snapshot' => 'encrypted:array',
             'executed_at' => 'datetime',
         ];
     }

@@ -31,6 +31,18 @@ export type RequestFile = {
     size: number;
 };
 
+/** A cookie the server is holding for this user, in this workspace. */
+export type RequestCookie = {
+    id: number;
+    domain: string;
+    path: string;
+    name: string;
+    value: string;
+    expires_at: string | null;
+    secure: boolean;
+    http_only: boolean;
+};
+
 export type AuthType = 'bearer' | 'basic' | 'apikey' | 'none';
 
 export type RequestAuth = {

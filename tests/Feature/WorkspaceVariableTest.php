@@ -29,8 +29,12 @@ class WorkspaceVariableTest extends TestCase
         $this->assertDatabaseHas('workspace_variables', [
             'workspace_id' => $workspace->id,
             'key' => 'base_url',
-            'value' => 'https://api.example.com',
         ]);
+        // Read back through the model: the column itself holds ciphertext now.
+        $this->assertSame(
+            'https://api.example.com',
+            WorkspaceVariable::where('key', 'base_url')->value('value'),
+        );
     }
 
     public function test_storing_the_same_key_updates_rather_than_duplicates(): void
@@ -48,7 +52,7 @@ class WorkspaceVariableTest extends TestCase
         }
 
         $this->assertSame(1, WorkspaceVariable::where('workspace_id', $workspace->id)->count());
-        $this->assertDatabaseHas('workspace_variables', ['key' => 'token', 'value' => 'second']);
+        $this->assertSame('second', WorkspaceVariable::where('key', 'token')->value('value'));
     }
 
     public function test_variable_can_be_updated_and_deleted(): void

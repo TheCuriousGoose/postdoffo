@@ -14,6 +14,7 @@ import {
     Settings2,
     Share2,
     ShieldCheck,
+    TerminalSquare,
     Trash2,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
@@ -29,6 +30,7 @@ import {
     store as storeRequest,
     update as updateRequest,
     destroy as destroyRequest,
+    fromCurl as requestFromCurl,
     reorder as reorderRequests,
 } from '@/actions/App/Http/Controllers/RequestController';
 import { Button } from '@/components/ui/button';
@@ -50,7 +52,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { confirmDialog, promptDialog } from '@/lib/dialogs';
 import { draggedItem, reorderIds } from '@/lib/dragState';
 import type { DraggedItem } from '@/lib/dragState';
@@ -127,6 +129,40 @@ async function addRequest() {
         url: '',
     });
     reload();
+}
+
+/**
+ * Builds a request out of a pasted curl command — the fastest route from
+ * someone else's API docs (or a browser's "Copy as cURL") into the collection.
+ */
+async function importCurl() {
+    const command = await promptDialog({
+        title: 'Paste cURL',
+        description:
+            'Paste a curl command and it becomes a request in this folder. Most flags are understood; the ones that have no equivalent here are ignored.',
+        label: 'Command',
+        placeholder:
+            "curl https://api.example.com/users -H 'Accept: application/json'",
+        confirmText: 'Create request',
+        multiline: true,
+    });
+
+    if (!command) {
+        return;
+    }
+
+    try {
+        await api.post(requestFromCurl.url(props.node.id), { command });
+        reload();
+        toast.success('Request created');
+    } catch (error) {
+        toast.error(
+            error instanceof ApiError && error.status === 422
+                ? ((error.body as { message?: string })?.message ??
+                      'That curl command could not be read')
+                : 'Failed to import curl command',
+        );
+    }
 }
 
 // Native HTML5 drag-and-drop. `draggedItem` is a module-scoped singleton (see
@@ -568,6 +604,9 @@ const methodColor: Record<string, string> = {
                     </DropdownMenuItem>
                     <DropdownMenuItem @click="addFolder">
                         <FolderPlus class="size-3.5" /> New folder
+                    </DropdownMenuItem>
+                    <DropdownMenuItem @click="importCurl">
+                        <TerminalSquare class="size-3.5" /> Paste cURL
                     </DropdownMenuItem>
                     <DropdownMenuItem @click="rename">Rename</DropdownMenuItem>
                     <DropdownMenuItem @click="openSettings">

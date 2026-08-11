@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { promptState } from '@/lib/dialogs';
 
 const input = useTemplateRef('input');
@@ -47,7 +48,9 @@ function submit() {
 
 <template>
     <Dialog :open="promptState.open" @update:open="onOpenChange">
-        <DialogContent class="sm:max-w-sm">
+        <DialogContent
+            :class="promptState.multiline ? 'sm:max-w-xl' : 'sm:max-w-sm'"
+        >
             <form class="space-y-4" @submit.prevent="submit">
                 <DialogHeader>
                     <DialogTitle>{{ promptState.title }}</DialogTitle>
@@ -60,7 +63,16 @@ function submit() {
                     <Label v-if="promptState.label" for="prompt-dialog-input">
                         {{ promptState.label }}
                     </Label>
+                    <Textarea
+                        v-if="promptState.multiline"
+                        id="prompt-dialog-input"
+                        ref="input"
+                        v-model="promptState.value"
+                        :placeholder="promptState.placeholder"
+                        class="min-h-40 font-mono text-xs"
+                    />
                     <Input
+                        v-else
                         id="prompt-dialog-input"
                         ref="input"
                         v-model="promptState.value"

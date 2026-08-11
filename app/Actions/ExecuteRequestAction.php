@@ -25,7 +25,7 @@ class ExecuteRequestAction
 
         $environment ??= Environment::forWorkspace($request->collection->workspace_id)->active()->first();
 
-        $result = $this->executor->execute($request, $environment);
+        $result = $this->executor->execute($request, $environment, $user);
 
         $this->recordHistory($request, $user, $result);
 

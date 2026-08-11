@@ -373,8 +373,12 @@ async function activate(id: number) {
 
             <!-- selected layer -->
             <div class="flex min-w-0 flex-1 flex-col">
+                <!--
+                    pr-12 keeps the actions menu clear of the dialog's own close
+                    button, which floats over this row at top-4 right-4.
+                -->
                 <div
-                    class="flex h-14 shrink-0 items-center gap-2 border-b px-6"
+                    class="flex h-14 shrink-0 items-center gap-2 border-b pr-12 pl-6"
                 >
                     <template v-if="selection.kind === 'globals'">
                         <div class="min-w-0 flex-1">

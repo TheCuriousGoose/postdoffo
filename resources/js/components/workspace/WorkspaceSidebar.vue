@@ -21,6 +21,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
     SidebarRail,
+    useSidebar,
 } from '@/components/ui/sidebar';
 import CollectionTree from '@/components/workspace/CollectionTree.vue';
 import CommandPalette from '@/components/workspace/CommandPalette.vue';
@@ -40,9 +41,26 @@ const page = usePage<{ workspace: Workspace }>();
 const workspace = computed(() => page.props.workspace);
 const store = useWorkspaceStore();
 const { openRequest } = useOpenRequest();
+const { isMobile, setOpenMobile } = useSidebar();
 
 const importInput = ref<HTMLInputElement | null>(null);
 const paletteOpen = ref(false);
+
+// On a phone the tree lives in an off-canvas sheet covering the editor, so
+// picking a request has to dismiss it — otherwise you open something and are
+// left staring at the list you opened it from.
+async function openRequestFromTree(request: { id: number }) {
+    await openRequest(request);
+
+    if (isMobile.value) {
+        setOpenMobile(false);
+    }
+}
+
+function openPalette() {
+    setOpenMobile(false);
+    paletteOpen.value = true;
+}
 
 async function newRootCollection() {
     const name = await promptDialog({
@@ -185,7 +203,7 @@ async function onImportFile(event: Event) {
             <button
                 type="button"
                 class="mx-2 mb-1 flex items-center gap-2 rounded-md border bg-background px-2.5 py-1.5 text-left text-muted-foreground transition group-data-[collapsible=icon]:hidden hover:bg-accent"
-                @click="paletteOpen = true"
+                @click="openPalette"
             >
                 <Search class="size-3.5 shrink-0" />
                 <span class="flex-1 truncate text-xs">Search requests…</span>
@@ -241,7 +259,7 @@ async function onImportFile(event: Event) {
                     :node="node"
                     :workspace-id="workspace.id"
                     :active-request-id="store.activeTabId"
-                    @open-request="openRequest"
+                    @open-request="openRequestFromTree"
                     @reorder-child="onRootReorder"
                 />
                 <p

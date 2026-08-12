@@ -94,11 +94,11 @@ const faqs = [
         <!-- Hero: asymmetric split, editorial left / honest request figure right -->
         <section class="border-b border-border">
             <div
-                class="mx-auto grid max-w-6xl gap-14 px-6 pt-20 pb-20 lg:grid-cols-12 lg:gap-12 lg:pt-24 lg:pb-28"
+                class="mx-auto grid max-w-6xl gap-14 px-4 pt-14 pb-16 sm:px-6 sm:pt-20 sm:pb-20 lg:grid-cols-12 lg:gap-12 lg:pt-24 lg:pb-28"
             >
                 <div class="lg:col-span-7 lg:pr-8">
                     <h1
-                        class="max-w-xl font-display text-5xl leading-[1.03] font-semibold tracking-tight text-balance sm:text-6xl"
+                        class="max-w-xl font-display text-4xl leading-[1.05] font-semibold tracking-tight text-balance sm:text-5xl sm:leading-[1.03] lg:text-6xl"
                     >
                         The open-source API client for teams.
                     </h1>
@@ -178,7 +178,7 @@ const faqs = [
 
         <!-- Capabilities: airy two-column list, no card chrome -->
         <section class="border-b border-border">
-            <div class="mx-auto max-w-6xl px-6 py-20 sm:py-28">
+            <div class="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
                 <div class="max-w-xl">
                     <h2
                         class="font-display text-3xl font-semibold tracking-tight sm:text-4xl"
@@ -223,7 +223,7 @@ const faqs = [
 
         <!-- Open source / self-host: editorial statement, no code block -->
         <section class="border-b border-border bg-muted/30">
-            <div class="mx-auto max-w-6xl px-6 py-20 sm:py-28">
+            <div class="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
                 <h2
                     class="max-w-2xl font-display text-3xl font-semibold tracking-tight text-balance sm:text-4xl"
                 >
@@ -258,7 +258,7 @@ const faqs = [
 
         <!-- FAQ -->
         <section class="border-b border-border">
-            <div class="mx-auto max-w-3xl px-6 py-20 sm:py-28">
+            <div class="mx-auto max-w-3xl px-4 py-20 sm:px-6 sm:py-28">
                 <h2
                     class="font-display text-3xl font-semibold tracking-tight sm:text-4xl"
                 >
@@ -291,7 +291,9 @@ const faqs = [
 
         <!-- CTA -->
         <section class="border-b border-border">
-            <div class="mx-auto max-w-2xl px-6 py-24 text-center sm:py-32">
+            <div
+                class="mx-auto max-w-2xl px-4 py-24 text-center sm:px-6 sm:py-32"
+            >
                 <h2
                     class="font-display text-4xl font-semibold tracking-tight text-balance sm:text-5xl"
                 >

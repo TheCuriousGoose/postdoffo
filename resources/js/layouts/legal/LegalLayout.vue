@@ -18,7 +18,7 @@ defineProps<{
             class="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur"
         >
             <div
-                class="mx-auto flex h-16 max-w-6xl items-center justify-between px-6"
+                class="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6"
             >
                 <Link :href="home()" class="flex items-center gap-2">
                     <AppLogo />
@@ -34,7 +34,7 @@ defineProps<{
             </div>
         </header>
 
-        <div class="mx-auto max-w-6xl px-6 py-16 sm:py-20">
+        <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
             <div class="max-w-2xl">
                 <h1
                     class="font-display text-3xl font-semibold tracking-tight sm:text-4xl"
@@ -70,7 +70,7 @@ defineProps<{
 
         <footer class="border-t border-border/60">
             <div
-                class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 text-sm text-muted-foreground sm:flex-row"
+                class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:px-6"
             >
                 <Link :href="home()" class="flex items-center gap-2">
                     <AppLogo />

@@ -129,7 +129,7 @@ async function clearAll() {
                             <td class="text-center">
                                 <button
                                     type="button"
-                                    class="mx-auto flex size-6 items-center justify-center rounded text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:bg-accent hover:text-foreground"
+                                    class="mx-auto flex size-6 items-center justify-center rounded text-muted-foreground transition hover:bg-accent hover:text-foreground max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100"
                                     title="Delete cookie"
                                     @click="removeCookie(cookie.id)"
                                 >

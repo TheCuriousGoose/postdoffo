@@ -268,7 +268,7 @@ function close() {
         @update:open="(value) => (value ? emit('update:open', true) : close())"
     >
         <DialogContent
-            class="flex max-h-[85vh] flex-col gap-4 overflow-hidden sm:max-w-2xl"
+            class="flex max-h-[85dvh] flex-col gap-4 overflow-hidden sm:max-w-2xl"
         >
             <DialogHeader>
                 <DialogTitle>Run "{{ node.name }}"</DialogTitle>
@@ -280,7 +280,7 @@ function close() {
                 </DialogDescription>
             </DialogHeader>
 
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid gap-3 sm:grid-cols-2">
                 <div class="grid gap-1.5">
                     <label class="text-xs font-medium text-muted-foreground"
                         >Environment</label

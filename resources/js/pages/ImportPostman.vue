@@ -61,7 +61,7 @@ const steps = [
                 aria-hidden="true"
             />
 
-            <div class="mx-auto max-w-6xl px-6 pt-20 pb-16 lg:pt-28">
+            <div class="mx-auto max-w-6xl px-4 pt-20 pb-16 sm:px-6 lg:pt-28">
                 <div class="grid gap-14 lg:grid-cols-12 lg:gap-10">
                     <div class="lg:col-span-6">
                         <p
@@ -72,7 +72,7 @@ const steps = [
                         </p>
 
                         <h1
-                            class="mt-6 font-display text-5xl leading-[1.02] font-semibold tracking-tight text-balance sm:text-6xl"
+                            class="mt-6 font-display text-4xl leading-[1.05] font-semibold tracking-tight text-balance sm:text-5xl sm:leading-[1.02] lg:text-6xl"
                         >
                             Import your Postman collections
                         </h1>
@@ -170,7 +170,7 @@ const steps = [
 
         <!-- What comes across -->
         <section class="border-b border-border">
-            <div class="mx-auto max-w-6xl px-6 py-20 sm:py-28">
+            <div class="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
                 <h2
                     class="max-w-xl font-display text-3xl font-semibold tracking-tight sm:text-4xl"
                 >
@@ -209,7 +209,7 @@ const steps = [
 
         <!-- Steps -->
         <section class="border-b border-border">
-            <div class="mx-auto max-w-6xl px-6 py-20 sm:py-28">
+            <div class="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
                 <h2
                     class="max-w-xl font-display text-3xl font-semibold tracking-tight sm:text-4xl"
                 >
@@ -248,7 +248,7 @@ const steps = [
 
         <!-- Honest note on scripting -->
         <section class="border-b border-border bg-stone-950 text-stone-100">
-            <div class="mx-auto max-w-6xl px-6 py-16 sm:py-20">
+            <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
                 <div class="max-w-2xl">
                     <p
                         class="flex items-center gap-2 font-mono text-xs tracking-widest text-stone-400 uppercase"
@@ -283,7 +283,7 @@ const steps = [
 
         <!-- Related -->
         <section class="border-b border-border">
-            <div class="mx-auto max-w-6xl px-6 py-16">
+            <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6">
                 <div class="grid gap-6 sm:grid-cols-2">
                     <Link
                         :href="'/self-hosting'"
@@ -294,7 +294,7 @@ const steps = [
                         >
                             Self-host PostDoffo
                             <ArrowRight
-                                class="size-4 opacity-0 transition group-hover:opacity-100"
+                                class="size-4 transition max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100"
                             />
                         </h3>
                         <p
@@ -313,7 +313,7 @@ const steps = [
                         >
                             What actually happens on import
                             <ArrowRight
-                                class="size-4 opacity-0 transition group-hover:opacity-100"
+                                class="size-4 transition max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100"
                             />
                         </h3>
                         <p
@@ -333,7 +333,9 @@ const steps = [
                 class="pointer-events-none absolute inset-0 -z-10 [background-image:radial-gradient(var(--border)_1px,transparent_1px)] [mask-image:linear-gradient(to_top,black,transparent_85%)] [background-size:22px_22px] opacity-70"
                 aria-hidden="true"
             />
-            <div class="mx-auto max-w-6xl px-6 py-24 text-center sm:py-32">
+            <div
+                class="mx-auto max-w-6xl px-4 py-24 text-center sm:px-6 sm:py-32"
+            >
                 <h2
                     class="mx-auto max-w-2xl font-display text-4xl font-semibold tracking-tight text-balance sm:text-5xl"
                 >

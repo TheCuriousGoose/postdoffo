@@ -106,7 +106,9 @@ async function deletePost(post: AdminPost) {
                     <TableRow>
                         <TableHead class="pl-6">Title</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Published</TableHead>
+                        <TableHead class="hidden sm:table-cell"
+                            >Published</TableHead
+                        >
                         <TableHead class="w-10 pr-6" />
                     </TableRow>
                 </TableHeader>
@@ -127,7 +129,9 @@ async function deletePost(post: AdminPost) {
                                 {{ post.is_published ? 'Published' : 'Draft' }}
                             </Badge>
                         </TableCell>
-                        <TableCell class="text-sm text-muted-foreground">
+                        <TableCell
+                            class="hidden text-sm text-muted-foreground sm:table-cell"
+                        >
                             {{ post.published_at ?? '—' }}
                         </TableCell>
                         <TableCell class="pr-6">

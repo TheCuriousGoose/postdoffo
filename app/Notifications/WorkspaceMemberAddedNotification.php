@@ -32,7 +32,7 @@ class WorkspaceMemberAddedNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'message' => "{$this->addedBy->name} added you to \"{$this->workspace->name}\" as {$this->role->value}.",
+            'message' => "{$this->addedBy->name} added you to \"{$this->workspace->name}\" as {$this->role->label()}.",
             'workspace_id' => $this->workspace->id,
             'workspace_name' => $this->workspace->name,
             'role' => $this->role->value,

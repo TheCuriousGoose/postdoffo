@@ -48,7 +48,7 @@ const notOurFocus = [
             />
 
             <div
-                class="mx-auto max-w-3xl px-6 pt-20 pb-16 text-center lg:pt-28"
+                class="mx-auto max-w-3xl px-4 pt-20 pb-16 text-center sm:px-6 lg:pt-28"
             >
                 <p
                     class="mx-auto flex w-fit items-center gap-2 font-mono text-xs tracking-widest text-muted-foreground uppercase"
@@ -58,7 +58,7 @@ const notOurFocus = [
                 </p>
 
                 <h1
-                    class="mt-6 font-display text-5xl leading-[1.02] font-semibold tracking-tight text-balance sm:text-6xl"
+                    class="mt-6 font-display text-4xl leading-[1.05] font-semibold tracking-tight text-balance sm:text-5xl sm:leading-[1.02] lg:text-6xl"
                 >
                     Same job. Different philosophy.
                 </h1>
@@ -96,7 +96,7 @@ const notOurFocus = [
 
         <!-- Comparison table -->
         <section class="border-b border-border">
-            <div class="mx-auto max-w-3xl px-6 py-20 sm:py-28">
+            <div class="mx-auto max-w-3xl px-4 py-20 sm:px-6 sm:py-28">
                 <h2
                     class="font-display text-3xl font-semibold tracking-tight sm:text-4xl"
                 >
@@ -109,8 +109,8 @@ const notOurFocus = [
                     <div
                         class="grid grid-cols-2 border-b border-border bg-muted/40 font-mono text-xs tracking-widest text-muted-foreground uppercase"
                     >
-                        <div class="px-5 py-3">Postman</div>
-                        <div class="border-l border-border px-5 py-3">
+                        <div class="px-3 py-3 sm:px-5">Postman</div>
+                        <div class="border-l border-border px-3 py-3 sm:px-5">
                             PostDoffo
                         </div>
                     </div>
@@ -119,10 +119,10 @@ const notOurFocus = [
                         :key="row.postman"
                         class="grid grid-cols-2 border-b border-border text-sm last:border-b-0"
                     >
-                        <div class="px-5 py-4 text-muted-foreground">
+                        <div class="px-3 py-4 text-muted-foreground sm:px-5">
                             {{ row.postman }}
                         </div>
-                        <div class="border-l border-border px-5 py-4">
+                        <div class="border-l border-border px-3 py-4 sm:px-5">
                             {{ row.postdoffo }}
                         </div>
                     </div>
@@ -132,7 +132,7 @@ const notOurFocus = [
 
         <!-- Honest scope note -->
         <section class="border-b border-border bg-stone-950 text-stone-100">
-            <div class="mx-auto max-w-3xl px-6 py-16 sm:py-20">
+            <div class="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20">
                 <p
                     class="flex items-center gap-2 font-mono text-xs tracking-widest text-stone-400 uppercase"
                 >
@@ -166,7 +166,7 @@ const notOurFocus = [
 
         <!-- Related -->
         <section class="border-b border-border">
-            <div class="mx-auto max-w-6xl px-6 py-16">
+            <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6">
                 <div class="grid gap-6 sm:grid-cols-2">
                     <Link
                         :href="'/self-hosting'"
@@ -177,7 +177,7 @@ const notOurFocus = [
                         >
                             Self-host PostDoffo
                             <ArrowRight
-                                class="size-4 opacity-0 transition group-hover:opacity-100"
+                                class="size-4 transition max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100"
                             />
                         </h3>
                         <p
@@ -195,7 +195,7 @@ const notOurFocus = [
                         >
                             Read the blog
                             <ArrowRight
-                                class="size-4 opacity-0 transition group-hover:opacity-100"
+                                class="size-4 transition max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100"
                             />
                         </h3>
                         <p
@@ -215,7 +215,9 @@ const notOurFocus = [
                 class="pointer-events-none absolute inset-0 -z-10 [background-image:radial-gradient(var(--border)_1px,transparent_1px)] [mask-image:linear-gradient(to_top,black,transparent_85%)] [background-size:22px_22px] opacity-70"
                 aria-hidden="true"
             />
-            <div class="mx-auto max-w-6xl px-6 py-24 text-center sm:py-32">
+            <div
+                class="mx-auto max-w-6xl px-4 py-24 text-center sm:px-6 sm:py-32"
+            >
                 <h2
                     class="mx-auto max-w-2xl font-display text-4xl font-semibold tracking-tight text-balance sm:text-5xl"
                 >
@@ -241,7 +243,7 @@ const notOurFocus = [
 
         <div class="border-b border-border bg-muted/20">
             <p
-                class="mx-auto max-w-6xl px-6 py-4 text-xs text-muted-foreground/70"
+                class="mx-auto max-w-6xl px-4 py-4 text-xs text-muted-foreground/70 sm:px-6"
             >
                 Postman is a trademark of Postman, Inc. PostDoffo is not
                 affiliated with or endorsed by Postman, Inc.

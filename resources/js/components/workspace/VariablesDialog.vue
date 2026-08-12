@@ -270,11 +270,18 @@ async function activate(id: number) {
 
 <template>
     <Dialog v-model:open="open">
+        <!--
+            The layer list keeps its own headings ("Environments", "Collections"),
+            so below sm it stays a vertical list rather than becoming a flat row —
+            it just moves above the table and gives up most of its height.
+        -->
         <DialogContent
-            class="flex h-[42rem] max-h-[90vh] w-full gap-0 overflow-hidden p-0 sm:max-w-2xl lg:max-w-4xl xl:max-w-5xl"
+            class="flex h-168 max-h-[90dvh] w-full gap-0 overflow-hidden p-0 max-sm:flex-col sm:max-w-2xl lg:max-w-4xl xl:max-w-5xl"
         >
             <!-- layers -->
-            <aside class="flex w-56 shrink-0 flex-col border-r bg-muted/30 p-3">
+            <aside
+                class="flex shrink-0 flex-col border-b bg-muted/30 p-3 max-sm:max-h-52 sm:w-56 sm:border-r sm:border-b-0"
+            >
                 <div class="px-2 pt-1 pb-3">
                     <DialogTitle class="text-sm font-semibold"
                         >Variables</DialogTitle

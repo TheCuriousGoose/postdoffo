@@ -607,7 +607,7 @@ const configuredCount = computed(() => ({
                         variant="ghost"
                         size="icon"
                         :aria-label="`Actions for ${node.name}`"
-                        class="size-6 shrink-0 opacity-0 group-hover/row:opacity-100 data-[state=open]:opacity-100"
+                        class="size-6 shrink-0 max-md:opacity-100 md:opacity-0 md:group-hover/row:opacity-100 md:data-[state=open]:opacity-100"
                     >
                         <MoreHorizontal class="size-3.5" />
                     </Button>
@@ -711,7 +711,7 @@ const configuredCount = computed(() => ({
                             variant="ghost"
                             size="icon"
                             :aria-label="`Actions for ${request.name}`"
-                            class="size-6 shrink-0 opacity-0 group-hover/row:opacity-100 data-[state=open]:opacity-100"
+                            class="size-6 shrink-0 max-md:opacity-100 md:opacity-0 md:group-hover/row:opacity-100 md:data-[state=open]:opacity-100"
                         >
                             <MoreHorizontal class="size-3.5" />
                         </Button>
@@ -744,11 +744,18 @@ const configuredCount = computed(() => ({
     </Collapsible>
 
     <Dialog v-model:open="settingsOpen">
+        <!--
+            A 13rem rail beside the content leaves nothing usable next to it on a
+            phone, so below sm the sections become a scrollable row across the
+            top and the panel takes the full width underneath.
+        -->
         <DialogContent
-            class="flex h-[34rem] max-h-[85vh] w-full gap-0 overflow-hidden p-0 sm:max-w-3xl"
+            class="flex h-136 max-h-[85dvh] w-full gap-0 overflow-hidden p-0 max-sm:flex-col sm:max-w-3xl"
         >
             <!-- sidebar -->
-            <aside class="flex w-52 shrink-0 flex-col border-r bg-muted/30 p-3">
+            <aside
+                class="flex shrink-0 flex-col border-b bg-muted/30 p-3 sm:w-52 sm:border-r sm:border-b-0"
+            >
                 <div class="px-2 pt-1 pb-3">
                     <DialogTitle class="truncate text-sm font-semibold">{{
                         node.name
@@ -757,12 +764,12 @@ const configuredCount = computed(() => ({
                         Collection settings
                     </DialogDescription>
                 </div>
-                <nav class="flex flex-col gap-0.5">
+                <nav class="flex gap-0.5 max-sm:overflow-x-auto sm:flex-col">
                     <button
                         v-for="section in settingsSections"
                         :key="section.id"
                         type="button"
-                        class="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm transition"
+                        class="flex shrink-0 items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm transition sm:shrink"
                         :class="
                             activeSection === section.id
                                 ? 'bg-accent font-medium text-accent-foreground'
@@ -800,7 +807,7 @@ const configuredCount = computed(() => ({
 
             <!-- content -->
             <div class="flex min-w-0 flex-1 flex-col">
-                <div class="min-h-0 flex-1 overflow-y-auto p-6">
+                <div class="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
                     <template v-if="activeSection === 'general'">
                         <h3 class="text-sm font-semibold">General</h3>
                         <div class="mt-4 grid max-w-sm gap-2">

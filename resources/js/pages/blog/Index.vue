@@ -21,7 +21,7 @@ defineProps<{
         <SiteHeader />
 
         <section class="border-b border-border">
-            <div class="mx-auto max-w-3xl px-6 py-16 sm:py-20">
+            <div class="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20">
                 <h1
                     class="font-display text-4xl font-semibold tracking-tight sm:text-5xl"
                 >
@@ -53,7 +53,7 @@ defineProps<{
                         >
                             {{ post.title }}
                             <ArrowRight
-                                class="size-4 shrink-0 opacity-0 transition group-hover:opacity-100"
+                                class="size-4 shrink-0 transition max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100"
                             />
                         </h2>
                         <p

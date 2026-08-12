@@ -182,11 +182,23 @@ async function deleteUser(user: AdminUser) {
             <Table>
                 <TableHeader>
                     <TableRow>
+                        <!--
+                            Who they are and what they can do carry the row; the
+                            supporting columns drop away on narrow screens rather
+                            than pushing the name and the actions menu off into a
+                            sideways scroll.
+                        -->
                         <TableHead class="pl-6">User</TableHead>
                         <TableHead>Role</TableHead>
-                        <TableHead>Verified</TableHead>
-                        <TableHead>Workspaces</TableHead>
-                        <TableHead>Joined</TableHead>
+                        <TableHead class="hidden md:table-cell"
+                            >Verified</TableHead
+                        >
+                        <TableHead class="hidden lg:table-cell"
+                            >Workspaces</TableHead
+                        >
+                        <TableHead class="hidden sm:table-cell"
+                            >Joined</TableHead
+                        >
                         <TableHead class="w-10 pr-6" />
                     </TableRow>
                 </TableHeader>
@@ -228,13 +240,19 @@ async function deleteUser(user: AdminUser) {
                                 {{ user.role === 'admin' ? 'Admin' : 'User' }}
                             </Badge>
                         </TableCell>
-                        <TableCell class="text-sm text-muted-foreground">
+                        <TableCell
+                            class="hidden text-sm text-muted-foreground md:table-cell"
+                        >
                             {{ user.email_verified_at ? 'Yes' : 'No' }}
                         </TableCell>
-                        <TableCell class="text-sm text-muted-foreground">
+                        <TableCell
+                            class="hidden text-sm text-muted-foreground lg:table-cell"
+                        >
                             {{ user.owned_workspaces_count }}
                         </TableCell>
-                        <TableCell class="text-sm text-muted-foreground">
+                        <TableCell
+                            class="hidden text-sm text-muted-foreground sm:table-cell"
+                        >
                             {{ new Date(user.created_at).toLocaleDateString() }}
                         </TableCell>
                         <TableCell class="pr-6">

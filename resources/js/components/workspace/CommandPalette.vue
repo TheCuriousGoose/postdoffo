@@ -123,7 +123,7 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
     <Dialog :open="open" @update:open="(value) => emit('update:open', value)">
         <DialogContent
             :show-close-button="false"
-            class="top-[16%] max-w-xl translate-y-0 gap-0 overflow-hidden rounded-xl border-0 p-0 shadow-2xl"
+            class="top-[16%] max-w-[calc(100%-2rem)] translate-y-0 gap-0 overflow-hidden rounded-xl border-0 p-0 shadow-2xl sm:max-w-xl"
         >
             <DialogTitle class="sr-only">Search requests</DialogTitle>
 

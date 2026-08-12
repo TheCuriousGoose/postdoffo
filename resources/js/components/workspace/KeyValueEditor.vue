@@ -290,7 +290,7 @@ async function clearFile(index: number) {
                                     !uploadingRows.includes(index)
                                 "
                                 type="button"
-                                class="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:bg-accent hover:text-foreground"
+                                class="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground transition hover:bg-accent hover:text-foreground max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100"
                                 title="Remove file"
                                 @click="clearFile(index)"
                             >
@@ -314,7 +314,7 @@ async function clearFile(index: number) {
                         <button
                             v-if="index < rows.length"
                             type="button"
-                            class="mx-auto flex size-6 items-center justify-center rounded text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:bg-accent hover:text-foreground"
+                            class="mx-auto flex size-6 items-center justify-center rounded text-muted-foreground transition hover:bg-accent hover:text-foreground max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100"
                             title="Remove"
                             @click="removeRow(index)"
                         >

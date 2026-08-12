@@ -34,6 +34,17 @@ defineOptions({
 const page = usePage();
 const currentUserId = page.props.auth.user?.id ?? null;
 
+// Co-owners can rename a workspace; only the real owner can delete it.
+function canRename(workspace: Workspace): boolean {
+    return (
+        workspace.owner_id === currentUserId || workspace.role === 'co_owner'
+    );
+}
+
+function canDelete(workspace: Workspace): boolean {
+    return workspace.owner_id === currentUserId;
+}
+
 async function createWorkspace() {
     const name = await promptDialog({
         title: 'New workspace',
@@ -85,18 +96,20 @@ async function deleteWorkspace(workspace: Workspace) {
     <Head title="Workspaces" />
 
     <div class="flex flex-col gap-6 p-4">
-        <div class="flex items-center justify-between">
+        <div
+            class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+        >
             <Heading
                 title="Workspaces"
                 description="Collections, environments, and requests live inside a workspace."
             />
-            <Button @click="createWorkspace">
+            <Button class="w-full sm:w-auto" @click="createWorkspace">
                 <Plus class="size-4" />
                 New workspace
             </Button>
         </div>
 
-        <div class="grid gap-4 md:grid-cols-3">
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Card
                 v-for="workspace in workspaces"
                 :key="workspace.id"
@@ -114,14 +127,18 @@ async function deleteWorkspace(workspace: Workspace) {
                                 :role="workspace.role ?? null"
                             />
                         </span>
+                        <!--
+                            Reveal-on-hover has no equivalent on a touch screen,
+                            so below md the trigger is simply always visible.
+                        -->
                         <DropdownMenu
-                            v-if="workspace.owner_id === currentUserId"
+                            v-if="canRename(workspace) || canDelete(workspace)"
                         >
                             <DropdownMenuTrigger as-child @click.stop>
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    class="size-7 shrink-0 opacity-0 transition group-hover:opacity-100 data-[state=open]:opacity-100"
+                                    class="size-7 shrink-0 transition max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100 md:data-[state=open]:opacity-100"
                                     aria-label="Workspace options"
                                 >
                                     <MoreHorizontal class="size-4" />
@@ -129,11 +146,13 @@ async function deleteWorkspace(workspace: Workspace) {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" @click.stop>
                                 <DropdownMenuItem
+                                    v-if="canRename(workspace)"
                                     @click="renameWorkspace(workspace)"
                                 >
                                     <Pencil class="size-3.5" /> Rename
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
+                                    v-if="canDelete(workspace)"
                                     variant="destructive"
                                     @click="deleteWorkspace(workspace)"
                                 >

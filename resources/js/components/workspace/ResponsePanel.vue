@@ -205,39 +205,49 @@ const passedCount = computed(
             the "this body is enormous" warning, and downloading it was only
             possible from that same warning.
         -->
+        <!--
+            The stats scroll sideways in their own track so that copy/download
+            stay pinned and reachable on a narrow screen instead of being pushed
+            off the end of the row by the status, timing, size and test counts.
+        -->
         <div class="flex h-10 shrink-0 items-center gap-3 border-b px-3">
             <span class="shrink-0 text-xs text-muted-foreground">Response</span>
             <template v-if="response && !response.error">
-                <Badge :variant="statusColor" class="font-mono">{{
-                    response.status
-                }}</Badge>
-                <span class="shrink-0 font-mono text-xs text-muted-foreground"
-                    >{{ response.duration_ms }} ms</span
+                <div
+                    class="flex min-w-0 flex-1 items-center gap-3 overflow-x-auto"
                 >
-                <span
-                    class="shrink-0 font-mono text-xs text-muted-foreground"
-                    >{{ formattedBodySize }}</span
-                >
-                <span
-                    v-if="response.test_results.length"
-                    class="shrink-0 font-mono text-xs"
-                    :class="
-                        passedCount === response.test_results.length
-                            ? 'text-green-600 dark:text-green-400'
-                            : 'text-destructive'
-                    "
-                >
-                    {{ passedCount }}/{{ response.test_results.length }} tests
-                </span>
-                <span
-                    v-if="contentType"
-                    class="ml-auto truncate font-mono text-xs text-muted-foreground"
-                    >{{ contentType }}</span
-                >
+                    <Badge :variant="statusColor" class="font-mono">{{
+                        response.status
+                    }}</Badge>
+                    <span
+                        class="shrink-0 font-mono text-xs text-muted-foreground"
+                        >{{ response.duration_ms }} ms</span
+                    >
+                    <span
+                        class="shrink-0 font-mono text-xs text-muted-foreground"
+                        >{{ formattedBodySize }}</span
+                    >
+                    <span
+                        v-if="response.test_results.length"
+                        class="shrink-0 font-mono text-xs"
+                        :class="
+                            passedCount === response.test_results.length
+                                ? 'text-green-600 dark:text-green-400'
+                                : 'text-destructive'
+                        "
+                    >
+                        {{ passedCount }}/{{ response.test_results.length }}
+                        tests
+                    </span>
+                    <span
+                        v-if="contentType"
+                        class="ml-auto shrink-0 pl-3 font-mono text-xs text-muted-foreground"
+                        >{{ contentType }}</span
+                    >
+                </div>
                 <div
                     v-if="bodyLength"
-                    class="flex shrink-0 items-center gap-1"
-                    :class="contentType ? '-mr-2' : '-mr-2 ml-auto'"
+                    class="-mr-2 flex shrink-0 items-center gap-1"
                 >
                     <ToolbarButton label="Copy body" @click="copyBody">
                         <Copy class="size-4" />
@@ -284,19 +294,21 @@ const passedCount = computed(
             default-value="body"
             class="flex min-h-0 flex-1 flex-col px-3 pb-3"
         >
-            <TabsList class="mt-2">
-                <TabsTrigger value="body">Body</TabsTrigger>
-                <TabsTrigger value="preview">Preview</TabsTrigger>
-                <TabsTrigger value="headers"
-                    >Headers ({{ headerRows.length }})</TabsTrigger
-                >
-                <TabsTrigger v-if="cookieRows.length" value="cookies"
-                    >Cookies ({{ cookieRows.length }})</TabsTrigger
-                >
-                <TabsTrigger value="tests"
-                    >Tests ({{ response.test_results.length }})</TabsTrigger
-                >
-            </TabsList>
+            <div class="-mx-1 mt-2 shrink-0 overflow-x-auto px-1 pb-0.5">
+                <TabsList>
+                    <TabsTrigger value="body">Body</TabsTrigger>
+                    <TabsTrigger value="preview">Preview</TabsTrigger>
+                    <TabsTrigger value="headers"
+                        >Headers ({{ headerRows.length }})</TabsTrigger
+                    >
+                    <TabsTrigger v-if="cookieRows.length" value="cookies"
+                        >Cookies ({{ cookieRows.length }})</TabsTrigger
+                    >
+                    <TabsTrigger value="tests"
+                        >Tests ({{ response.test_results.length }})</TabsTrigger
+                    >
+                </TabsList>
+            </div>
 
             <div class="min-h-0 flex-1 overflow-y-auto pt-3">
                 <TabsContent value="body">
@@ -391,12 +403,19 @@ const passedCount = computed(
                         </TableHeader>
                         <TableBody>
                             <TableRow v-for="row in headerRows" :key="row.name">
-                                <TableCell class="font-mono text-xs">{{
-                                    row.name
-                                }}</TableCell>
-                                <TableCell class="font-mono text-xs">{{
-                                    row.value
-                                }}</TableCell>
+                                <TableCell
+                                    class="align-top font-mono text-xs"
+                                    >{{ row.name }}</TableCell
+                                >
+                                <!--
+                                    A long Set-Cookie or CSP value would
+                                    otherwise stretch the table far past the
+                                    panel, so values wrap rather than scroll.
+                                -->
+                                <TableCell
+                                    class="font-mono text-xs break-all whitespace-normal"
+                                    >{{ row.value }}</TableCell
+                                >
                             </TableRow>
                         </TableBody>
                     </Table>

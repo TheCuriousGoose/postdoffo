@@ -43,7 +43,7 @@ function formatTime(iso: string) {
                 <History class="size-4" />
             </ToolbarButton>
         </SheetTrigger>
-        <SheetContent class="w-96 sm:max-w-md">
+        <SheetContent class="w-full sm:w-96 sm:max-w-md">
             <SheetHeader>
                 <SheetTitle>Request History</SheetTitle>
             </SheetHeader>

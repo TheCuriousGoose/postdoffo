@@ -8,7 +8,7 @@ import {
     TerminalSquare,
     Wand2,
 } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed } from 'vue';
 import { toast } from 'vue-sonner';
 import {
     curl as curlRequest,
@@ -68,7 +68,17 @@ const bodyTypes: { value: BodyType; label: string }[] = [
 
 const tab = computed(() => store.activeTab);
 
-const rawBodyText = ref('');
+// Proxies the active tab's raw body text. It lives on the tab rather than here
+// so it survives this component unmounting when the layout switches between the
+// split and stacked views — see OpenTab.bodyText.
+const rawBodyText = computed({
+    get: () => tab.value?.bodyText ?? '',
+    set: (value: string) => {
+        if (tab.value) {
+            store.setBodyText(tab.value.requestId, value);
+        }
+    },
+});
 
 /**
  * What each tab is carrying, surfaced on the tab itself. Without these the only
@@ -121,29 +131,6 @@ function formatJsonBody() {
         toast.error('Body is not valid JSON');
     }
 }
-
-watch(
-    () => tab.value?.requestId,
-    () => {
-        const draft = tab.value?.draft;
-
-        if (!draft) {
-            return;
-        }
-
-        if (draft.body_type === 'raw') {
-            rawBodyText.value = draft.body?.raw ?? '';
-        } else if (draft.body_type === 'json') {
-            rawBodyText.value =
-                draft.body?.json !== undefined
-                    ? JSON.stringify(draft.body.json, null, 2)
-                    : '';
-        } else {
-            rawBodyText.value = '';
-        }
-    },
-    { immediate: true },
-);
 
 function setMethod(method: string) {
     if (!tab.value) {
@@ -462,61 +449,78 @@ async function send() {
             <VariableScopePopover />
         </div>
 
-        <!-- address bar: every control on the same h-8 chrome scale -->
-        <div class="flex shrink-0 items-center gap-2 px-3 py-2">
-            <Select
-                :model-value="tab.draft.method"
-                @update:model-value="(v) => setMethod(String(v))"
-            >
-                <SelectTrigger
-                    size="sm"
-                    class="w-24 font-mono text-xs font-semibold"
-                    :class="methodColor[tab.draft.method]"
+        <!--
+            Address bar: every control on the same h-8 chrome scale. Below sm
+            the method + URL keep a row to themselves and the actions drop
+            underneath — squeezed onto one line the URL field is too narrow to
+            read back what you typed, which is the one thing it exists for.
+        -->
+        <div
+            class="flex shrink-0 flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center"
+        >
+            <div class="flex min-w-0 flex-1 items-center gap-2">
+                <Select
+                    :model-value="tab.draft.method"
+                    @update:model-value="(v) => setMethod(String(v))"
                 >
-                    <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem
-                        v-for="m in httpMethods"
-                        :key="m"
-                        :value="m"
-                        class="font-mono text-xs font-semibold"
-                        :class="methodColor[m]"
-                        >{{ m }}</SelectItem
+                    <SelectTrigger
+                        size="sm"
+                        class="w-24 shrink-0 font-mono text-xs font-semibold"
+                        :class="methodColor[tab.draft.method]"
                     >
-                </SelectContent>
-            </Select>
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem
+                            v-for="m in httpMethods"
+                            :key="m"
+                            :value="m"
+                            class="font-mono text-xs font-semibold"
+                            :class="methodColor[m]"
+                            >{{ m }}</SelectItem
+                        >
+                    </SelectContent>
+                </Select>
 
-            <VariableHighlightInput
-                :model-value="tab.draft.url"
-                :variables="scope.variables"
-                size="sm"
-                placeholder="https://api.example.com/users/{{userId}}"
-                class="flex-1 font-mono text-sm"
-                @update:model-value="setUrl"
-            />
+                <VariableHighlightInput
+                    :model-value="tab.draft.url"
+                    :variables="scope.variables"
+                    size="sm"
+                    placeholder="https://api.example.com/users/{{userId}}"
+                    class="min-w-0 flex-1 font-mono text-sm"
+                    @update:model-value="setUrl"
+                />
+            </div>
 
-            <ToolbarButton label="Copy as cURL" @click="copyAsCurl">
-                <TerminalSquare class="size-4" />
-            </ToolbarButton>
+            <div class="flex shrink-0 items-center gap-2">
+                <ToolbarButton label="Copy as cURL" @click="copyAsCurl">
+                    <TerminalSquare class="size-4" />
+                </ToolbarButton>
 
-            <Button
-                variant="outline"
-                size="sm"
-                :disabled="tab.saving || !tab.dirty"
-                :title="tab.dirty ? 'Save changes' : 'No unsaved changes'"
-                @click="save"
-            >
-                <Loader2 v-if="tab.saving" class="size-4 animate-spin" />
-                <Save v-else class="size-4" />
-                Save
-            </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    class="flex-1 sm:flex-none"
+                    :disabled="tab.saving || !tab.dirty"
+                    :title="tab.dirty ? 'Save changes' : 'No unsaved changes'"
+                    @click="save"
+                >
+                    <Loader2 v-if="tab.saving" class="size-4 animate-spin" />
+                    <Save v-else class="size-4" />
+                    Save
+                </Button>
 
-            <Button size="sm" :disabled="tab.executing" @click="send">
-                <Loader2 v-if="tab.executing" class="size-4 animate-spin" />
-                <Play v-else class="size-4" />
-                Send
-            </Button>
+                <Button
+                    size="sm"
+                    class="flex-1 sm:flex-none"
+                    :disabled="tab.executing"
+                    @click="send"
+                >
+                    <Loader2 v-if="tab.executing" class="size-4 animate-spin" />
+                    <Play v-else class="size-4" />
+                    Send
+                </Button>
+            </div>
         </div>
 
         <Tabs
@@ -528,52 +532,59 @@ async function send() {
                 are simply on or off, so the tab row is a summary of the request
                 rather than six identical words.
             -->
-            <TabsList>
-                <TabsTrigger value="params">
-                    Params
-                    <span
-                        v-if="paramCount"
-                        class="font-mono text-[10px] text-muted-foreground"
-                        >{{ paramCount }}</span
-                    >
-                </TabsTrigger>
-                <TabsTrigger value="auth">
-                    Auth
-                    <span
-                        v-if="hasAuth"
-                        class="size-1.5 rounded-full bg-muted-foreground"
-                    />
-                </TabsTrigger>
-                <TabsTrigger value="headers">
-                    Headers
-                    <span
-                        v-if="headerCount"
-                        class="font-mono text-[10px] text-muted-foreground"
-                        >{{ headerCount }}</span
-                    >
-                </TabsTrigger>
-                <TabsTrigger value="body">
-                    Body
-                    <span
-                        v-if="hasBody"
-                        class="size-1.5 rounded-full bg-muted-foreground"
-                    />
-                </TabsTrigger>
-                <TabsTrigger value="scripts">
-                    Pre-request
-                    <span
-                        v-if="hasPreRequestScript"
-                        class="size-1.5 rounded-full bg-muted-foreground"
-                    />
-                </TabsTrigger>
-                <TabsTrigger value="tests">
-                    Tests
-                    <span
-                        v-if="hasTestScript"
-                        class="size-1.5 rounded-full bg-muted-foreground"
-                    />
-                </TabsTrigger>
-            </TabsList>
+            <!--
+                Six tabs do not fit across a phone, so the strip scrolls
+                sideways rather than wrapping into a second row that would eat
+                the editor's height.
+            -->
+            <div class="-mx-1 shrink-0 overflow-x-auto px-1 pb-0.5">
+                <TabsList>
+                    <TabsTrigger value="params">
+                        Params
+                        <span
+                            v-if="paramCount"
+                            class="font-mono text-[10px] text-muted-foreground"
+                            >{{ paramCount }}</span
+                        >
+                    </TabsTrigger>
+                    <TabsTrigger value="auth">
+                        Auth
+                        <span
+                            v-if="hasAuth"
+                            class="size-1.5 rounded-full bg-muted-foreground"
+                        />
+                    </TabsTrigger>
+                    <TabsTrigger value="headers">
+                        Headers
+                        <span
+                            v-if="headerCount"
+                            class="font-mono text-[10px] text-muted-foreground"
+                            >{{ headerCount }}</span
+                        >
+                    </TabsTrigger>
+                    <TabsTrigger value="body">
+                        Body
+                        <span
+                            v-if="hasBody"
+                            class="size-1.5 rounded-full bg-muted-foreground"
+                        />
+                    </TabsTrigger>
+                    <TabsTrigger value="scripts">
+                        Pre-request
+                        <span
+                            v-if="hasPreRequestScript"
+                            class="size-1.5 rounded-full bg-muted-foreground"
+                        />
+                    </TabsTrigger>
+                    <TabsTrigger value="tests">
+                        Tests
+                        <span
+                            v-if="hasTestScript"
+                            class="size-1.5 rounded-full bg-muted-foreground"
+                        />
+                    </TabsTrigger>
+                </TabsList>
+            </div>
 
             <div class="min-h-0 flex-1 overflow-y-auto pt-3">
                 <TabsContent value="params">

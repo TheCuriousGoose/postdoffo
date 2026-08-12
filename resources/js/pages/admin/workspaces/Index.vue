@@ -117,9 +117,15 @@ async function deleteWorkspace(workspace: AdminWorkspace) {
                     <TableRow>
                         <TableHead class="pl-6">Workspace</TableHead>
                         <TableHead>Owner</TableHead>
-                        <TableHead>Members</TableHead>
-                        <TableHead>Collections</TableHead>
-                        <TableHead>Created</TableHead>
+                        <TableHead class="hidden md:table-cell"
+                            >Members</TableHead
+                        >
+                        <TableHead class="hidden lg:table-cell"
+                            >Collections</TableHead
+                        >
+                        <TableHead class="hidden sm:table-cell"
+                            >Created</TableHead
+                        >
                         <TableHead class="w-10 pr-6" />
                     </TableRow>
                 </TableHeader>
@@ -143,13 +149,19 @@ async function deleteWorkspace(workspace: AdminWorkspace) {
                                 </p>
                             </div>
                         </TableCell>
-                        <TableCell class="text-sm text-muted-foreground">
+                        <TableCell
+                            class="hidden text-sm text-muted-foreground md:table-cell"
+                        >
                             {{ workspace.members_count }}
                         </TableCell>
-                        <TableCell class="text-sm text-muted-foreground">
+                        <TableCell
+                            class="hidden text-sm text-muted-foreground lg:table-cell"
+                        >
                             {{ workspace.collections_count }}
                         </TableCell>
-                        <TableCell class="text-sm text-muted-foreground">
+                        <TableCell
+                            class="hidden text-sm text-muted-foreground sm:table-cell"
+                        >
                             {{
                                 new Date(
                                     workspace.created_at,

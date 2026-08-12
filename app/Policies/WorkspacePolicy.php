@@ -17,7 +17,8 @@ class WorkspacePolicy
     }
 
     /**
-     * Owner and editor can create/update/delete collections, requests, environments.
+     * Owner, co-owner and editor can create/update/delete collections,
+     * requests, environments.
      */
     public function edit(User $user, Workspace $workspace): bool
     {
@@ -25,18 +26,25 @@ class WorkspacePolicy
     }
 
     /**
-     * Only the owner can rename/delete the workspace itself.
+     * Owner and co-owner can rename the workspace.
      */
     public function update(User $user, Workspace $workspace): bool
     {
-        return $workspace->roleFor($user) === WorkspaceRole::Owner;
+        return $workspace->roleFor($user)?->canManageWorkspace() ?? false;
     }
 
+    /**
+     * Deleting the whole workspace stays with the one real owner — a co-owner
+     * can hand out and revoke access, but not destroy everyone's work.
+     */
     public function delete(User $user, Workspace $workspace): bool
     {
         return $workspace->roleFor($user) === WorkspaceRole::Owner;
     }
 
+    /**
+     * Owner and co-owner can invite, re-role and remove members.
+     */
     public function manageMembers(User $user, Workspace $workspace): bool
     {
         return $workspace->roleFor($user)?->canManageMembers() ?? false;

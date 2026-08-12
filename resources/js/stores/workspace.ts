@@ -13,11 +13,36 @@ import type {
 export type OpenTab = {
     requestId: number;
     draft: ApiRequest;
+    /**
+     * The body as raw text while it is being edited. It only folds back into
+     * `draft.body` on save or send (a half-typed JSON body cannot be parsed),
+     * so it has to live here rather than in the editor component: the editor
+     * unmounts whenever the layout switches between the split and stacked
+     * views — rotating a phone is enough — and text typed since the last save
+     * would go with it. Keeping it per tab also means switching tabs no longer
+     * discards it.
+     */
+    bodyText: string;
     dirty: boolean;
     response: ExecutedResponse | null;
     executing: boolean;
     saving: boolean;
 };
+
+/** Seeds {@link OpenTab.bodyText} from a request as loaded from the server. */
+function bodyTextFor(request: ApiRequest): string {
+    if (request.body_type === 'raw') {
+        return request.body?.raw ?? '';
+    }
+
+    if (request.body_type === 'json') {
+        return request.body?.json !== undefined
+            ? JSON.stringify(request.body.json, null, 2)
+            : '';
+    }
+
+    return '';
+}
 
 /**
  * Live "IDE-like" session state for a workspace: which environment is active and
@@ -101,6 +126,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
             tabs.value.push({
                 requestId: request.id,
                 draft: { ...request },
+                bodyText: bodyTextFor(request),
                 dirty: false,
                 response: null,
                 executing: false,
@@ -142,6 +168,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
         Object.assign(tab.draft, patch);
         tab.dirty = true;
+    }
+
+    function setBodyText(requestId: number, bodyText: string): void {
+        const tab = tabs.value.find((t) => t.requestId === requestId);
+
+        if (tab) {
+            tab.bodyText = bodyText;
+        }
     }
 
     /**
@@ -215,6 +249,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         closeTab,
         setActiveTab,
         updateDraft,
+        setBodyText,
         patchSaved,
         markSaved,
         setExecuting,

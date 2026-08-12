@@ -22,7 +22,7 @@ defineProps<{
     <div class="min-h-svh bg-background font-sans text-foreground">
         <SiteHeader />
 
-        <article class="mx-auto max-w-3xl px-6 py-16 sm:py-20">
+        <article class="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20">
             <Link
                 :href="'/blog'"
                 class="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition hover:text-foreground"

@@ -10,7 +10,7 @@ import { privacy, terms } from '@/routes/legal';
 <template>
     <footer>
         <div
-            class="mx-auto grid max-w-6xl gap-10 px-6 py-14 sm:grid-cols-2 lg:grid-cols-4"
+            class="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:grid-cols-2 sm:px-6 lg:grid-cols-4"
         >
             <div class="sm:col-span-2 lg:col-span-2">
                 <Link :href="'/'" class="flex items-center gap-2">
@@ -117,7 +117,7 @@ import { privacy, terms } from '@/routes/legal';
 
         <div class="border-t border-border">
             <div
-                class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-6 font-mono text-xs text-muted-foreground sm:flex-row"
+                class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-6 font-mono text-xs text-muted-foreground sm:flex-row sm:px-6"
             >
                 <p>&copy; {{ new Date().getFullYear() }} PostDoffo</p>
                 <p>Fire away.</p>

@@ -3,7 +3,7 @@ export type HttpMethod =
 
 export type BodyType = 'none' | 'raw' | 'json' | 'form_data' | 'urlencoded';
 
-export type WorkspaceRole = 'owner' | 'editor' | 'viewer';
+export type WorkspaceRole = 'owner' | 'co_owner' | 'editor' | 'viewer';
 
 export type KeyValuePair = {
     key: string;
@@ -142,7 +142,26 @@ export type Workspace = {
     role?: WorkspaceRole | null;
 };
 
-export type WorkspaceMemberRole = 'editor' | 'viewer';
+/**
+ * The roles a workspace can hand out. `owner` is not among them — it comes from
+ * the workspace's `owner_id`, and there is exactly one of it. Mirrors
+ * {@link \App\Enums\WorkspaceRole::assignableValues()}.
+ */
+export type WorkspaceMemberRole = 'co_owner' | 'editor' | 'viewer';
+
+export const workspaceRoleLabels: Record<WorkspaceRole, string> = {
+    owner: 'Owner',
+    co_owner: 'Co-owner',
+    editor: 'Editor',
+    viewer: 'Viewer',
+};
+
+/** What each assignable role gets you, shown next to it when picking one. */
+export const workspaceRoleDescriptions: Record<WorkspaceMemberRole, string> = {
+    co_owner: 'Can edit everything and share the workspace with others',
+    editor: 'Can create and edit collections, requests, and environments',
+    viewer: 'Can send requests and read everything, but not change it',
+};
 
 export type WorkspaceMember = {
     id: number;

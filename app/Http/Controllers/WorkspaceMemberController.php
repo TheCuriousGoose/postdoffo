@@ -30,7 +30,7 @@ class WorkspaceMemberController extends Controller
 
         $data = $request->validate([
             'email' => ['required', 'email', 'max:255'],
-            'role' => ['required', Rule::in([WorkspaceRole::Editor->value, WorkspaceRole::Viewer->value])],
+            'role' => ['required', Rule::in(WorkspaceRole::assignableValues())],
         ]);
 
         $email = mb_strtolower($data['email']);
@@ -77,10 +77,13 @@ class WorkspaceMemberController extends Controller
         $this->authorize('manageMembers', $workspace);
 
         abort_if($member->id === $workspace->owner_id, 422, "The workspace owner's role cannot be changed.");
-        abort_if($workspace->roleFor($member) === null, 404);
+
+        $currentRole = $workspace->roleFor($member);
+        abort_if($currentRole === null, 404);
+        $this->guardCoOwnerTarget($request, $workspace, $currentRole, 'change');
 
         $data = $request->validate([
-            'role' => ['required', Rule::in([WorkspaceRole::Editor->value, WorkspaceRole::Viewer->value])],
+            'role' => ['required', Rule::in(WorkspaceRole::assignableValues())],
         ]);
 
         $workspace->members()->updateExistingPivot($member->id, ['role' => $data['role']]);
@@ -92,15 +95,46 @@ class WorkspaceMemberController extends Controller
     {
         abort_if($member->id === $workspace->owner_id, 422, 'The workspace owner cannot be removed.');
 
-        if ($member->id !== $request->user()->id) {
+        $isSelf = $member->id === $request->user()->id;
+
+        if (! $isSelf) {
             $this->authorize('manageMembers', $workspace);
         }
 
-        abort_if($workspace->roleFor($member) === null, 404);
+        $currentRole = $workspace->roleFor($member);
+        abort_if($currentRole === null, 404);
+
+        // Leaving of your own accord is always allowed, co-owner or not.
+        if (! $isSelf) {
+            $this->guardCoOwnerTarget($request, $workspace, $currentRole, 'remove');
+        }
 
         $workspace->members()->detach($member->id);
 
         return response()->json(status: 204);
+    }
+
+    /**
+     * Co-owners can manage everyone below them, but only the owner can demote
+     * or remove a fellow co-owner. Without this, two co-owners could strip each
+     * other's access in a race, and a co-owner could quietly push out the
+     * person the owner appointed alongside them.
+     */
+    private function guardCoOwnerTarget(
+        Request $request,
+        Workspace $workspace,
+        WorkspaceRole $targetRole,
+        string $verb,
+    ): void {
+        if ($targetRole !== WorkspaceRole::CoOwner) {
+            return;
+        }
+
+        abort_if(
+            $workspace->roleFor($request->user()) !== WorkspaceRole::Owner,
+            403,
+            "Only the workspace owner can {$verb} a co-owner.",
+        );
     }
 
     public function destroyInvitation(Workspace $workspace, WorkspaceInvitation $invitation): JsonResponse

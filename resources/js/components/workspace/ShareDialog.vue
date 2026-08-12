@@ -32,6 +32,10 @@ import {
 import { useInitials } from '@/composables/useInitials';
 import { ApiError, api } from '@/lib/api';
 import { confirmDialog } from '@/lib/dialogs';
+import {
+    workspaceRoleDescriptions,
+    workspaceRoleLabels,
+} from '@/types/workspace';
 import type {
     Workspace,
     WorkspaceInvitation,
@@ -60,6 +64,33 @@ const inviting = ref(false);
 const inviteError = ref<string | null>(null);
 
 const isOwner = computed(() => props.role === 'owner');
+// Co-owners share the owner's ability to hand out access — that is the whole
+// point of the role — so everything that invites, re-roles or removes people is
+// gated on this rather than on ownership.
+const canManage = computed(
+    () => props.role === 'owner' || props.role === 'co_owner',
+);
+
+const assignableRoles: WorkspaceMemberRole[] = ['co_owner', 'editor', 'viewer'];
+
+/**
+ * Only the owner can demote or remove a fellow co-owner — mirrors the guard in
+ * WorkspaceMemberController, so a co-owner sees the control locked rather than
+ * getting a 403 after the fact.
+ */
+function canManageMember(member: WorkspaceMember): boolean {
+    if (member.role === 'owner') {
+        return false;
+    }
+
+    return member.role === 'co_owner' ? isOwner.value : canManage.value;
+}
+
+function lockedReason(member: WorkspaceMember): string | undefined {
+    return member.role === 'co_owner' && !isOwner.value
+        ? 'Only the workspace owner can change a co-owner'
+        : undefined;
+}
 
 watch(open, (isOpen) => {
     if (isOpen) {
@@ -247,16 +278,22 @@ async function revokeInvitation(invitation: WorkspaceInvitation) {
         </DialogTrigger>
         <DialogContent class="sm:max-w-lg">
             <DialogHeader>
-                <DialogTitle>Share "{{ workspace.name }}"</DialogTitle>
+                <DialogTitle class="truncate">
+                    Share "{{ workspace.name }}"
+                </DialogTitle>
                 <DialogDescription>
                     Invite people by email, or copy an invite link to share
                     directly. They'll join with the role you pick.
                 </DialogDescription>
             </DialogHeader>
 
+            <!--
+                Stacks on a phone: three controls side by side leaves the email
+                field too narrow to read what you typed.
+            -->
             <form
-                v-if="isOwner"
-                class="flex items-start gap-2"
+                v-if="canManage"
+                class="flex flex-col gap-2 sm:flex-row sm:items-start"
                 @submit.prevent="sendInvite"
             >
                 <div class="flex-1">
@@ -271,17 +308,32 @@ async function revokeInvitation(invitation: WorkspaceInvitation) {
                         {{ inviteError }}
                     </p>
                 </div>
-                <Select v-model="inviteRole">
-                    <SelectTrigger class="w-28">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="editor">Editor</SelectItem>
-                        <SelectItem value="viewer">Viewer</SelectItem>
-                    </SelectContent>
-                </Select>
-                <Button type="submit" :disabled="inviting">Invite</Button>
+                <div class="flex gap-2">
+                    <Select v-model="inviteRole">
+                        <SelectTrigger class="w-full sm:w-32">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem
+                                v-for="value in assignableRoles"
+                                :key="value"
+                                :value="value"
+                            >
+                                {{ workspaceRoleLabels[value] }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Button type="submit" :disabled="inviting">Invite</Button>
+                </div>
             </form>
+
+            <p
+                v-if="canManage"
+                class="-mt-2 text-xs text-muted-foreground"
+                aria-live="polite"
+            >
+                {{ workspaceRoleDescriptions[inviteRole] }}
+            </p>
 
             <div class="flex max-h-96 flex-col gap-4 overflow-y-auto">
                 <div class="flex flex-col gap-1">
@@ -315,38 +367,43 @@ async function revokeInvitation(invitation: WorkspaceInvitation) {
                             </p>
                         </div>
 
-                        <Badge
-                            v-if="member.role === 'owner'"
-                            variant="secondary"
-                            >Owner</Badge
-                        >
                         <Select
-                            v-else-if="isOwner"
+                            v-if="canManageMember(member)"
                             :model-value="member.role"
                             @update:model-value="
                                 (v) => changeRole(member, String(v))
                             "
                         >
-                            <SelectTrigger class="h-8 w-24 text-xs">
+                            <SelectTrigger class="h-8 w-28 shrink-0 text-xs">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="editor">Editor</SelectItem>
-                                <SelectItem value="viewer">Viewer</SelectItem>
+                                <SelectItem
+                                    v-for="value in assignableRoles"
+                                    :key="value"
+                                    :value="value"
+                                >
+                                    {{ workspaceRoleLabels[value] }}
+                                </SelectItem>
                             </SelectContent>
                         </Select>
-                        <Badge v-else variant="secondary" class="capitalize">{{
-                            member.role
-                        }}</Badge>
+                        <Badge
+                            v-else
+                            variant="secondary"
+                            class="shrink-0"
+                            :title="lockedReason(member)"
+                            >{{ workspaceRoleLabels[member.role] }}</Badge
+                        >
 
                         <Button
                             v-if="
-                                member.role !== 'owner' &&
-                                (isOwner || member.id === currentUserId)
+                                member.id === currentUserId
+                                    ? member.role !== 'owner'
+                                    : canManageMember(member)
                             "
                             variant="ghost"
                             size="icon"
-                            class="size-7"
+                            class="size-7 shrink-0"
                             :title="
                                 member.id === currentUserId
                                     ? 'Leave workspace'
@@ -360,7 +417,7 @@ async function revokeInvitation(invitation: WorkspaceInvitation) {
                 </div>
 
                 <div
-                    v-if="isOwner && invitations.length"
+                    v-if="canManage && invitations.length"
                     class="flex flex-col gap-1 border-t pt-3"
                 >
                     <span class="mb-1 text-xs font-medium text-muted-foreground"
@@ -369,20 +426,20 @@ async function revokeInvitation(invitation: WorkspaceInvitation) {
                     <div
                         v-for="invitation in invitations"
                         :key="invitation.id"
-                        class="flex items-center gap-2 py-1"
+                        class="flex items-center gap-1.5 py-1"
                     >
                         <div class="min-w-0 flex-1">
                             <p class="truncate text-sm text-muted-foreground">
                                 {{ invitation.email }}
                             </p>
                         </div>
-                        <Badge variant="outline" class="capitalize">{{
-                            invitation.role
+                        <Badge variant="outline" class="shrink-0">{{
+                            workspaceRoleLabels[invitation.role]
                         }}</Badge>
                         <Button
                             variant="ghost"
                             size="icon"
-                            class="size-7"
+                            class="size-7 shrink-0"
                             title="Copy invite link"
                             @click="copyLink(invitation)"
                         >
@@ -390,11 +447,13 @@ async function revokeInvitation(invitation: WorkspaceInvitation) {
                         </Button>
                         <Button
                             variant="ghost"
-                            size="sm"
-                            class="h-7 text-xs"
+                            size="icon"
+                            class="size-7 shrink-0"
+                            title="Revoke invitation"
                             @click="revokeInvitation(invitation)"
-                            >Revoke</Button
                         >
+                            <X class="size-3.5" />
+                        </Button>
                     </div>
                 </div>
             </div>

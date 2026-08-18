@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Form, Head, router } from '@inertiajs/vue3';
+import { Form, Head, Link, router } from '@inertiajs/vue3';
 import { Check, Copy, Plug, Terminal } from '@lucide/vue';
 import { ref } from 'vue';
 import McpController from '@/actions/App/Http/Controllers/Settings/McpController';
@@ -14,11 +14,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/mcp';
+import { edit as securityEdit } from '@/routes/security';
 
 const props = defineProps<{
     serverUrl: string;
     tokenEnvName: string;
     personalAccessTokensAvailable: boolean;
+    canReauthenticate: boolean;
     tokens: McpToken[];
     connectedApps: McpApp[];
     newToken: { name: string; value: string; read_only: boolean } | null;
@@ -79,6 +81,32 @@ const localCommand = `${props.tokenEnvName}=<token> php artisan mcp:start postdo
                 workspace you are a member of, and your role in each one still
                 decides what it may change — it cannot do anything you could not
                 do yourself in the app.
+            </div>
+
+            <!--
+                Signed in through GitHub or Google with nothing else set up: there
+                is no second factor between someone with the session and a token
+                that reaches the whole account.
+            -->
+            <div
+                v-if="!canReauthenticate"
+                class="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 text-sm"
+            >
+                <p class="mb-1 font-medium">
+                    Your account has no password or passkey
+                </p>
+                <p class="text-muted-foreground">
+                    You signed in with a social account, so anyone with access
+                    to your browser session can issue a token here that reaches
+                    all of your workspaces.
+                    <Link
+                        :href="securityEdit()"
+                        class="text-foreground underline underline-offset-4"
+                    >
+                        Add a passkey or set a password
+                    </Link>
+                    to put a confirmation step in front of this page.
+                </p>
             </div>
         </div>
 

@@ -21,13 +21,14 @@ class McpSettingsTest extends TestCase
         $this->actingAs($user)
             ->withSession(['auth.password_confirmed_at' => time()])
             ->get(route('mcp.edit'))
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('settings/Mcp')
-                ->where('serverUrl', url('/mcp'))
-                ->where('tokens', [])
-                ->where('connectedApps', [])
-                ->where('newToken', null)
-                ->etc(),
+            ->assertInertia(
+                fn (Assert $page) => $page
+                    ->component('settings/Mcp')
+                    ->where('serverUrl', url('/mcp'))
+                    ->where('tokens', [])
+                    ->where('connectedApps', [])
+                    ->where('newToken', null)
+                    ->etc(),
             );
     }
 
@@ -43,6 +44,80 @@ class McpSettingsTest extends TestCase
     public function test_a_guest_cannot_reach_the_mcp_page(): void
     {
         $this->get(route('mcp.edit'))->assertRedirect(route('login'));
+    }
+
+    public function test_a_social_login_user_with_no_password_reaches_the_mcp_page_directly(): void
+    {
+        $user = User::factory()->create([
+            'password' => null,
+            'provider' => 'github',
+            'provider_id' => '12345',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('mcp.edit'))
+            ->assertOk()
+            ->assertInertia(
+                fn (Assert $page) => $page
+                    ->component('settings/Mcp')
+                    // Nothing stands between the session and an account-wide
+                    // token for this user, and the page says so rather than
+                    // leaving them to assume the gate they never saw did something.
+                    ->where('canReauthenticate', false)
+                    ->etc(),
+            );
+    }
+
+    public function test_a_user_with_a_password_is_not_warned_about_reauthentication(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->withSession(['auth.password_confirmed_at' => time()])
+            ->get(route('mcp.edit'))
+            ->assertInertia(fn (Assert $page) => $page->where('canReauthenticate', true)->etc());
+    }
+
+    public function test_a_social_login_user_with_no_password_can_still_issue_a_token(): void
+    {
+        $this->createPersonalAccessClient();
+
+        $user = User::factory()->create(['password' => null, 'provider' => 'github']);
+
+        $this->actingAs($user)
+            ->post(route('mcp.tokens.store'), ['name' => 'Claude Code'])
+            ->assertRedirect();
+
+        $this->assertDatabaseCount('oauth_access_tokens', 1);
+    }
+
+    /**
+     * A passwordless user who has since added a passkey does have something to
+     * confirm with, so the gate applies — and the confirmation screen offers
+     * the passkey rather than a password field they could never fill in.
+     */
+    public function test_a_passwordless_user_with_a_passkey_is_offered_the_passkey_prompt(): void
+    {
+        $user = User::factory()->create(['password' => null, 'provider' => 'github']);
+
+        $user->passkeys()->create([
+            'name' => 'Laptop',
+            'credential_id' => 'credential-id',
+            'credential' => ['id' => 'credential-id'],
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('mcp.edit'))
+            ->assertRedirect(route('password.confirm'));
+
+        $this->actingAs($user)
+            ->get(route('password.confirm'))
+            ->assertInertia(
+                fn (Assert $page) => $page
+                    ->component('auth/ConfirmPassword')
+                    ->where('hasPassword', false)
+                    ->where('hasPasskeys', true),
+            );
     }
 
     public function test_creating_a_token_returns_the_plaintext_exactly_once(): void
@@ -65,9 +140,10 @@ class McpSettingsTest extends TestCase
                 'mcp' => ['new_token' => ['name' => 'Claude Code', 'value' => 'plaintext', 'read_only' => false]],
             ])
             ->get(route('mcp.edit'))
-            ->assertInertia(fn (Assert $page) => $page
-                ->where('newToken.value', 'plaintext')
-                ->etc(),
+            ->assertInertia(
+                fn (Assert $page) => $page
+                    ->where('newToken.value', 'plaintext')
+                    ->etc(),
             );
 
         // ...and the next one does not, because it was only ever flashed.
@@ -129,9 +205,10 @@ class McpSettingsTest extends TestCase
         $this->actingAs($user)
             ->withSession(['auth.password_confirmed_at' => time()])
             ->get(route('mcp.edit'))
-            ->assertInertia(fn (Assert $page) => $page
-                ->where('personalAccessTokensAvailable', false)
-                ->etc(),
+            ->assertInertia(
+                fn (Assert $page) => $page
+                    ->where('personalAccessTokensAvailable', false)
+                    ->etc(),
             );
     }
 

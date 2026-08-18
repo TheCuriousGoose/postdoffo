@@ -12,7 +12,6 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Passport\Client;
 use Laravel\Passport\ClientRepository;
-use Laravel\Passport\Passport;
 use Laravel\Passport\Token;
 use RuntimeException;
 
@@ -36,10 +35,9 @@ class McpController extends Controller
                 'readOnly' => McpScopes::READ,
             ],
             'personalAccessTokensAvailable' => $this->hasPersonalAccessClient($clients),
+            'canReauthenticate' => $user->password !== null || $user->passkeys()->exists(),
             'tokens' => $this->personalAccessTokens($request),
             'connectedApps' => $this->connectedApps($request),
-            // The plaintext token, available for exactly one render after it is
-            // created. It is never stored anywhere it could be read back.
             'newToken' => $request->session()->get('mcp.new_token'),
         ]);
     }
@@ -59,7 +57,7 @@ class McpController extends Controller
 
         try {
             $token = $request->user()->createToken($data['name'], $scopes);
-        } catch (RuntimeException $e) {
+        } catch (RuntimeException) {
             throw ValidationException::withMessages([
                 'name' => 'This installation cannot issue personal access tokens yet. '
                     .'An administrator needs to run: php artisan passport:client --personal',

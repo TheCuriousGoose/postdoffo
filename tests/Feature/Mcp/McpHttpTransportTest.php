@@ -8,6 +8,7 @@ use App\Mcp\Tools;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Passport\ClientRepository;
 use Laravel\Passport\Passport;
 use Tests\TestCase;
 
@@ -42,6 +43,47 @@ class McpHttpTransportTest extends TestCase
 
         $response->assertOk();
         $this->assertStringContainsString('PostDoffo', $response->getContent());
+    }
+
+    /**
+     * The full credential path, rather than Passport::actingAs standing in for
+     * it: a token string issued the way the settings page and `mcp:token` issue
+     * one, presented as a bearer token the way a client presents it.
+     */
+    public function test_a_real_bearer_token_authenticates_the_endpoint(): void
+    {
+        app(ClientRepository::class)->createPersonalAccessGrantClient('Test personal access client');
+
+        $user = User::factory()->create();
+        Workspace::factory()->create(['owner_id' => $user->id, 'name' => 'Reachable']);
+
+        $token = $user->createToken('Test client', [McpScopes::USE])->accessToken;
+
+        $response = $this->postJson('/mcp', [
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'tools/call',
+            'params' => ['name' => 'list_workspaces', 'arguments' => []],
+        ], ['Authorization' => 'Bearer '.$token]);
+
+        $response->assertOk();
+        $this->assertStringContainsString('Reachable', $response->getContent());
+    }
+
+    public function test_a_revoked_token_stops_working(): void
+    {
+        app(ClientRepository::class)->createPersonalAccessGrantClient('Test personal access client');
+
+        $user = User::factory()->create();
+        $result = $user->createToken('Test client', [McpScopes::USE]);
+        $result->token->revoke();
+
+        $this->postJson('/mcp', [
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'tools/list',
+            'params' => [],
+        ], ['Authorization' => 'Bearer '.$result->accessToken])->assertUnauthorized();
     }
 
     public function test_only_post_is_accepted(): void

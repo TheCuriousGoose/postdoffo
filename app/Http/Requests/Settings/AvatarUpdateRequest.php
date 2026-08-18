@@ -29,9 +29,7 @@ class AvatarUpdateRequest extends FormRequest
                 'image',
                 'mimetypes:image/jpeg,image/png,image/webp,image/gif',
                 'max:'.self::MAX_KILOBYTES,
-                // The lower bound keeps unusable thumbnails out; the upper one stops a
-                // small file from expanding into gigabytes of pixels once decoded.
-                'dimensions:min_width=64,min_height=64,max_width=8000,max_height=8000',
+                'dimensions:min_width=64,min_height=64,max_width=4000,max_height=4000',
             ],
         ];
     }
@@ -42,7 +40,7 @@ class AvatarUpdateRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'avatar.dimensions' => __('Profile pictures must be at least 64x64 pixels and no larger than 8000x8000.'),
+            'avatar.dimensions' => __('Profile pictures must be at least 64x64 pixels and no larger than 4000x4000.'),
             'avatar.mimetypes' => __('Profile pictures must be a JPEG, PNG, WebP or GIF image.'),
         ];
     }

@@ -65,8 +65,8 @@ class RequestController extends Controller
         if (array_key_exists('collection_id', $data) && $data['collection_id'] !== $apiRequest->collection_id) {
             // exists:collections,id alone doesn't scope by workspace, so without this
             // a crafted request could move a request into another workspace's tree.
-            $target = Collection::forWorkspace($apiRequest->collection->workspace_id)->find($data['collection_id']);
-            abort_unless($target, 422, 'Target folder not found in this workspace.');
+            $target = Collection::forWorkspace($apiRequest->collection->workspace_id)->find((int) $data['collection_id']);
+            abort_unless($target !== null, 422, 'Target folder not found in this workspace.');
         }
 
         $apiRequest->update($data);

@@ -231,8 +231,8 @@ class CollectionController extends Controller
             // exists:collections,id alone doesn't scope by workspace, so without this
             // a crafted request could reparent a collection under another workspace's
             // tree entirely.
-            $parent = Collection::forWorkspace($collection->workspace_id)->find($data['parent_id']);
-            abort_unless($parent, 422, 'Target folder not found in this workspace.');
+            $parent = Collection::forWorkspace($collection->workspace_id)->find((int) $data['parent_id']);
+            abort_unless($parent !== null, 422, 'Target folder not found in this workspace.');
 
             $this->assertNotDescendant($collection, $parent);
         }

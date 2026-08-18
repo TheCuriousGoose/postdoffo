@@ -19,7 +19,7 @@ class SocialReauthenticationTest extends TestCase
         config()->set("services.$provider.client_secret", 'test-client-secret');
     }
 
-    private function mockSocialiteUser(string $provider, string $providerId): void
+    private function mockSocialiteUser(string $provider, string|int $providerId): void
     {
         $driver = $this->mock(SocialiteProvider::class);
         $driver->shouldReceive('user')->andReturn(SocialiteUser::fake(['id' => $providerId]));
@@ -45,6 +45,72 @@ class SocialReauthenticationTest extends TestCase
         $response->assertRedirect(route('dashboard', absolute: false));
         $this->assertTrue(session()->has('auth.password_confirmed_at'));
         $this->assertAuthenticatedAs($user);
+    }
+
+    /**
+     * GitHub returns the account id as a JSON number, so Socialite hands back an
+     * int while the column hands back a string. Comparing the two strictly used
+     * to reject every GitHub reauthentication.
+     */
+    public function test_reauthenticating_with_a_numeric_provider_id_confirms_password(): void
+    {
+        $this->configure('github');
+
+        $user = User::factory()->create([
+            'password' => bcrypt('a-forgotten-password'),
+            'provider' => 'github',
+            'provider_id' => '58217291',
+        ]);
+
+        $this->mockSocialiteUser('github', 58217291);
+
+        $response = $this->actingAs($user)
+            ->get(route('auth.social.callback', ['provider' => 'github']));
+
+        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertSessionHasNoErrors();
+        $this->assertTrue(session()->has('auth.password_confirmed_at'));
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_reauthenticating_with_a_different_numeric_account_does_not_confirm_password(): void
+    {
+        $this->configure('github');
+
+        $user = User::factory()->create([
+            'password' => bcrypt('a-forgotten-password'),
+            'provider' => 'github',
+            'provider_id' => '58217291',
+        ]);
+
+        $this->mockSocialiteUser('github', 99999999);
+
+        $response = $this->actingAs($user)
+            ->get(route('auth.social.callback', ['provider' => 'github']));
+
+        $response->assertRedirect(route('password.confirm'));
+        $response->assertSessionHasErrors('provider');
+        $this->assertFalse(session()->has('auth.password_confirmed_at'));
+    }
+
+    public function test_a_provider_that_returns_no_identity_does_not_confirm_password(): void
+    {
+        $this->configure('github');
+
+        $user = User::factory()->create([
+            'password' => bcrypt('a-forgotten-password'),
+            'provider' => 'github',
+            'provider_id' => '58217291',
+        ]);
+
+        $this->mockSocialiteUser('github', '');
+
+        $response = $this->actingAs($user)
+            ->get(route('auth.social.callback', ['provider' => 'github']));
+
+        $response->assertRedirect(route('password.confirm'));
+        $response->assertSessionHasErrors('provider');
+        $this->assertFalse(session()->has('auth.password_confirmed_at'));
     }
 
     public function test_reauthenticating_with_a_mismatched_provider_identity_does_not_confirm_password(): void

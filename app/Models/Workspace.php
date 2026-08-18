@@ -19,6 +19,8 @@ use Illuminate\Support\Carbon;
  * @property int $owner_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property string|null $role Not a column — set on the fly by WorkspaceController::index()
+ *                             from roleFor() so the frontend gets each workspace's role without a second lookup.
  */
 #[Fillable(['name'])]
 class Workspace extends Model

@@ -6,8 +6,8 @@ use App\Enums\BodyType;
 use App\Enums\HttpMethod;
 use App\Models\User;
 use App\Models\Workspace;
+use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -98,13 +98,15 @@ class SeedPerformanceData extends Command
         $bar->setMessage('collections');
 
         for ($i = 0; $i < $count; $i++) {
-            $isRoot = $i < $rootCount || $parents === [];
+            // $rootCount is at least 1, so by the time $isRoot turns false, $parents
+            // already holds at least one id — there's always something to pick from.
+            $isRoot = $i < $rootCount;
             $parentId = $isRoot ? null : fake()->randomElement($parents);
 
             $id = DB::table('collections')->insertGetId([
                 'workspace_id' => $workspace->id,
                 'parent_id' => $parentId,
-                'name' => ucfirst(fake()->words(random_int(1, 3), true)).($isRoot ? ' API' : ''),
+                'name' => $this->fakeWords(1, 3).($isRoot ? ' API' : ''),
                 'order' => $i,
                 'variables' => null,
                 'headers' => null,
@@ -163,7 +165,7 @@ class SeedPerformanceData extends Command
      * @param  list<HttpMethod>  $methods
      * @return array<string, mixed>
      */
-    private function fakeRequestRow(array $collectionIds, array $methods, int $order, Carbon $now): array
+    private function fakeRequestRow(array $collectionIds, array $methods, int $order, CarbonImmutable $now): array
     {
         $method = fake()->randomElement($methods);
         $bodyType = $method === HttpMethod::Get || $method === HttpMethod::Head
@@ -172,7 +174,7 @@ class SeedPerformanceData extends Command
 
         return [
             'collection_id' => fake()->randomElement($collectionIds),
-            'name' => ucfirst(fake()->words(random_int(2, 4), true)),
+            'name' => $this->fakeWords(2, 4),
             'method' => $method->value,
             'url' => 'https://'.fake()->domainWord().'.example.com/api/'.fake()->word().'/'.fake()->randomNumber(4),
             'order' => $order,
@@ -187,6 +189,17 @@ class SeedPerformanceData extends Command
             'created_at' => $now,
             'updated_at' => $now,
         ];
+    }
+
+    /**
+     * Faker's words() is typed to return array|string regardless of $asText, so
+     * this narrows it back to a plain string rather than trusting the arg alone.
+     */
+    private function fakeWords(int $min, int $max): string
+    {
+        $words = fake()->words(random_int($min, $max));
+
+        return ucfirst(implode(' ', is_array($words) ? $words : [$words]));
     }
 
     /**
@@ -206,8 +219,8 @@ class SeedPerformanceData extends Command
                 'id' => fake()->randomNumber(5),
                 'name' => fake()->name(),
                 'note' => fake()->sentence(),
-            ]]),
-            BodyType::UrlEncoded => json_encode(['fields' => $this->fakeKeyValueRows(random_int(1, 3), fn () => fake()->word())]),
+            ]]) ?: null,
+            BodyType::UrlEncoded => json_encode(['fields' => $this->fakeKeyValueRows(random_int(1, 3), fn () => fake()->word())]) ?: null,
             default => null,
         };
     }

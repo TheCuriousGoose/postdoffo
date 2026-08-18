@@ -77,8 +77,12 @@ class SocialAuthController extends Controller
             ]);
         }
 
+        // Always a string on the way in, so the column holds one shape whichever
+        // provider it came from (see confirmPasswordViaProvider).
+        $identity = (string) $socialUser->getId();
+
         $user = User::where('provider', $provider)
-            ->where('provider_id', $socialUser->getId())
+            ->where('provider_id', $identity)
             ->first();
 
         if (! $user) {
@@ -87,7 +91,7 @@ class SocialAuthController extends Controller
             if ($user) {
                 $user->forceFill([
                     'provider' => $provider,
-                    'provider_id' => $socialUser->getId(),
+                    'provider_id' => $identity,
                     'email_verified_at' => $user->email_verified_at ?? now(),
                 ])->save();
             } else {
@@ -96,7 +100,7 @@ class SocialAuthController extends Controller
                     'email' => $socialUser->getEmail(),
                     'password' => null,
                     'provider' => $provider,
-                    'provider_id' => $socialUser->getId(),
+                    'provider_id' => $identity,
                     'email_verified_at' => now(),
                 ]);
             }
@@ -117,7 +121,12 @@ class SocialAuthController extends Controller
      */
     private function confirmPasswordViaProvider(User $user, string $provider, SocialUser $socialUser): RedirectResponse
     {
-        if ($user->provider !== $provider || $user->provider_id !== $socialUser->getId()) {
+        // GitHub hands back a JSON number for the account id where Google hands
+        // back a string, and the column is a varchar either way — so this has to
+        // compare as strings. A strict comparison rejected every GitHub account.
+        $identity = (string) $socialUser->getId();
+
+        if ($identity === '' || $user->provider !== $provider || (string) $user->provider_id !== $identity) {
             return redirect()->route('password.confirm')->withErrors([
                 'provider' => 'That '.ucfirst($provider).' account does not match your account.',
             ]);

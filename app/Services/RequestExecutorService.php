@@ -107,6 +107,11 @@ class RequestExecutorService
         int $durationMs,
         ?string $error,
     ): ExecutedResponseData {
+        // A browser-fired request (RecordClientExecutedRequestAction) can hand back a
+        // single string per header instead of Guzzle's always-array-of-values shape.
+        // Normalize once here so both the script context and the DTO see one shape.
+        $headers = collect($headers)->map(fn ($value) => is_array($value) ? array_values($value) : [$value])->all();
+
         $testContext = $this->buildTestContext($variables, $status, $body, $headers, $durationMs);
         $this->scriptRunner->run($request->test_script, $testContext);
 

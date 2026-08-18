@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { Form, Head, Link } from '@inertiajs/vue3';
+import { Form, Head, Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { redirect as providerRedirect } from '@/actions/App/Http/Controllers/Auth/SocialAuthController';
 import {
     index as confirmOptions,
     store as confirmStore,
@@ -7,16 +9,29 @@ import {
 import InputError from '@/components/InputError.vue';
 import PasskeyVerify from '@/components/PasskeyVerify.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
+import ProviderIcon from '@/components/ProviderIcon.vue';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
 import { store } from '@/routes/password/confirm';
 import { edit as securityEdit } from '@/routes/security';
 
-defineProps<{
+const props = defineProps<{
     hasPassword: boolean;
     hasPasskeys: boolean;
+    provider: 'google' | 'github' | null;
 }>();
+
+const page = usePage();
+
+const providerLabel = computed(() =>
+    props.provider === 'github' ? 'GitHub' : 'Google',
+);
+
+const providerError = computed(
+    () => (page.props.errors as Record<string, string>)?.provider,
+);
 
 defineOptions({
     layout: {
@@ -29,6 +44,28 @@ defineOptions({
 
 <template>
     <Head title="Confirm password" />
+
+    <div v-if="provider" class="space-y-6">
+        <Button variant="outline" as-child class="w-full">
+            <a :href="providerRedirect({ provider }).url">
+                <ProviderIcon :provider="provider" />
+                Reauthenticate with {{ providerLabel }}
+            </a>
+        </Button>
+
+        <InputError :message="providerError" />
+
+        <div v-if="hasPasskeys || hasPassword" class="relative">
+            <div class="absolute inset-0 flex items-center">
+                <Separator class="w-full" />
+            </div>
+            <div class="relative flex justify-center text-xs uppercase">
+                <span class="bg-background px-2 text-muted-foreground">
+                    Or confirm another way
+                </span>
+            </div>
+        </div>
+    </div>
 
     <PasskeyVerify
         v-if="hasPasskeys"
@@ -77,7 +114,7 @@ defineOptions({
     </Form>
 
     <p
-        v-if="!hasPassword && !hasPasskeys"
+        v-if="!hasPassword && !hasPasskeys && !provider"
         class="text-sm text-muted-foreground"
     >
         You don't have a password or passkey set up, so there's nothing to

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\AvatarController;
 use App\Http\Controllers\Settings\McpController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
@@ -10,6 +11,14 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
+
+    // Decoding and re-encoding a picture costs real CPU, so uploads are rate
+    // limited even though they only ever come from the user's own profile page.
+    Route::post('settings/profile/avatar', [AvatarController::class, 'store'])
+        ->middleware('throttle:30,1')
+        ->name('profile.avatar.store');
+
+    Route::delete('settings/profile/avatar', [AvatarController::class, 'destroy'])->name('profile.avatar.destroy');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

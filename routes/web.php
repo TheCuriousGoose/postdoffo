@@ -3,6 +3,7 @@
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Settings\AvatarController;
 use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -33,6 +34,14 @@ Route::inertia('/docs/scripting', 'docs/Scripting')->name('docs.scripting');
 
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
+
+// Profile pictures sit on a private disk, so they're handed out here instead of
+// through a public link. Everywhere one is shown is behind a login, and the file
+// name changes on every upload, which is what makes the response cacheable forever.
+Route::get('avatars/{user}/{file}', [AvatarController::class, 'show'])
+    ->middleware('auth')
+    ->where('file', '[0-9A-Za-z]+\.jpg')
+    ->name('profile.avatar.show');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', HomeController::class)->name('dashboard');

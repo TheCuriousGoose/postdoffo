@@ -3,12 +3,14 @@ import { Form, Head, usePage } from '@inertiajs/vue3';
 import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
+import AvatarUpload from '@/components/AvatarUpload.vue';
 import DeleteUser from '@/components/DeleteUser.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
 
@@ -25,6 +27,9 @@ defineOptions({
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
+const maxAvatarKilobytes = computed(
+    () => page.props.maxAvatarKilobytes as number,
+);
 </script>
 
 <template>
@@ -33,6 +38,16 @@ const user = computed(() => page.props.auth.user);
     <h1 class="sr-only">Profile settings</h1>
 
     <div class="flex flex-col space-y-6">
+        <Heading
+            variant="small"
+            title="Profile picture"
+            description="Shown next to your name across your workspaces"
+        />
+
+        <AvatarUpload :user="user" :max-kilobytes="maxAvatarKilobytes" />
+
+        <Separator />
+
         <Heading
             variant="small"
             title="Profile"

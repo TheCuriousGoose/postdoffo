@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Laravel\Socialite\Contracts\User as SocialUser;
 use Laravel\Socialite\Facades\Socialite;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Throwable;
@@ -46,8 +47,11 @@ class SocialAuthController extends Controller
     }
 
     /**
-     * Handle the OAuth provider's callback, logging the user in or
-     * registering a new account if one doesn't already exist.
+     * Handle the OAuth provider's callback. For a guest, this logs the user
+     * in (or registers a new account). For an already-authenticated user, it
+     * instead treats the round trip as a reauthentication and, if it matches
+     * the account's linked provider, satisfies password confirmation without
+     * touching the session's login state.
      */
     public function callback(string $provider): RedirectResponse
     {
@@ -56,9 +60,15 @@ class SocialAuthController extends Controller
         try {
             $socialUser = Socialite::driver($provider)->user();
         } catch (Throwable) {
-            return redirect()->route('login')->withErrors([
-                'email' => 'We could not authenticate you with '.ucfirst($provider).'. Please try again.',
-            ]);
+            $message = 'We could not authenticate you with '.ucfirst($provider).'. Please try again.';
+
+            return request()->user()
+                ? redirect()->route('password.confirm')->withErrors(['provider' => $message])
+                : redirect()->route('login')->withErrors(['email' => $message]);
+        }
+
+        if ($authenticatedUser = request()->user()) {
+            return $this->confirmPasswordViaProvider($authenticatedUser, $provider, $socialUser);
         }
 
         if (! $socialUser->getEmail()) {
@@ -95,6 +105,25 @@ class SocialAuthController extends Controller
         Auth::login($user, remember: true);
 
         request()->session()->regenerate();
+
+        return redirect()->intended(route('dashboard', absolute: false));
+    }
+
+    /**
+     * Confirm an already-logged-in user's password via their linked provider
+     * rather than a password they may not know (e.g. because they always
+     * sign in through SSO). Never logs anyone in or links a provider to an
+     * account — a mismatch just fails the confirmation.
+     */
+    private function confirmPasswordViaProvider(User $user, string $provider, SocialUser $socialUser): RedirectResponse
+    {
+        if ($user->provider !== $provider || $user->provider_id !== $socialUser->getId()) {
+            return redirect()->route('password.confirm')->withErrors([
+                'provider' => 'That '.ucfirst($provider).' account does not match your account.',
+            ]);
+        }
+
+        request()->session()->put('auth.password_confirmed_at', now()->timestamp);
 
         return redirect()->intended(route('dashboard', absolute: false));
     }

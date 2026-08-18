@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
+use App\Http\Controllers\Auth\SocialAuthController;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -76,6 +77,9 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::confirmPasswordView(fn (Request $request) => Inertia::render('auth/ConfirmPassword', [
             'hasPassword' => $request->user()->password !== null,
             'hasPasskeys' => Features::canManagePasskeys() && $request->user()->passkeys()->exists(),
+            'provider' => in_array($request->user()->provider, SocialAuthController::configuredProviders(), true)
+                ? $request->user()->provider
+                : null,
         ]));
     }
 

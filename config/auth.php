@@ -42,6 +42,14 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // Bearer-token guard backing the MCP server (routes/ai.php). Assistants
+        // reach it either through the OAuth authorization code flow or with a
+        // personal access token, and both arrive here as Passport tokens.
+        'api' => [
+            'driver' => 'passport',
+            'provider' => 'users',
+        ],
     ],
 
     /*

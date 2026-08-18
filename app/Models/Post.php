@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 
 /**

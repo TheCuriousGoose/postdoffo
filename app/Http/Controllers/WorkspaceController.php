@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Collection;
+use App\Models\Team;
 use App\Models\Workspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,14 +13,23 @@ use Inertia\Response;
 class WorkspaceController extends Controller
 {
     /**
-     * List every workspace the current user is a member of (owner or invited).
+     * List every workspace the current user can reach: owned directly,
+     * individually invited into, or granted through a team they belong to.
      */
     public function index(Request $request): Response
     {
         $user = $request->user();
+        $teamIds = $user->ownedTeams()->pluck('teams.id')
+            ->merge($user->teams()->pluck('teams.id'))
+            ->unique();
 
-        $workspaces = $user->ownedWorkspaces()
-            ->orWhereHas('members', fn ($query) => $query->where('user_id', $user->id))
+        $workspaces = Workspace::query()
+            ->where(function ($query) use ($user, $teamIds) {
+                $query->where('owner_id', $user->id)
+                    ->orWhereHas('members', fn ($q) => $q->where('user_id', $user->id))
+                    ->orWhereIn('team_id', $teamIds);
+            })
+            ->with('team:id,name')
             ->withCount('collections')
             ->orderBy('name')
             ->get();
@@ -28,8 +38,17 @@ class WorkspaceController extends Controller
             $workspace->role = $workspace->roleFor($user)?->value;
         });
 
+        // For the "move to team" picker: every team this user could plausibly
+        // move a workspace they own into (see WorkspaceController::updateTeam()).
+        $teams = Team::query()
+            ->where('owner_id', $user->id)
+            ->orWhereIn('id', $teamIds)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         return Inertia::render('workspaces/Index', [
             'workspaces' => $workspaces,
+            'teams' => $teams,
         ]);
     }
 
@@ -37,13 +56,49 @@ class WorkspaceController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'team_id' => ['nullable', 'string', 'uuid', 'exists:teams,id'],
         ]);
 
         $workspace = new Workspace(['name' => $data['name']]);
         $workspace->owner_id = $request->user()->id;
+
+        if (! empty($data['team_id'])) {
+            $team = Team::where('id', $data['team_id'])->firstOrFail();
+            $this->authorize('manageWorkspaces', $team);
+            $workspace->team_id = $team->id;
+        }
+
         $workspace->save();
 
         return to_route('workspaces.show', $workspace);
+    }
+
+    /**
+     * Move a workspace into a team, or back out to standalone. Left to the
+     * workspace's real owner to decide either direction — attaching hands
+     * every team member the access mapped in TeamRole::asWorkspaceRole(), so
+     * it isn't something a co-owner or a team admin can do unilaterally on a
+     * workspace they don't themselves own.
+     */
+    public function updateTeam(Request $request, Workspace $workspace): RedirectResponse
+    {
+        abort_unless($workspace->owner_id === $request->user()->id, 403, 'Only the workspace owner can move it between teams.');
+
+        $data = $request->validate([
+            'team_id' => ['nullable', 'string', 'uuid', 'exists:teams,id'],
+        ]);
+
+        if (! empty($data['team_id'])) {
+            $team = Team::where('id', $data['team_id'])->firstOrFail();
+            abort_unless($team->roleFor($request->user()) !== null, 403, 'You must be a member of the team to move a workspace into it.');
+            $workspace->team_id = $team->id;
+        } else {
+            $workspace->team_id = null;
+        }
+
+        $workspace->save();
+
+        return back();
     }
 
     public function show(Request $request, Workspace $workspace): Response

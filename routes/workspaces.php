@@ -19,6 +19,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('workspaces/{workspace}', [WorkspaceController::class, 'show'])->name('workspaces.show');
     Route::patch('workspaces/{workspace}', [WorkspaceController::class, 'update'])->name('workspaces.update');
     Route::delete('workspaces/{workspace}', [WorkspaceController::class, 'destroy'])->name('workspaces.destroy');
+    Route::patch('workspaces/{workspace}/team', [WorkspaceController::class, 'updateTeam'])->name('workspaces.update-team');
 
     Route::get('invitations/{token}', [WorkspaceInvitationController::class, 'accept'])->name('invitations.accept');
 

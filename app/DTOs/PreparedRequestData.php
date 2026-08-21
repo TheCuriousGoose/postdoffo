@@ -12,9 +12,11 @@ final readonly class PreparedRequestData
 {
     /**
      * @param  array<string, string>  $variables
+     * @param  array<int, array{id: int, key: string, value: string}>  $environmentUpdates  Environment variable rows the pre-request script wrote via pm.environment.set(), already persisted by the time this is built.
      */
     public function __construct(
         public OutgoingRequestData $outgoing,
         public array $variables,
+        public array $environmentUpdates = [],
     ) {}
 }

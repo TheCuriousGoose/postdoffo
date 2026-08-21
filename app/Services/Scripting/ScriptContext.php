@@ -14,6 +14,15 @@ final class ScriptContext
     /** @var array<string, string> Header overrides set via pm.request.headers.set() during a pre-request script. */
     public array $headerOverrides = [];
 
+    /**
+     * Values written via pm.environment.set() — unlike pm.variables.set(), these are
+     * meant to outlive this one run, so RequestExecutorService writes them back to the
+     * environment's stored variables once the script finishes.
+     *
+     * @var array<string, string>
+     */
+    public array $environmentUpdates = [];
+
     /** @var array<int, TestResultData> */
     public array $testResults = [];
 

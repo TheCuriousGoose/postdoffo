@@ -18,6 +18,7 @@ use Illuminate\Support\Carbon;
  * @property string $id
  * @property string $name
  * @property int $owner_id
+ * @property string|null $team_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property string|null $role Not a column — set on the fly by WorkspaceController::index()
@@ -38,6 +39,18 @@ class Workspace extends Model
     }
 
     /**
+     * The team this workspace belongs to, if any — null for a standalone
+     * workspace. Belonging to a team is what makes every one of that team's
+     * members count toward {@see roleFor()} below.
+     *
+     * @return BelongsTo<Team, $this>
+     */
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
+    }
+
+    /**
      * @return BelongsToMany<User, $this, WorkspaceMember>
      */
     public function members(): BelongsToMany
@@ -48,6 +61,14 @@ class Workspace extends Model
             ->withTimestamps();
     }
 
+    /**
+     * The best access this user has here, blending two independent sources: an
+     * explicit per-workspace membership (someone invited directly, whether or
+     * not this workspace is in a team), and whatever role their team
+     * membership grants on every workspace the team owns. Higher of the two
+     * wins — an org admin who was also individually invited as a viewer still
+     * gets the co-owner-equivalent access their team role carries.
+     */
     public function roleFor(User $user): ?WorkspaceRole
     {
         if ($this->owner_id === $user->id) {
@@ -55,8 +76,15 @@ class Workspace extends Model
         }
 
         $pivot = $this->members()->where('user_id', $user->id)->first()?->pivot;
+        $explicit = $pivot?->role;
 
-        return $pivot?->role;
+        $team = $this->team_id === null ? null : ($this->relationLoaded('team') ? $this->team : $this->team()->first());
+        $viaTeam = $team?->roleFor($user)?->asWorkspaceRole();
+
+        return match (true) {
+            $explicit !== null && $viaTeam !== null => WorkspaceRole::higherOf($explicit, $viaTeam),
+            default => $explicit ?? $viaTeam,
+        };
     }
 
     /**

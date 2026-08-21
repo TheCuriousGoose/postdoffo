@@ -42,7 +42,7 @@ use Laravel\Passport\HasApiTokens;
  * @property-read string|null $avatar
  */
 #[Appends(['avatar'])]
-#[Fillable(['name', 'email', 'password', 'provider', 'provider_id', 'role'])]
+#[Fillable(['name', 'email', 'password', 'provider', 'provider_id'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token', 'avatar_path'])]
 class User extends Authenticatable implements OAuthenticatable, PasskeyUser
 {
@@ -138,6 +138,24 @@ class User extends Authenticatable implements OAuthenticatable, PasskeyUser
     public function workspaces(): BelongsToMany
     {
         return $this->belongsToMany(Workspace::class, 'workspace_members')
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
+    /**
+     * @return HasMany<Team, $this>
+     */
+    public function ownedTeams(): HasMany
+    {
+        return $this->hasMany(Team::class, 'owner_id');
+    }
+
+    /**
+     * @return BelongsToMany<Team, $this>
+     */
+    public function teams(): BelongsToMany
+    {
+        return $this->belongsToMany(Team::class, 'team_members')
             ->withPivot('role')
             ->withTimestamps();
     }

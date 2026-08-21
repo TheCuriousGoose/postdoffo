@@ -6,6 +6,7 @@ import type {
     ApiRequest,
     CollectionNode,
     Environment,
+    EnvironmentVariableUpdate,
     ExecutedResponse,
     WorkspaceVariable,
 } from '@/types/workspace';
@@ -229,6 +230,43 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         }
     }
 
+    /**
+     * Folds environment variable rows a pre-request/test script wrote via
+     * `pm.environment.set()` into the local copy of the active environment — the
+     * server already persisted them, so this is display sync only, not a save.
+     */
+    function applyEnvironmentUpdates(updates: EnvironmentVariableUpdate[]): void {
+        if (updates.length === 0) {
+            return;
+        }
+
+        const environment = environments.value.find(
+            (env) => env.id === activeEnvironmentId.value,
+        );
+
+        if (!environment) {
+            return;
+        }
+
+        for (const update of updates) {
+            const existing = environment.variables.find(
+                (variable) => variable.id === update.id,
+            );
+
+            if (existing) {
+                existing.value = update.value;
+            } else {
+                environment.variables.push({
+                    id: update.id,
+                    environment_id: environment.id,
+                    key: update.key,
+                    value: update.value,
+                    is_secret: false,
+                });
+            }
+        }
+    }
+
     return {
         workspaceId,
         activeEnvironmentId,
@@ -255,5 +293,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         setExecuting,
         setSaving,
         setResponse,
+        applyEnvironmentUpdates,
     };
 });

@@ -25,9 +25,14 @@ class HomeController extends Controller
             }
         }
 
+        $teamIds = $user->ownedTeams()->pluck('teams.id')
+            ->merge($user->teams()->pluck('teams.id'))
+            ->unique();
+
         $workspace = Workspace::query()
             ->where('owner_id', $user->id)
             ->orWhereHas('members', fn ($query) => $query->where('user_id', $user->id))
+            ->orWhereIn('team_id', $teamIds)
             ->orderByDesc('updated_at')
             ->first();
 

@@ -419,6 +419,7 @@ async function send() {
         const response = await runRequest(id, store.activeEnvironmentId);
 
         store.setResponse(id, response);
+        store.applyEnvironmentUpdates(response.environment_updates);
     } catch {
         toast.error('Request failed to execute');
     } finally {

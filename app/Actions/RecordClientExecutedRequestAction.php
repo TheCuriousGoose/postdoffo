@@ -4,6 +4,7 @@ namespace App\Actions;
 
 use App\Actions\Concerns\RecordsRequestHistory;
 use App\DTOs\ExecutedResponseData;
+use App\Models\Environment;
 use App\Models\Request;
 use App\Models\User;
 use App\Services\RequestExecutorService;
@@ -20,6 +21,9 @@ class RecordClientExecutedRequestAction
     public function __construct(private readonly RequestExecutorService $executor) {}
 
     /**
+     * `$environment` should be the same one the preceding `prepare()` call resolved
+     * this request against — it's where a test-script pm.environment.set() call lands.
+     *
      * @param  array<string, string>  $variables
      * @param  array<string, array<int, string>|string>  $headers
      */
@@ -32,10 +36,13 @@ class RecordClientExecutedRequestAction
         ?string $body,
         int $durationMs,
         ?string $error,
+        ?Environment $environment = null,
     ): ExecutedResponseData {
         $request->loadMissing('collection');
 
-        $result = $this->executor->finalize($request, $variables, $status, $headers, $body, $durationMs, $error);
+        $environment ??= Environment::forWorkspace($request->collection->workspace_id)->active()->first();
+
+        $result = $this->executor->finalize($request, $variables, $status, $headers, $body, $durationMs, $error, $environment);
 
         $this->recordHistory($request, $user, $result);
 

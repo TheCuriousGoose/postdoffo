@@ -6,7 +6,7 @@ import {
 import { api } from '@/lib/api';
 import { isLocalUrl, sendViaBrowser } from '@/lib/localRequest';
 import type { PreparedOutgoingRequest } from '@/lib/localRequest';
-import type { ExecutedResponse } from '@/types/workspace';
+import type { EnvironmentVariableUpdate, ExecutedResponse } from '@/types/workspace';
 
 function withEnvironment(url: string, environmentId: number | null): string {
     return environmentId ? `${url}?environment_id=${environmentId}` : url;
@@ -22,23 +22,44 @@ function withEnvironment(url: string, environmentId: number | null): string {
  * Runner to inject a data-file row's columns, and to chain a value captured by
  * an earlier request's test script (e.g. `pm.variables.set("token", ...)`) into
  * later requests in the same run.
+ *
+ * `environmentId` is passed through to every leg (prepare, then send/record), not
+ * just prepare: a test script's `pm.environment.set()` runs server-side in the
+ * send/record step, and it needs the same environment prepare() resolved against
+ * to know where to persist the write.
  */
 export async function runRequest(
     requestId: string,
     environmentId: number | null,
     overrides: Record<string, string> = {},
 ): Promise<ExecutedResponse> {
-    const { outgoing, variables } = await api.post<{
+    const {
+        outgoing,
+        variables,
+        environment_updates: prepareUpdates,
+    } = await api.post<{
         outgoing: PreparedOutgoingRequest;
         variables: Record<string, string>;
+        environment_updates: EnvironmentVariableUpdate[];
     }>(withEnvironment(prepareRequest.url(requestId), environmentId), {
         variables: overrides,
     });
 
-    return isLocalUrl(outgoing.url)
-        ? await api.post(recordRequest.url(requestId), {
-              variables,
-              ...(await sendViaBrowser(outgoing)),
-          })
-        : await api.post(sendRequest.url(requestId), { outgoing, variables });
+    const response = isLocalUrl(outgoing.url)
+        ? await api.post<ExecutedResponse>(
+              withEnvironment(recordRequest.url(requestId), environmentId),
+              {
+                  variables,
+                  ...(await sendViaBrowser(outgoing)),
+              },
+          )
+        : await api.post<ExecutedResponse>(
+              withEnvironment(sendRequest.url(requestId), environmentId),
+              { outgoing, variables },
+          );
+
+    return {
+        ...response,
+        environment_updates: [...prepareUpdates, ...response.environment_updates],
+    };
 }

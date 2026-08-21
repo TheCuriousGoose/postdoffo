@@ -222,7 +222,8 @@ final class ScriptExpression
         return match ($fnPath) {
             'response.header' => $context->responseHeaders[strtolower((string) ($args[0] ?? ''))] ?? null,
             'variables.get', 'environment.get' => $context->variables[(string) ($args[0] ?? '')] ?? null,
-            'variables.set', 'environment.set' => $this->setVariable($context, $args),
+            'variables.set' => $this->setVariable($context, $args),
+            'environment.set' => $this->setEnvironmentVariable($context, $args),
             'request.headers.set' => $this->setHeader($context, $args),
             'test' => $this->recordTest($context, $args),
             default => throw new ScriptException("Unsupported function 'pm.{$fnPath}()'."),
@@ -237,10 +238,26 @@ final class ScriptExpression
         [$key, $value] = [$args[0] ?? null, $args[1] ?? null];
 
         if (! is_string($key)) {
-            throw new ScriptException('pm.variables.set() requires a string key.');
+            throw new ScriptException('A variable key must be a string.');
         }
 
         $context->variables[$key] = (string) $value;
+
+        return null;
+    }
+
+    /**
+     * Unlike pm.variables.set() — script/run-scoped only — this also records the
+     * write in $context->environmentUpdates, so RequestExecutorService persists it
+     * to the environment's stored variables once the script finishes running.
+     *
+     * @param  array<int, mixed>  $args
+     */
+    private function setEnvironmentVariable(ScriptContext $context, array $args): null
+    {
+        $this->setVariable($context, $args);
+
+        $context->environmentUpdates[(string) $args[0]] = (string) ($args[1] ?? null);
 
         return null;
     }

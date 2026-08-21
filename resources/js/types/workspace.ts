@@ -138,6 +138,8 @@ export type Workspace = {
     id: string;
     name: string;
     owner_id: number;
+    team_id: string | null;
+    team?: { id: string; name: string } | null;
     collections_count?: number;
     role?: WorkspaceRole | null;
 };
@@ -184,6 +186,17 @@ export type TestResult = {
     message: string | null;
 };
 
+/**
+ * An environment variable row a pre-request or test script wrote via
+ * pm.environment.set() — already persisted server-side by the time this comes
+ * back, so the frontend just needs to fold it into its own copy of the environment.
+ */
+export type EnvironmentVariableUpdate = {
+    id: number;
+    key: string;
+    value: string;
+};
+
 export type ExecutedResponse = {
     status: number | null;
     headers: Record<string, string[]>;
@@ -193,6 +206,7 @@ export type ExecutedResponse = {
     error: string | null;
     ok: boolean;
     variables: Record<string, string>;
+    environment_updates: EnvironmentVariableUpdate[];
 };
 
 export type RequestHistoryEntry = {

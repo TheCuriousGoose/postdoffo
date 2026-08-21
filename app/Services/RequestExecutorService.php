@@ -39,7 +39,7 @@ class RequestExecutorService
 
     public function execute(Request $request, ?Environment $environment, ?User $user = null): ExecutedResponseData
     {
-        return $this->sendAndFinalize($request, $this->prepare($request, $environment), $user);
+        return $this->sendAndFinalize($request, $this->prepare($request, $environment), $user, $environment);
     }
 
     /**
@@ -48,8 +48,10 @@ class RequestExecutorService
      * without re-running the pre-request script a second time.
      *
      * `$user` identifies whose cookie jar this send draws from and writes back to.
+     * `$environment` is where a test-script pm.environment.set() call gets written —
+     * pass the same one `prepare()` resolved this request against.
      */
-    public function sendAndFinalize(Request $request, PreparedRequestData $prepared, ?User $user = null): ExecutedResponseData
+    public function sendAndFinalize(Request $request, PreparedRequestData $prepared, ?User $user = null, ?Environment $environment = null): ExecutedResponseData
     {
         $start = microtime(true);
         $status = null;
@@ -68,7 +70,7 @@ class RequestExecutorService
 
         $durationMs = (int) round((microtime(true) - $start) * 1000);
 
-        return $this->finalize($request, $prepared->variables, $status, $headers, $body, $durationMs, $error);
+        return $this->finalize($request, $prepared->variables, $status, $headers, $body, $durationMs, $error, $environment, $prepared->environmentUpdates);
     }
 
     /**
@@ -89,14 +91,17 @@ class RequestExecutorService
         $this->scriptRunner->run($request->pre_request_script, $preContext);
         $variables = $preContext->variables;
 
+        $environmentUpdates = $this->persistEnvironmentUpdates($environment, $preContext->environmentUpdates);
+
         $outgoing = $this->buildOutgoingRequest($request, $variables, $preContext->headerOverrides);
 
-        return new PreparedRequestData($outgoing, $variables);
+        return new PreparedRequestData($outgoing, $variables, $environmentUpdates);
     }
 
     /**
      * @param  array<string, string>  $variables
      * @param  array<string, array<int, string>|string>  $headers
+     * @param  array<int, array{id: int, key: string, value: string}>  $environmentUpdates  Rows already persisted during prepare() — merged with whatever the test script writes so the response reports the full picture.
      */
     public function finalize(
         Request $request,
@@ -106,6 +111,8 @@ class RequestExecutorService
         ?string $body,
         int $durationMs,
         ?string $error,
+        ?Environment $environment = null,
+        array $environmentUpdates = [],
     ): ExecutedResponseData {
         // A browser-fired request (RecordClientExecutedRequestAction) can hand back a
         // single string per header instead of Guzzle's always-array-of-values shape.
@@ -115,6 +122,11 @@ class RequestExecutorService
         $testContext = $this->buildTestContext($variables, $status, $body, $headers, $durationMs);
         $this->scriptRunner->run($request->test_script, $testContext);
 
+        $environmentUpdates = [
+            ...$environmentUpdates,
+            ...$this->persistEnvironmentUpdates($environment, $testContext->environmentUpdates),
+        ];
+
         return new ExecutedResponseData(
             status: $status,
             headers: $headers,
@@ -123,7 +135,37 @@ class RequestExecutorService
             testResults: $testContext->testResults,
             error: $error,
             variables: $testContext->variables,
+            environmentUpdates: $environmentUpdates,
         );
+    }
+
+    /**
+     * Writes pm.environment.set() calls back to the environment's stored variables,
+     * so a value a script captures (an auth token from a login response, say) is
+     * still there the next time this request — or any other in the workspace —
+     * runs, instead of only living for the rest of this one execution.
+     *
+     * Silently does nothing without an active environment: there is nowhere to
+     * park the write, and the value still resolves for the rest of this run via
+     * the ordinary $context->variables it was also written to.
+     *
+     * @param  array<string, string>  $updates
+     * @return array<int, array{id: int, key: string, value: string}>
+     */
+    private function persistEnvironmentUpdates(?Environment $environment, array $updates): array
+    {
+        if ($environment === null || $updates === []) {
+            return [];
+        }
+
+        return collect($updates)
+            ->map(function (string $value, string $key) use ($environment) {
+                $variable = $environment->variables()->updateOrCreate(['key' => $key], ['value' => $value]);
+
+                return ['id' => $variable->id, 'key' => $variable->key, 'value' => $value];
+            })
+            ->values()
+            ->all();
     }
 
     /**

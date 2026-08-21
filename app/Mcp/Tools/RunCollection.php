@@ -84,7 +84,7 @@ class RunCollection extends BaseTool
 
         foreach ($queue as $apiRequest) {
             $prepared = $executor->prepare($apiRequest, $environment, $carried);
-            $result = $executor->sendAndFinalize($apiRequest, $prepared, $user);
+            $result = $executor->sendAndFinalize($apiRequest, $prepared, $user, $environment);
 
             // Recorded the same way a send from the app is, so a run shows up in
             // the workspace's history instead of happening invisibly.

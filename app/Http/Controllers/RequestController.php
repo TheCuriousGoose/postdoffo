@@ -161,6 +161,7 @@ class RequestController extends Controller
                 'body_type' => $prepared->outgoing->bodyType->value,
             ],
             'variables' => $prepared->variables,
+            'environment_updates' => $prepared->environmentUpdates,
         ]);
     }
 
@@ -172,6 +173,13 @@ class RequestController extends Controller
     public function send(Request $request, ApiRequest $apiRequest, SendPreparedRequestAction $action): JsonResponse
     {
         $this->authorize('view', $apiRequest->collection->workspace);
+
+        $environment = null;
+
+        if ($request->filled('environment_id')) {
+            $environment = Environment::forWorkspace($apiRequest->collection->workspace_id)
+                ->findOrFail($request->integer('environment_id'));
+        }
 
         $data = $request->validate([
             'outgoing.method' => ['required', Rule::enum(HttpMethod::class)],
@@ -189,7 +197,7 @@ class RequestController extends Controller
             $data['variables'] ?? [],
         );
 
-        $result = $action->handle($apiRequest, $request->user(), $prepared);
+        $result = $action->handle($apiRequest, $request->user(), $prepared, $environment);
 
         return response()->json($result->toArray());
     }
@@ -201,6 +209,13 @@ class RequestController extends Controller
     public function record(Request $request, ApiRequest $apiRequest, RecordClientExecutedRequestAction $action): JsonResponse
     {
         $this->authorize('view', $apiRequest->collection->workspace);
+
+        $environment = null;
+
+        if ($request->filled('environment_id')) {
+            $environment = Environment::forWorkspace($apiRequest->collection->workspace_id)
+                ->findOrFail($request->integer('environment_id'));
+        }
 
         $data = $request->validate([
             'variables' => ['sometimes', 'array'],
@@ -221,6 +236,7 @@ class RequestController extends Controller
             $data['body'] ?? null,
             $data['duration_ms'],
             $data['error'] ?? null,
+            $environment,
         );
 
         return response()->json($result->toArray());

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Head, router, usePage } from '@inertiajs/vue3';
-import { MoreHorizontal, Pencil, Plus, Trash2 } from '@lucide/vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { MoreHorizontal, Pencil, Plus, Trash2, Users } from '@lucide/vue';
+import { ref } from 'vue';
 import {
     destroy,
     show,
@@ -8,6 +9,7 @@ import {
     update,
 } from '@/actions/App/Http/Controllers/WorkspaceController';
 import Heading from '@/components/Heading.vue';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -16,13 +18,17 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import MoveToTeamDialog from '@/components/workspace/MoveToTeamDialog.vue';
 import ShareDialog from '@/components/workspace/ShareDialog.vue';
 import { confirmDialog, promptDialog } from '@/lib/dialogs';
+import { index as teamsIndex } from '@/routes/teams';
 import { index } from '@/routes/workspaces';
+import type { Team } from '@/types/team';
 import type { Workspace } from '@/types/workspace';
 
-defineProps<{
+const props = defineProps<{
     workspaces: Workspace[];
+    teams: Team[];
 }>();
 
 defineOptions({
@@ -33,6 +39,14 @@ defineOptions({
 
 const page = usePage();
 const currentUserId = page.props.auth.user?.id ?? null;
+
+const movingWorkspace = ref<Workspace | null>(null);
+const moveDialogOpen = ref(false);
+
+function openMoveDialog(workspace: Workspace) {
+    movingWorkspace.value = workspace;
+    moveDialogOpen.value = true;
+}
 
 // Co-owners can rename a workspace; only the real owner can delete it.
 function canRename(workspace: Workspace): boolean {
@@ -103,10 +117,18 @@ async function deleteWorkspace(workspace: Workspace) {
                 title="Workspaces"
                 description="Collections, environments, and requests live inside a workspace."
             />
-            <Button class="w-full sm:w-auto" @click="createWorkspace">
-                <Plus class="size-4" />
-                New workspace
-            </Button>
+            <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                <Button variant="outline" as-child>
+                    <Link :href="teamsIndex()">
+                        <Users class="size-4" />
+                        Teams
+                    </Link>
+                </Button>
+                <Button class="w-full sm:w-auto" @click="createWorkspace">
+                    <Plus class="size-4" />
+                    New workspace
+                </Button>
+            </div>
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -119,7 +141,17 @@ async function deleteWorkspace(workspace: Workspace) {
                 <CardHeader
                     class="flex flex-row items-start justify-between gap-2"
                 >
-                    <CardTitle class="truncate">{{ workspace.name }}</CardTitle>
+                    <div class="min-w-0">
+                        <CardTitle class="truncate">{{ workspace.name }}</CardTitle>
+                        <Badge
+                            v-if="workspace.team"
+                            variant="outline"
+                            class="mt-1.5 gap-1 text-[10px] text-muted-foreground"
+                        >
+                            <Users class="size-3" />
+                            {{ workspace.team.name }}
+                        </Badge>
+                    </div>
                     <div class="-mt-1 -mr-1 flex shrink-0 items-center gap-1">
                         <span @click.stop>
                             <ShareDialog
@@ -153,6 +185,13 @@ async function deleteWorkspace(workspace: Workspace) {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                     v-if="canDelete(workspace)"
+                                    @click="openMoveDialog(workspace)"
+                                >
+                                    <Users class="size-3.5" />
+                                    {{ workspace.team ? 'Change team' : 'Move to team' }}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    v-if="canDelete(workspace)"
                                     variant="destructive"
                                     @click="deleteWorkspace(workspace)"
                                 >
@@ -171,5 +210,11 @@ async function deleteWorkspace(workspace: Workspace) {
                 No workspaces yet — create one to get started.
             </p>
         </div>
+
+        <MoveToTeamDialog
+            v-model:open="moveDialogOpen"
+            :workspace="movingWorkspace"
+            :teams="props.teams"
+        />
     </div>
 </template>

@@ -61,7 +61,10 @@ class UserController extends Controller
             'role' => ['required', new Enum(UserRole::class)],
         ]);
 
-        $user->update(['role' => $data['role']]);
+        // Not mass-assigned: 'role' is deliberately left out of User's fillable
+        // list so no other write path can slip it through, this one included.
+        $user->role = $data['role'];
+        $user->save();
 
         Cache::forget(DashboardController::CACHE_KEY);
 

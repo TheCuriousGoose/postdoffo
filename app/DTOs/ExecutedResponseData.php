@@ -8,6 +8,7 @@ final readonly class ExecutedResponseData
      * @param  array<string, array<int, string>>  $headers
      * @param  array<int, TestResultData>  $testResults
      * @param  array<string, string>  $variables
+     * @param  array<int, array{id: int, key: string, value: string}>  $environmentUpdates  Environment variable rows written via pm.environment.set() (pre-request and/or test script), already persisted by the time this is built — the frontend applies these to its own copy of the environment rather than re-fetching it.
      */
     public function __construct(
         public ?int $status,
@@ -17,6 +18,7 @@ final readonly class ExecutedResponseData
         public array $testResults = [],
         public ?string $error = null,
         public array $variables = [],
+        public array $environmentUpdates = [],
     ) {}
 
     public function ok(): bool
@@ -38,6 +40,7 @@ final readonly class ExecutedResponseData
             'error' => $this->error,
             'ok' => $this->ok(),
             'variables' => $this->variables,
+            'environment_updates' => $this->environmentUpdates,
         ];
     }
 }

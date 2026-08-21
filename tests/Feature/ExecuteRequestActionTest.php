@@ -91,6 +91,118 @@ class ExecuteRequestActionTest extends TestCase
         Http::assertSent(fn ($sentRequest) => $sentRequest->hasHeader('X-Trace-Id', 'trace-123'));
     }
 
+    public function test_environment_set_in_a_test_script_persists_to_the_environment(): void
+    {
+        $user = User::factory()->create();
+        $workspace = Workspace::factory()->create(['owner_id' => $user->id]);
+        $collection = Collection::factory()->create(['workspace_id' => $workspace->id]);
+
+        $environment = Environment::factory()->create([
+            'workspace_id' => $workspace->id,
+            'is_active' => true,
+        ]);
+
+        $request = RequestModel::factory()->create([
+            'collection_id' => $collection->id,
+            'url' => 'https://api.example.com/login',
+            'test_script' => 'pm.environment.set("token", pm.response.json.access_token)',
+        ]);
+
+        Http::fake(['api.example.com/*' => Http::response(['access_token' => 'secret-token'], 200)]);
+
+        $result = app(ExecuteRequestAction::class)->handle($request, $user, $environment);
+
+        $this->assertSame('secret-token', $result->variables['token']);
+
+        $saved = EnvironmentVariable::where('environment_id', $environment->id)->where('key', 'token')->first();
+        $this->assertNotNull($saved);
+        $this->assertSame('secret-token', $saved->value);
+        $this->assertSame([
+            ['id' => $saved->id, 'key' => 'token', 'value' => 'secret-token'],
+        ], $result->environmentUpdates);
+    }
+
+    public function test_environment_set_updates_an_existing_variable_rather_than_duplicating_it(): void
+    {
+        $user = User::factory()->create();
+        $workspace = Workspace::factory()->create(['owner_id' => $user->id]);
+        $collection = Collection::factory()->create(['workspace_id' => $workspace->id]);
+
+        $environment = Environment::factory()->create([
+            'workspace_id' => $workspace->id,
+            'is_active' => true,
+        ]);
+        $existing = EnvironmentVariable::factory()->create([
+            'environment_id' => $environment->id,
+            'key' => 'token',
+            'value' => 'stale-token',
+        ]);
+
+        $request = RequestModel::factory()->create([
+            'collection_id' => $collection->id,
+            'url' => 'https://api.example.com/login',
+            'test_script' => 'pm.environment.set("token", pm.response.json.access_token)',
+        ]);
+
+        Http::fake(['api.example.com/*' => Http::response(['access_token' => 'rotated-token'], 200)]);
+
+        app(ExecuteRequestAction::class)->handle($request, $user, $environment);
+
+        $this->assertSame(1, EnvironmentVariable::where('environment_id', $environment->id)->where('key', 'token')->count());
+        $this->assertSame($existing->id, $existing->fresh()->id);
+        $this->assertSame('rotated-token', $existing->fresh()->value);
+    }
+
+    public function test_environment_set_in_a_pre_request_script_persists_to_the_environment(): void
+    {
+        $user = User::factory()->create();
+        $workspace = Workspace::factory()->create(['owner_id' => $user->id]);
+        $collection = Collection::factory()->create(['workspace_id' => $workspace->id]);
+
+        $environment = Environment::factory()->create([
+            'workspace_id' => $workspace->id,
+            'is_active' => true,
+        ]);
+
+        $request = RequestModel::factory()->create([
+            'collection_id' => $collection->id,
+            'url' => 'https://api.example.com/ping',
+            'pre_request_script' => 'pm.environment.set("run_id", "abc123")',
+        ]);
+
+        Http::fake(['api.example.com/*' => Http::response('pong', 200)]);
+
+        app(ExecuteRequestAction::class)->handle($request, $user, $environment);
+
+        $this->assertSame('abc123', $environment->variables()->where('key', 'run_id')->first()->value);
+    }
+
+    public function test_variables_set_does_not_persist_to_the_environment(): void
+    {
+        $user = User::factory()->create();
+        $workspace = Workspace::factory()->create(['owner_id' => $user->id]);
+        $collection = Collection::factory()->create(['workspace_id' => $workspace->id]);
+
+        $environment = Environment::factory()->create([
+            'workspace_id' => $workspace->id,
+            'is_active' => true,
+        ]);
+
+        $request = RequestModel::factory()->create([
+            'collection_id' => $collection->id,
+            'url' => 'https://api.example.com/ping',
+            'test_script' => 'pm.variables.set("scratch", "only-for-this-run")',
+        ]);
+
+        Http::fake(['api.example.com/*' => Http::response('pong', 200)]);
+
+        $result = app(ExecuteRequestAction::class)->handle($request, $user, $environment);
+
+        $this->assertSame('only-for-this-run', $result->variables['scratch']);
+        $this->assertSame([], $result->environmentUpdates);
+        $this->assertDatabaseMissing('environment_variables', ['key' => 'scratch']);
+    }
+
     public function test_json_body_is_interpolated_and_sent(): void
     {
         $user = User::factory()->create();

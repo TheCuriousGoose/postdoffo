@@ -5,6 +5,7 @@ namespace App\Actions;
 use App\Actions\Concerns\RecordsRequestHistory;
 use App\DTOs\ExecutedResponseData;
 use App\DTOs\PreparedRequestData;
+use App\Models\Environment;
 use App\Models\Request;
 use App\Models\User;
 use App\Services\RequestExecutorService;
@@ -21,11 +22,17 @@ class SendPreparedRequestAction
 
     public function __construct(private readonly RequestExecutorService $executor) {}
 
-    public function handle(Request $request, ?User $user, PreparedRequestData $prepared): ExecutedResponseData
+    /**
+     * `$environment` should be the same one `PrepareRequestAction` resolved this
+     * request against — it's where a test-script pm.environment.set() call lands.
+     */
+    public function handle(Request $request, ?User $user, PreparedRequestData $prepared, ?Environment $environment = null): ExecutedResponseData
     {
         $request->loadMissing('collection');
 
-        $result = $this->executor->sendAndFinalize($request, $prepared, $user);
+        $environment ??= Environment::forWorkspace($request->collection->workspace_id)->active()->first();
+
+        $result = $this->executor->sendAndFinalize($request, $prepared, $user, $environment);
 
         $this->recordHistory($request, $user, $result);
 

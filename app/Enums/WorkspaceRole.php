@@ -62,4 +62,24 @@ enum WorkspaceRole: string
     {
         return $this === self::Owner || $this === self::CoOwner;
     }
+
+    /**
+     * Ordering used to pick the better of two roles the same person holds on
+     * one workspace — e.g. an explicit per-workspace invite plus whatever
+     * their team membership grants (see Workspace::roleFor()). Higher wins.
+     */
+    public function rank(): int
+    {
+        return match ($this) {
+            self::Owner => 3,
+            self::CoOwner => 2,
+            self::Editor => 1,
+            self::Viewer => 0,
+        };
+    }
+
+    public static function higherOf(self $a, self $b): self
+    {
+        return $a->rank() >= $b->rank() ? $a : $b;
+    }
 }

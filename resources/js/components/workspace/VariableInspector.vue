@@ -8,13 +8,18 @@ import {
     TriangleAlert,
 } from '@lucide/vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { toast } from 'vue-sonner';
+import { update as updateEnvironmentVariable } from '@/actions/App/Http/Controllers/EnvironmentVariableController';
+import { update as updateWorkspaceVariable } from '@/actions/App/Http/Controllers/WorkspaceVariableController';
 import { useVariableInspector } from '@/composables/useVariableInspector';
+import { api } from '@/lib/api';
 import { useWorkspaceStore } from '@/stores/workspace';
 
 const { state, inspect, close } = useVariableInspector();
 const store = useWorkspaceStore();
 
 const revealed = ref(false);
+const valueDraft = ref('');
 
 const current = computed(() =>
     state.key ? (store.activeScope.variables[state.key] ?? null) : null,
@@ -39,8 +44,55 @@ watch(
     () => state.key,
     () => {
         revealed.value = false;
+        valueDraft.value = current.value?.value ?? '';
     },
 );
+
+const isInlineEditable = computed(
+    () =>
+        current.value !== null &&
+        !current.value.isSecret &&
+        current.value.id !== null,
+);
+
+async function saveValue() {
+    const variable = current.value;
+
+    if (!variable || !isInlineEditable.value || valueDraft.value === variable.value) {
+        return;
+    }
+
+    const url =
+        variable.sourceType === 'environment'
+            ? updateEnvironmentVariable.url(variable.id!)
+            : updateWorkspaceVariable.url(variable.id!);
+
+    try {
+        await api.patch(url, { value: valueDraft.value });
+
+        if (variable.sourceType === 'environment') {
+            const environment = store.activeEnvironment;
+            const saved = environment?.variables.find(
+                (entry) => entry.id === variable.id,
+            );
+
+            if (saved) {
+                saved.value = valueDraft.value;
+            }
+        } else {
+            const saved = store.workspaceVariables.find(
+                (entry) => entry.id === variable.id,
+            );
+
+            if (saved) {
+                saved.value = valueDraft.value;
+            }
+        }
+    } catch {
+        valueDraft.value = variable.value;
+        toast.error('Failed to save variable');
+    }
+}
 
 function onKeydown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
@@ -96,10 +148,21 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
                         </span>
                     </div>
 
-                    <div
-                        v-if="current"
-                        class="mt-2 flex items-center gap-2 rounded-md bg-muted px-2 py-1.5"
-                    >
+                    <div v-if="current" class="mt-2">
+                        <input
+                            v-if="isInlineEditable"
+                            v-model="valueDraft"
+                            type="text"
+                            :aria-label="`Value for ${current.key}`"
+                            autocomplete="off"
+                            class="h-8 w-full rounded-md bg-muted px-2 font-mono text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            @change="saveValue"
+                            @keydown.enter="saveValue"
+                        />
+                        <div
+                            v-else
+                            class="flex items-center gap-2 rounded-md bg-muted px-2 py-1.5"
+                        >
                         <code class="flex-1 truncate font-mono text-xs">{{
                             current.isSecret && !revealed
                                 ? '•'.repeat(
@@ -117,6 +180,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
                             <EyeOff v-if="revealed" class="size-3.5" />
                             <Eye v-else class="size-3.5" />
                         </button>
+                        </div>
                     </div>
 
                     <p

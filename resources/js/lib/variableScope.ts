@@ -19,6 +19,7 @@ import type {
 export type VariableSourceType = 'environment' | 'collection' | 'workspace';
 
 export type ResolvedVariable = {
+    id: number | null;
     key: string;
     value: string;
     isSecret: boolean;
@@ -98,6 +99,7 @@ export function buildVariableScope(
     // Workspace globals are the base layer — everything below overrides them.
     for (const variable of workspaceVariables) {
         variables[variable.key] = {
+            id: variable.id,
             key: variable.key,
             value: variable.value ?? '',
             isSecret: variable.is_secret,
@@ -110,6 +112,7 @@ export function buildVariableScope(
     for (const node of chain) {
         for (const [key, value] of Object.entries(node.variables ?? {})) {
             variables[key] = {
+                id: null,
                 key,
                 value: String(value ?? ''),
                 isSecret: false,
@@ -123,6 +126,7 @@ export function buildVariableScope(
     if (environment) {
         for (const variable of environment.variables) {
             variables[variable.key] = {
+                id: variable.id,
                 key: variable.key,
                 value: variable.value ?? '',
                 isSecret: variable.is_secret,

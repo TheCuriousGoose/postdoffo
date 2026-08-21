@@ -13,7 +13,7 @@ export type AppNotification = {
     type: string;
     data: {
         message: string;
-        workspace_id?: number;
+        workspace_id?: string;
         [key: string]: unknown;
     };
     read_at: string | null;

@@ -10,7 +10,7 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
- * @property int $workspace_id
+ * @property string $workspace_id
  * @property int $user_id
  * @property WorkspaceRole $role
  * @property Carbon|null $created_at

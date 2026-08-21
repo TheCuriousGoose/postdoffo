@@ -49,7 +49,7 @@ const paletteOpen = ref(false);
 // On a phone the tree lives in an off-canvas sheet covering the editor, so
 // picking a request has to dismiss it — otherwise you open something and are
 // left staring at the list you opened it from.
-async function openRequestFromTree(request: { id: number }) {
+async function openRequestFromTree(request: { id: string }) {
     await openRequest(request);
 
     if (isMobile.value) {
@@ -82,8 +82,8 @@ async function newRootCollection() {
 // for the root-level collections rendered directly here (parent_id: null) —
 // cross-folder moves are handled entirely inside CollectionTree itself.
 async function onRootReorder(
-    draggedId: number,
-    targetId: number,
+    draggedId: string,
+    targetId: string,
     position: 'before' | 'after',
 ) {
     if (draggedId === targetId) {
@@ -142,7 +142,7 @@ async function onRootDrop() {
 // (backwards-compatible) single-collection response.
 type ImportResult =
     | { type: 'environment' }
-    | { type: 'workspace'; workspace_id: number; name: string }
+    | { type: 'workspace'; workspace_id: string; name: string }
     | { type?: never };
 
 async function onImportFile(event: Event) {

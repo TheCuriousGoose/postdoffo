@@ -73,9 +73,8 @@ import KeyValueEditor from './KeyValueEditor.vue';
 
 const props = defineProps<{
     node: CollectionNode;
-    workspaceId: number;
-    activeRequestId: number | null;
-    depth?: number;
+    workspaceId: string;
+    activeRequestId: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -83,8 +82,8 @@ const emit = defineEmits<{
     /** A sibling folder was dropped onto another sibling folder — reordering
      * needs the parent, since it's the one holding the shared array. */
     'reorder-child': [
-        draggedId: number,
-        targetId: number,
+        draggedId: string,
+        targetId: string,
         position: 'before' | 'after',
     ];
 }>();
@@ -302,7 +301,7 @@ function onRequestDragEnd() {
     requestDropIntent.value = null;
 }
 
-const dragOverRequestId = ref<number | null>(null);
+const dragOverRequestId = ref<string | null>(null);
 const requestDropIntent = ref<DropIntent>(null);
 
 function onRequestDragOver(event: DragEvent, request: RequestSummary) {
@@ -362,8 +361,8 @@ async function onRequestDrop(target: RequestSummary) {
 }
 
 async function onChildReorder(
-    draggedId: number,
-    targetId: number,
+    draggedId: string,
+    targetId: string,
     position: 'before' | 'after',
 ) {
     if (draggedId === targetId) {
@@ -565,7 +564,6 @@ const configuredCount = computed(() => ({
                         'bg-primary/10 ring-2 ring-primary ring-inset',
                 )
             "
-            :style="{ paddingLeft: `${(depth ?? 0) * 12}px` }"
             @dragstart="onFolderDragStart"
             @dragend="onFolderDragEnd"
             @dragover.prevent.stop="onFolderDragOver"
@@ -640,106 +638,112 @@ const configuredCount = computed(() => ({
         </div>
 
         <CollapsibleContent>
-            <div
-                v-for="request in node.requests"
-                :key="request.id"
-                draggable="true"
-                class="group/row relative flex cursor-grab items-center gap-1 rounded-md px-1 hover:bg-accent active:cursor-grabbing"
-                :class="
-                    cn(
-                        draggedItem?.type === 'request' &&
-                            draggedItem.id === request.id &&
-                            'opacity-40',
-                        dragOverRequestId === request.id &&
-                            requestDropIntent === 'into' &&
-                            'bg-primary/10 ring-2 ring-primary ring-inset',
-                    )
-                "
-                :style="{ paddingLeft: `${((depth ?? 0) + 1) * 12 + 18}px` }"
-                @dragstart="onRequestDragStart(request)"
-                @dragend="onRequestDragEnd"
-                @dragover.prevent.stop="onRequestDragOver($event, request)"
-                @dragleave="
-                    dragOverRequestId === request.id &&
-                    ((dragOverRequestId = null), (requestDropIntent = null))
-                "
-                @drop.prevent.stop="onRequestDrop(request)"
-            >
+            <!--
+                Every level of nesting adds one of these rails: a vertical guide
+                line plus a fixed indent, so depth stays legible by the line
+                count instead of by eyeballing a few px of padding — the thing
+                that made deep collections illegible before.
+            -->
+            <div class="relative ml-2.5 border-l border-border pl-2.5">
                 <div
-                    v-if="
-                        dragOverRequestId === request.id &&
-                        requestDropIntent === 'before'
-                    "
-                    class="absolute inset-x-1 top-0 z-10 h-0.5 -translate-y-1/2 rounded-full bg-primary"
-                />
-                <div
-                    v-if="
-                        dragOverRequestId === request.id &&
-                        requestDropIntent === 'after'
-                    "
-                    class="absolute inset-x-1 bottom-0 z-10 h-0.5 translate-y-1/2 rounded-full bg-primary"
-                />
-
-                <button
-                    class="flex min-w-0 flex-1 items-center gap-2 py-1 text-left text-sm"
+                    v-for="request in node.requests"
+                    :key="request.id"
+                    draggable="true"
+                    class="group/row relative flex cursor-grab items-center gap-1 rounded-md px-1 hover:bg-accent active:cursor-grabbing"
                     :class="
                         cn(
-                            activeRequestId === request.id &&
-                                'font-medium text-foreground',
-                            activeRequestId !== request.id &&
-                                'text-muted-foreground',
+                            draggedItem?.type === 'request' &&
+                                draggedItem.id === request.id &&
+                                'opacity-40',
+                            dragOverRequestId === request.id &&
+                                requestDropIntent === 'into' &&
+                                'bg-primary/10 ring-2 ring-primary ring-inset',
                         )
                     "
-                    @click="emit('open-request', request)"
+                    @dragstart="onRequestDragStart(request)"
+                    @dragend="onRequestDragEnd"
+                    @dragover.prevent.stop="onRequestDragOver($event, request)"
+                    @dragleave="
+                        dragOverRequestId === request.id &&
+                        ((dragOverRequestId = null), (requestDropIntent = null))
+                    "
+                    @drop.prevent.stop="onRequestDrop(request)"
                 >
-                    <span
-                        class="w-12 shrink-0 font-mono text-[10px] font-semibold"
-                        :class="methodColor[request.method] ?? ''"
-                        >{{ request.method }}</span
-                    >
-                    <span class="truncate">{{ request.name }}</span>
-                </button>
+                    <div
+                        v-if="
+                            dragOverRequestId === request.id &&
+                            requestDropIntent === 'before'
+                        "
+                        class="absolute inset-x-1 top-0 z-10 h-0.5 -translate-y-1/2 rounded-full bg-primary"
+                    />
+                    <div
+                        v-if="
+                            dragOverRequestId === request.id &&
+                            requestDropIntent === 'after'
+                        "
+                        class="absolute inset-x-1 bottom-0 z-10 h-0.5 translate-y-1/2 rounded-full bg-primary"
+                    />
 
-                <!--
+                    <button
+                        class="flex min-w-0 flex-1 items-center gap-2 py-1 text-left text-sm"
+                        :class="
+                            cn(
+                                activeRequestId === request.id &&
+                                    'font-medium text-foreground',
+                                activeRequestId !== request.id &&
+                                    'text-muted-foreground',
+                            )
+                        "
+                        @click="emit('open-request', request)"
+                    >
+                        <span
+                            class="w-12 shrink-0 font-mono text-[10px] font-semibold"
+                            :class="methodColor[request.method] ?? ''"
+                            >{{ request.method }}</span
+                        >
+                        <span class="truncate">{{ request.name }}</span>
+                    </button>
+
+                    <!--
                     Same overflow menu as a folder row. A request used to expose
                     a bare delete button instead: the one destructive action in
                     the tree was also the only one you could hit by accident.
                 -->
-                <DropdownMenu>
-                    <DropdownMenuTrigger as-child>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            :aria-label="`Actions for ${request.name}`"
-                            class="size-6 shrink-0 max-md:opacity-100 md:opacity-0 md:group-hover/row:opacity-100 md:data-[state=open]:opacity-100"
-                        >
-                            <MoreHorizontal class="size-3.5" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
-                        <DropdownMenuItem @click="renameRequest(request)">
-                            Rename
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                            variant="destructive"
-                            @click="removeRequest(request)"
-                        >
-                            <Trash2 class="size-3.5" /> Delete
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger as-child>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                :aria-label="`Actions for ${request.name}`"
+                                class="size-6 shrink-0 max-md:opacity-100 md:opacity-0 md:group-hover/row:opacity-100 md:data-[state=open]:opacity-100"
+                            >
+                                <MoreHorizontal class="size-3.5" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                            <DropdownMenuItem @click="renameRequest(request)">
+                                Rename
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                variant="destructive"
+                                @click="removeRequest(request)"
+                            >
+                                <Trash2 class="size-3.5" /> Delete
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
 
-            <CollectionTree
-                v-for="child in node.children"
-                :key="child.id"
-                :node="child"
-                :workspace-id="workspaceId"
-                :active-request-id="activeRequestId"
-                :depth="(depth ?? 0) + 1"
-                @open-request="(r) => emit('open-request', r)"
-                @reorder-child="onChildReorder"
-            />
+                <CollectionTree
+                    v-for="child in node.children"
+                    :key="child.id"
+                    :node="child"
+                    :workspace-id="workspaceId"
+                    :active-request-id="activeRequestId"
+                    @open-request="(r) => emit('open-request', r)"
+                    @reorder-child="onChildReorder"
+                />
+            </div>
         </CollapsibleContent>
     </Collapsible>
 

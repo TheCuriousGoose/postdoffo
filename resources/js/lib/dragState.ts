@@ -1,8 +1,8 @@
 import { ref } from 'vue';
 
 export type DraggedItem =
-    | { type: 'request'; id: number; collectionId: number }
-    | { type: 'collection'; id: number; parentId: number | null };
+    | { type: 'request'; id: string; collectionId: string }
+    | { type: 'collection'; id: string; parentId: string | null };
 
 /**
  * What's currently being dragged in the collection tree, shared across every
@@ -16,11 +16,11 @@ export const draggedItem = ref<DraggedItem | null>(null);
 
 /** Re-insert `draggedId` immediately before/after `targetId`, order preserved. */
 export function reorderIds(
-    ids: number[],
-    draggedId: number,
-    targetId: number,
+    ids: string[],
+    draggedId: string,
+    targetId: string,
     position: 'before' | 'after',
-): number[] {
+): string[] {
     const next = ids.filter((id) => id !== draggedId);
     const targetIndex = next.indexOf(targetId);
     next.splice(

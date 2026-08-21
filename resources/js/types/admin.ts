@@ -11,7 +11,7 @@ export type AdminUser = {
 };
 
 export type AdminWorkspace = {
-    id: number;
+    id: string;
     name: string;
     owner: {
         id: number;

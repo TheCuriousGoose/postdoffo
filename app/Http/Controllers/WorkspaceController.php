@@ -109,7 +109,7 @@ class WorkspaceController extends Controller
      * @param  \Illuminate\Database\Eloquent\Collection<int, Collection>  $collections
      * @return array<int, array<string, mixed>>
      */
-    private function buildTree($collections, ?int $parentId = null): array
+    private function buildTree($collections, ?string $parentId = null): array
     {
         return $collections
             ->where('parent_id', $parentId)

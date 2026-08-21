@@ -57,7 +57,7 @@ import { useWorkspaceStore } from '@/stores/workspace';
  * row itself.
  */
 const props = defineProps<{
-    workspaceId: number;
+    workspaceId: string;
 }>();
 
 const open = defineModel<boolean>('open', { default: false });

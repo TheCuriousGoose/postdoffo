@@ -39,7 +39,7 @@ trait InteractsWithWorkspaces
         );
     }
 
-    protected function workspace(int $id, string $ability = 'view'): Workspace
+    protected function workspace(string $id, string $ability = 'view'): Workspace
     {
         $workspace = Workspace::find($id);
 
@@ -54,7 +54,7 @@ trait InteractsWithWorkspaces
         return $workspace;
     }
 
-    protected function collection(int $id, string $ability = 'edit'): Collection
+    protected function collection(string $id, string $ability = 'edit'): Collection
     {
         $collection = Collection::with('workspace')->find($id);
 
@@ -69,7 +69,7 @@ trait InteractsWithWorkspaces
         return $collection;
     }
 
-    protected function apiRequest(int $id, string $ability = 'edit'): ApiRequest
+    protected function apiRequest(string $id, string $ability = 'edit'): ApiRequest
     {
         $apiRequest = ApiRequest::with('collection.workspace')->find($id);
 

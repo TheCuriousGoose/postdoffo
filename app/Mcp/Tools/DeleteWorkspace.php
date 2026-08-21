@@ -26,7 +26,7 @@ class DeleteWorkspace extends BaseTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'workspace_id' => $schema->integer()->required(),
+            'workspace_id' => $schema->string()->required(),
             'confirm_name' => $schema->string()
                 ->description('The exact name of the workspace being deleted. A deliberate speed bump on an irreversible, shared loss.')
                 ->required(),
@@ -36,11 +36,11 @@ class DeleteWorkspace extends BaseTool
     public function handle(Request $request): ResponseFactory
     {
         $validated = $request->validate([
-            'workspace_id' => ['required', 'integer'],
+            'workspace_id' => ['required', 'string', 'uuid'],
             'confirm_name' => ['required', 'string'],
         ]);
 
-        $workspace = $this->workspace((int) $validated['workspace_id'], 'delete');
+        $workspace = $this->workspace($validated['workspace_id'], 'delete');
 
         if ($validated['confirm_name'] !== $workspace->name) {
             throw ValidationException::withMessages([

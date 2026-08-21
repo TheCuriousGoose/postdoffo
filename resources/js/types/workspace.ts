@@ -25,7 +25,7 @@ export type FormField = KeyValuePair & {
 
 export type RequestFile = {
     id: number;
-    request_id: number;
+    request_id: string;
     filename: string;
     mime_type: string | null;
     size: number;
@@ -61,8 +61,8 @@ export type RequestBody = {
 } | null;
 
 export type ApiRequest = {
-    id: number;
-    collection_id: number;
+    id: string;
+    collection_id: string;
     name: string;
     method: HttpMethod;
     url: string;
@@ -86,17 +86,17 @@ export type ApiRequest = {
  * doesn't ship megabytes of unopened request bodies on initial page load.
  */
 export type RequestSummary = {
-    id: number;
-    collection_id: number;
+    id: string;
+    collection_id: string;
     name: string;
     method: HttpMethod;
     order: number;
 };
 
 export type CollectionNode = {
-    id: number;
+    id: string;
     name: string;
-    parent_id: number | null;
+    parent_id: string | null;
     order: number;
     variables: Record<string, string> | null;
     headers: KeyValuePair[] | null;
@@ -116,7 +116,7 @@ export type EnvironmentVariable = {
 
 export type Environment = {
     id: number;
-    workspace_id: number;
+    workspace_id: string;
     name: string;
     is_active: boolean;
     variables: EnvironmentVariable[];
@@ -128,14 +128,14 @@ export type Environment = {
  */
 export type WorkspaceVariable = {
     id: number;
-    workspace_id: number;
+    workspace_id: string;
     key: string;
     value: string | null;
     is_secret: boolean;
 };
 
 export type Workspace = {
-    id: number;
+    id: string;
     name: string;
     owner_id: number;
     collections_count?: number;
@@ -197,8 +197,8 @@ export type ExecutedResponse = {
 
 export type RequestHistoryEntry = {
     id: number;
-    request_id: number | null;
-    workspace_id: number;
+    request_id: string | null;
+    workspace_id: string;
     user_id: number | null;
     method: string;
     url: string;

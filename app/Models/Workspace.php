@@ -6,6 +6,7 @@ use App\Enums\WorkspaceRole;
 use App\Services\VariableResolver;
 use Database\Factories\WorkspaceFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
- * @property int $id
+ * @property string $id
  * @property string $name
  * @property int $owner_id
  * @property Carbon|null $created_at
@@ -26,7 +27,7 @@ use Illuminate\Support\Carbon;
 class Workspace extends Model
 {
     /** @use HasFactory<WorkspaceFactory> */
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     /**
      * @return BelongsTo<User, $this>

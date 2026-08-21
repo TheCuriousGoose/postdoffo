@@ -34,8 +34,8 @@ class UpdateRequest extends BaseTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'request_id' => $schema->integer()->required(),
-            'collection_id' => $schema->integer()->description('Move the request into this collection. Must be in the same workspace.'),
+            'request_id' => $schema->string()->required(),
+            'collection_id' => $schema->string()->description('Move the request into this collection. Must be in the same workspace.'),
             'name' => $schema->string()->max(255),
             'method' => Schemas::method($schema),
             'url' => $schema->string(),
@@ -53,8 +53,8 @@ class UpdateRequest extends BaseTool
     public function handle(Request $request): ResponseFactory
     {
         $validated = $request->validate([
-            'request_id' => ['required', 'integer'],
-            'collection_id' => ['sometimes', 'integer'],
+            'request_id' => ['required', 'string', 'uuid'],
+            'collection_id' => ['sometimes', 'string', 'uuid'],
             'name' => ['sometimes', 'string', 'max:255'],
             'method' => ['sometimes', Rule::enum(HttpMethod::class)],
             'url' => ['sometimes', 'nullable', 'string'],
@@ -68,12 +68,12 @@ class UpdateRequest extends BaseTool
             'test_script' => ['sometimes', 'nullable', 'string'],
         ]);
 
-        $apiRequest = $this->apiRequest((int) $validated['request_id'], 'edit');
+        $apiRequest = $this->apiRequest($validated['request_id'], 'edit');
 
         unset($validated['request_id']);
 
         if (array_key_exists('collection_id', $validated)) {
-            $target = $this->collection((int) $validated['collection_id'], 'edit');
+            $target = $this->collection($validated['collection_id'], 'edit');
 
             if ($target->workspace_id !== $apiRequest->collection->workspace_id) {
                 throw ValidationException::withMessages([

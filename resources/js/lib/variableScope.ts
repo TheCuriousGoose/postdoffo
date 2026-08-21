@@ -40,7 +40,7 @@ export type InheritedAuth = {
 export type VariableScope = {
     variables: Record<string, ResolvedVariable>;
     list: ResolvedVariable[];
-    chain: { id: number; name: string }[];
+    chain: { id: string; name: string }[];
     inheritedHeaders: InheritedHeader[];
     inheritedAuth: InheritedAuth | null;
 };
@@ -62,7 +62,7 @@ const VARIABLE_PATTERN = /\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g;
  */
 export function findCollectionChain(
     tree: CollectionNode[],
-    collectionId: number | null | undefined,
+    collectionId: string | null | undefined,
     trail: CollectionNode[] = [],
 ): CollectionNode[] {
     if (collectionId == null) {
@@ -88,7 +88,7 @@ export function findCollectionChain(
 
 export function buildVariableScope(
     tree: CollectionNode[],
-    collectionId: number | null | undefined,
+    collectionId: string | null | undefined,
     environment: Environment | null,
     workspaceVariables: WorkspaceVariable[] = [],
 ): VariableScope {

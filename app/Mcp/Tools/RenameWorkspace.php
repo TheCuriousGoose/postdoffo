@@ -22,7 +22,7 @@ class RenameWorkspace extends BaseTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'workspace_id' => $schema->integer()->required(),
+            'workspace_id' => $schema->string()->required(),
             'name' => $schema->string()->max(255)->required(),
         ];
     }
@@ -30,11 +30,11 @@ class RenameWorkspace extends BaseTool
     public function handle(Request $request): ResponseFactory
     {
         $validated = $request->validate([
-            'workspace_id' => ['required', 'integer'],
+            'workspace_id' => ['required', 'string', 'uuid'],
             'name' => ['required', 'string', 'max:255'],
         ]);
 
-        $workspace = $this->workspace((int) $validated['workspace_id'], 'update');
+        $workspace = $this->workspace($validated['workspace_id'], 'update');
         $workspace->update(['name' => $validated['name']]);
 
         return $this->json([

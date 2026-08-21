@@ -23,7 +23,7 @@ class CookieJarService
      * A jar holding every unexpired cookie this user has for this workspace.
      * Guzzle narrows it down to the ones that actually match the request.
      */
-    public function jarFor(int $workspaceId, ?User $user): CookieJar
+    public function jarFor(string $workspaceId, ?User $user): CookieJar
     {
         $jar = new CookieJar;
 
@@ -54,7 +54,7 @@ class CookieJarService
      * removed rather than stored, so the jar doesn't keep resurrecting a session
      * the API has already ended.
      */
-    public function persist(CookieJar $jar, int $workspaceId, ?User $user): void
+    public function persist(CookieJar $jar, string $workspaceId, ?User $user): void
     {
         if (! $user) {
             return;
@@ -102,7 +102,7 @@ class CookieJarService
      *
      * @return array<int, array{name: string, value: string, domain: string, path: string}>
      */
-    public function matching(int $workspaceId, ?User $user, string $url): array
+    public function matching(string $workspaceId, ?User $user, string $url): array
     {
         $jar = $this->jarFor($workspaceId, $user);
         $matched = [];

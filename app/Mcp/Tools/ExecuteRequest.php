@@ -30,7 +30,7 @@ class ExecuteRequest extends BaseTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'request_id' => $schema->integer()->required(),
+            'request_id' => $schema->string()->required(),
             'environment_id' => $schema->integer()->description('Run against this environment. Defaults to the workspace\'s active one.'),
         ];
     }
@@ -38,13 +38,13 @@ class ExecuteRequest extends BaseTool
     public function handle(Request $request, ExecuteRequestAction $action): ResponseFactory
     {
         $validated = $request->validate([
-            'request_id' => ['required', 'integer'],
+            'request_id' => ['required', 'string', 'uuid'],
             'environment_id' => ['sometimes', 'integer'],
         ]);
 
         // 'view', not 'edit': sending is something a viewer is allowed to do in
         // the app, and nothing here writes to the request itself.
-        $apiRequest = $this->apiRequest((int) $validated['request_id'], 'view');
+        $apiRequest = $this->apiRequest($validated['request_id'], 'view');
 
         $environment = isset($validated['environment_id'])
             ? $this->environmentIn($apiRequest->collection->workspace, (int) $validated['environment_id'])

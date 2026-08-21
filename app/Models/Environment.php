@@ -14,7 +14,7 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
- * @property int $workspace_id
+ * @property string $workspace_id
  * @property string $name
  * @property bool $is_active
  * @property Carbon|null $created_at
@@ -53,7 +53,7 @@ class Environment extends Model
      * @param  Builder<self>  $query
      */
     #[Scope]
-    protected function forWorkspace(Builder $query, int $workspaceId): void
+    protected function forWorkspace(Builder $query, string $workspaceId): void
     {
         $query->where('workspace_id', $workspaceId);
     }

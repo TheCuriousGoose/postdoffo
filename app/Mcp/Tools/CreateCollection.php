@@ -28,9 +28,9 @@ class CreateCollection extends BaseTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'workspace_id' => $schema->integer()->required(),
+            'workspace_id' => $schema->string()->required(),
             'name' => $schema->string()->max(255)->required(),
-            'parent_id' => $schema->integer()->description('Nest inside this collection, making it a folder. Omit for a top-level collection.'),
+            'parent_id' => $schema->string()->description('Nest inside this collection, making it a folder. Omit for a top-level collection.'),
             'headers' => Schemas::keyValueList($schema, 'Headers sent with every request in this collection.'),
             'auth_type' => Schemas::authType($schema),
             'auth' => Schemas::auth($schema),
@@ -41,16 +41,16 @@ class CreateCollection extends BaseTool
     public function handle(Request $request): ResponseFactory
     {
         $validated = $request->validate([
-            'workspace_id' => ['required', 'integer'],
+            'workspace_id' => ['required', 'string', 'uuid'],
             'name' => ['required', 'string', 'max:255'],
-            'parent_id' => ['nullable', 'integer'],
+            'parent_id' => ['nullable', 'string', 'uuid'],
             'headers' => ['nullable', 'array'],
             'auth_type' => ['nullable', Rule::enum(AuthType::class)],
             'auth' => ['nullable', 'array'],
             'variables' => ['nullable', 'array'],
         ]);
 
-        $workspace = $this->workspace((int) $validated['workspace_id'], 'edit');
+        $workspace = $this->workspace($validated['workspace_id'], 'edit');
 
         $parentId = null;
 
@@ -58,7 +58,7 @@ class CreateCollection extends BaseTool
             // Scoped to this workspace rather than looked up globally: without it
             // a parent_id from elsewhere would graft a folder onto another
             // workspace's tree.
-            $parentId = $this->collection((int) $validated['parent_id'], 'edit')->id;
+            $parentId = $this->collection($validated['parent_id'], 'edit')->id;
         }
 
         $collection = $workspace->collections()->create([

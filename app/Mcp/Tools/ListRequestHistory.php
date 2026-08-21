@@ -29,8 +29,8 @@ class ListRequestHistory extends BaseTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'workspace_id' => $schema->integer()->required(),
-            'request_id' => $schema->integer()->description('Only runs of this one request.'),
+            'workspace_id' => $schema->string()->required(),
+            'request_id' => $schema->string()->description('Only runs of this one request.'),
             'limit' => $schema->integer()->min(1)->max(100)->description('Defaults to 25.'),
         ];
     }
@@ -38,17 +38,17 @@ class ListRequestHistory extends BaseTool
     public function handle(Request $request): ResponseFactory
     {
         $validated = $request->validate([
-            'workspace_id' => ['required', 'integer'],
-            'request_id' => ['sometimes', 'integer'],
+            'workspace_id' => ['required', 'string', 'uuid'],
+            'request_id' => ['sometimes', 'string', 'uuid'],
             'limit' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $workspace = $this->workspace((int) $validated['workspace_id'], 'view');
+        $workspace = $this->workspace($validated['workspace_id'], 'view');
 
         $entries = $workspace->requestHistory()
             ->when(
                 isset($validated['request_id']),
-                fn ($query) => $query->where('request_id', (int) $validated['request_id']),
+                fn ($query) => $query->where('request_id', $validated['request_id']),
             )
             ->recent()
             ->limit((int) ($validated['limit'] ?? 25))

@@ -23,7 +23,7 @@ const activeIndex = ref(0);
 const inputRef = ref<HTMLInputElement | null>(null);
 
 type Entry = {
-    id: number;
+    id: string;
     name: string;
     method: string;
     path: string;

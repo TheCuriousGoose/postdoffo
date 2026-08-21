@@ -29,7 +29,7 @@ class ExportCollection extends BaseTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'collection_id' => $schema->integer()->required(),
+            'collection_id' => $schema->string()->required(),
             'format' => $schema->string()->enum(['postman', 'openapi'])->description('Defaults to "postman".'),
         ];
     }
@@ -37,11 +37,11 @@ class ExportCollection extends BaseTool
     public function handle(Request $request, ExportCollectionAction $postman, ExportOpenApiAction $openApi): ResponseFactory
     {
         $validated = $request->validate([
-            'collection_id' => ['required', 'integer'],
+            'collection_id' => ['required', 'string', 'uuid'],
             'format' => ['sometimes', 'in:postman,openapi'],
         ]);
 
-        $collection = $this->collection((int) $validated['collection_id'], 'view');
+        $collection = $this->collection($validated['collection_id'], 'view');
         $format = $validated['format'] ?? 'postman';
 
         return $this->json([

@@ -51,7 +51,7 @@ async function onSelect(notification: AppNotification) {
 
     if (notification.data.workspace_id) {
         router.visit(
-            showWorkspace.url(notification.data.workspace_id as number),
+            showWorkspace.url(notification.data.workspace_id as string),
         );
     }
 }

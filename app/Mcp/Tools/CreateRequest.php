@@ -31,7 +31,7 @@ class CreateRequest extends BaseTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'collection_id' => $schema->integer()->description('The collection or folder to add it to.')->required(),
+            'collection_id' => $schema->string()->description('The collection or folder to add it to.')->required(),
             'name' => $schema->string()->max(255)->description('What the request does, e.g. "Create invoice".')->required(),
             'method' => Schemas::method($schema)->required(),
             'url' => $schema->string()->description('May contain {{variable}} references, e.g. "{{base_url}}/invoices/{{invoice_id}}".')->required(),
@@ -49,7 +49,7 @@ class CreateRequest extends BaseTool
     public function handle(Request $request): ResponseFactory
     {
         $validated = $request->validate([
-            'collection_id' => ['required', 'integer'],
+            'collection_id' => ['required', 'string', 'uuid'],
             'name' => ['required', 'string', 'max:255'],
             'method' => ['required', Rule::enum(HttpMethod::class)],
             'url' => ['required', 'string'],
@@ -63,7 +63,7 @@ class CreateRequest extends BaseTool
             'test_script' => ['nullable', 'string'],
         ]);
 
-        $collection = $this->collection((int) $validated['collection_id'], 'edit');
+        $collection = $this->collection($validated['collection_id'], 'edit');
 
         unset($validated['collection_id']);
 

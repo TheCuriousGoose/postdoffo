@@ -28,7 +28,7 @@ class CreateRequestFromCurl extends BaseTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'collection_id' => $schema->integer()->required(),
+            'collection_id' => $schema->string()->required(),
             'command' => $schema->string()->max(100_000)->description('The full curl command, line continuations and all.')->required(),
             'name' => $schema->string()->max(255)->description('Overrides the name derived from the url.'),
         ];
@@ -37,12 +37,12 @@ class CreateRequestFromCurl extends BaseTool
     public function handle(Request $request, CurlCommandParser $parser): ResponseFactory
     {
         $validated = $request->validate([
-            'collection_id' => ['required', 'integer'],
+            'collection_id' => ['required', 'string', 'uuid'],
             'command' => ['required', 'string', 'max:100000'],
             'name' => ['sometimes', 'string', 'max:255'],
         ]);
 
-        $collection = $this->collection((int) $validated['collection_id'], 'edit');
+        $collection = $this->collection($validated['collection_id'], 'edit');
 
         try {
             $attributes = $parser->parse($validated['command']);

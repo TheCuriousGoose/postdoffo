@@ -184,7 +184,7 @@ class CollectionController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'parent_id' => ['nullable', 'integer', 'exists:collections,id'],
+            'parent_id' => ['nullable', 'string', 'uuid', 'exists:collections,id'],
             'variables' => ['nullable', 'array'],
             'headers' => ['nullable', 'array'],
             'auth_type' => ['nullable', Rule::enum(AuthType::class)],
@@ -192,7 +192,7 @@ class CollectionController extends Controller
         ]);
 
         if (! empty($data['parent_id'])) {
-            $parent = Collection::forWorkspace($workspace->id)->findOrFail((int) $data['parent_id']);
+            $parent = Collection::forWorkspace($workspace->id)->findOrFail($data['parent_id']);
             $data['parent_id'] = $parent->id;
         }
 
@@ -215,7 +215,7 @@ class CollectionController extends Controller
 
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
-            'parent_id' => ['sometimes', 'nullable', 'integer', 'exists:collections,id'],
+            'parent_id' => ['sometimes', 'nullable', 'string', 'uuid', 'exists:collections,id'],
             'order' => ['sometimes', 'integer', 'min:0'],
             'variables' => ['sometimes', 'nullable', 'array'],
             'headers' => ['sometimes', 'nullable', 'array'],
@@ -231,7 +231,7 @@ class CollectionController extends Controller
             // exists:collections,id alone doesn't scope by workspace, so without this
             // a crafted request could reparent a collection under another workspace's
             // tree entirely.
-            $parent = Collection::forWorkspace($collection->workspace_id)->find((int) $data['parent_id']);
+            $parent = Collection::forWorkspace($collection->workspace_id)->find($data['parent_id']);
             abort_unless($parent !== null, 422, 'Target folder not found in this workspace.');
 
             $this->assertNotDescendant($collection, $parent);
@@ -281,9 +281,9 @@ class CollectionController extends Controller
         $this->authorize('edit', $workspace);
 
         $data = $request->validate([
-            'parent_id' => ['nullable', 'integer', 'exists:collections,id'],
+            'parent_id' => ['nullable', 'string', 'uuid', 'exists:collections,id'],
             'ordered_ids' => ['required', 'array', 'min:1'],
-            'ordered_ids.*' => ['integer'],
+            'ordered_ids.*' => ['string', 'uuid'],
         ]);
 
         $validIds = Collection::forWorkspace($workspace->id)

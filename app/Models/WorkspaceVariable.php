@@ -11,7 +11,7 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
- * @property int $workspace_id
+ * @property string $workspace_id
  * @property string $key
  * @property string|null $value
  * @property bool $is_secret

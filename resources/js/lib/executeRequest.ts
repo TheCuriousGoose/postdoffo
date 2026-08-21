@@ -24,7 +24,7 @@ function withEnvironment(url: string, environmentId: number | null): string {
  * later requests in the same run.
  */
 export async function runRequest(
-    requestId: number,
+    requestId: string,
     environmentId: number | null,
     overrides: Record<string, string> = {},
 ): Promise<ExecutedResponse> {

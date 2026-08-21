@@ -27,7 +27,7 @@ class CreateEnvironment extends BaseTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'workspace_id' => $schema->integer()->required(),
+            'workspace_id' => $schema->string()->required(),
             'name' => $schema->string()->max(255)->description('e.g. "Staging".')->required(),
             'activate' => $schema->boolean()->description('Make this the active environment straight away. Defaults to false.'),
             'variables' => $schema->array()
@@ -43,7 +43,7 @@ class CreateEnvironment extends BaseTool
     public function handle(Request $request): ResponseFactory
     {
         $validated = $request->validate([
-            'workspace_id' => ['required', 'integer'],
+            'workspace_id' => ['required', 'string', 'uuid'],
             'name' => ['required', 'string', 'max:255'],
             'activate' => ['sometimes', 'boolean'],
             'variables' => ['sometimes', 'array'],
@@ -52,7 +52,7 @@ class CreateEnvironment extends BaseTool
             'variables.*.is_secret' => ['sometimes', 'boolean'],
         ]);
 
-        $workspace = $this->workspace((int) $validated['workspace_id'], 'edit');
+        $workspace = $this->workspace($validated['workspace_id'], 'edit');
         $activate = $validated['activate'] ?? false;
 
         $environment = DB::transaction(function () use ($workspace, $validated, $activate) {

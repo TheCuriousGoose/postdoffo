@@ -13,8 +13,8 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
- * @property int|null $request_id
- * @property int $workspace_id
+ * @property string|null $request_id
+ * @property string $workspace_id
  * @property int|null $user_id
  * @property string $method
  * @property string $url
@@ -75,7 +75,7 @@ class RequestHistory extends Model
      * @param  Builder<self>  $query
      */
     #[Scope]
-    protected function forWorkspace(Builder $query, int $workspaceId): void
+    protected function forWorkspace(Builder $query, string $workspaceId): void
     {
         $query->where('workspace_id', $workspaceId);
     }

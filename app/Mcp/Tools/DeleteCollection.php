@@ -25,17 +25,17 @@ class DeleteCollection extends BaseTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'collection_id' => $schema->integer()->required(),
+            'collection_id' => $schema->string()->required(),
         ];
     }
 
     public function handle(Request $request): ResponseFactory
     {
         $validated = $request->validate([
-            'collection_id' => ['required', 'integer'],
+            'collection_id' => ['required', 'string', 'uuid'],
         ]);
 
-        $collection = $this->collection((int) $validated['collection_id'], 'edit');
+        $collection = $this->collection($validated['collection_id'], 'edit');
 
         $deletedRequests = $collection->requests()->count();
         $deletedChildren = $collection->children()->count();

@@ -11,7 +11,7 @@ import type {
 } from '@/types/workspace';
 
 export type OpenTab = {
-    requestId: number;
+    requestId: string;
     draft: ApiRequest;
     /**
      * The body as raw text while it is being edited. It only folds back into
@@ -52,10 +52,10 @@ function bodyTextFor(request: ApiRequest): string {
  * without a full page visit.
  */
 export const useWorkspaceStore = defineStore('workspace', () => {
-    const workspaceId = ref<number | null>(null);
+    const workspaceId = ref<string | null>(null);
     const activeEnvironmentId = ref<number | null>(null);
     const tabs = ref<OpenTab[]>([]);
-    const activeTabId = ref<number | null>(null);
+    const activeTabId = ref<string | null>(null);
     const collectionTree = ref<CollectionNode[]>([]);
     const environments = ref<Environment[]>([]);
     const workspaceVariables = ref<WorkspaceVariable[]>([]);
@@ -105,7 +105,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         workspaceVariables.value = next;
     }
 
-    function setWorkspace(id: number, environmentId: number | null): void {
+    function setWorkspace(id: string, environmentId: number | null): void {
         if (workspaceId.value !== id) {
             tabs.value = [];
             activeTabId.value = null;
@@ -137,7 +137,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         activeTabId.value = request.id;
     }
 
-    function closeTab(requestId: number): void {
+    function closeTab(requestId: string): void {
         const index = tabs.value.findIndex(
             (tab) => tab.requestId === requestId,
         );
@@ -153,13 +153,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         }
     }
 
-    function setActiveTab(requestId: number): void {
+    function setActiveTab(requestId: string): void {
         if (tabs.value.some((tab) => tab.requestId === requestId)) {
             activeTabId.value = requestId;
         }
     }
 
-    function updateDraft(requestId: number, patch: Partial<ApiRequest>): void {
+    function updateDraft(requestId: string, patch: Partial<ApiRequest>): void {
         const tab = tabs.value.find((t) => t.requestId === requestId);
 
         if (!tab) {
@@ -170,7 +170,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         tab.dirty = true;
     }
 
-    function setBodyText(requestId: number, bodyText: string): void {
+    function setBodyText(requestId: string, bodyText: string): void {
         const tab = tabs.value.find((t) => t.requestId === requestId);
 
         if (tab) {
@@ -183,7 +183,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
      * request from the collection tree, say — so an open tab follows along
      * without claiming it now has unsaved edits.
      */
-    function patchSaved(requestId: number, patch: Partial<ApiRequest>): void {
+    function patchSaved(requestId: string, patch: Partial<ApiRequest>): void {
         const tab = tabs.value.find((t) => t.requestId === requestId);
 
         if (tab) {
@@ -191,7 +191,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         }
     }
 
-    function markSaved(requestId: number, saved: ApiRequest): void {
+    function markSaved(requestId: string, saved: ApiRequest): void {
         const tab = tabs.value.find((t) => t.requestId === requestId);
 
         if (!tab) {
@@ -202,7 +202,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         tab.dirty = false;
     }
 
-    function setExecuting(requestId: number, executing: boolean): void {
+    function setExecuting(requestId: string, executing: boolean): void {
         const tab = tabs.value.find((t) => t.requestId === requestId);
 
         if (tab) {
@@ -210,7 +210,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         }
     }
 
-    function setSaving(requestId: number, saving: boolean): void {
+    function setSaving(requestId: string, saving: boolean): void {
         const tab = tabs.value.find((t) => t.requestId === requestId);
 
         if (tab) {
@@ -219,7 +219,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
 
     function setResponse(
-        requestId: number,
+        requestId: string,
         response: ExecutedResponse | null,
     ): void {
         const tab = tabs.value.find((t) => t.requestId === requestId);

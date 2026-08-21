@@ -36,7 +36,7 @@ class RunCollection extends BaseTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'collection_id' => $schema->integer()->required(),
+            'collection_id' => $schema->string()->required(),
             'environment_id' => $schema->integer()->description('Run against this environment. Defaults to the workspace\'s active one.'),
             'include_subfolders' => $schema->boolean()->description('Also run requests in nested folders, depth first. Defaults to true.'),
             'stop_on_failure' => $schema->boolean()->description('Stop at the first request whose tests fail or that errors. Defaults to false — a full report is usually more useful.'),
@@ -47,14 +47,14 @@ class RunCollection extends BaseTool
     public function handle(Request $request, RequestExecutorService $executor): ResponseFactory
     {
         $validated = $request->validate([
-            'collection_id' => ['required', 'integer'],
+            'collection_id' => ['required', 'string', 'uuid'],
             'environment_id' => ['sometimes', 'integer'],
             'include_subfolders' => ['sometimes', 'boolean'],
             'stop_on_failure' => ['sometimes', 'boolean'],
             'include_bodies' => ['sometimes', 'boolean'],
         ]);
 
-        $collection = $this->collection((int) $validated['collection_id'], 'view');
+        $collection = $this->collection($validated['collection_id'], 'view');
         $stopOnFailure = $validated['stop_on_failure'] ?? false;
         $includeBodies = $validated['include_bodies'] ?? false;
 

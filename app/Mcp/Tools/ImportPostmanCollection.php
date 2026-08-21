@@ -26,7 +26,7 @@ class ImportPostmanCollection extends BaseTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'workspace_id' => $schema->integer()->required(),
+            'workspace_id' => $schema->string()->required(),
             'collection' => $schema->object()->description('The parsed Postman export. Must contain info.name and item.'),
             'collection_json' => $schema->string()->description('The Postman export as a raw JSON string, if you have it as text. Use this or "collection", not both.'),
         ];
@@ -35,12 +35,12 @@ class ImportPostmanCollection extends BaseTool
     public function handle(Request $request, ImportCollectionAction $action): ResponseFactory
     {
         $validated = $request->validate([
-            'workspace_id' => ['required', 'integer'],
+            'workspace_id' => ['required', 'string', 'uuid'],
             'collection' => ['nullable', 'array'],
             'collection_json' => ['nullable', 'string'],
         ]);
 
-        $workspace = $this->workspace((int) $validated['workspace_id'], 'edit');
+        $workspace = $this->workspace($validated['workspace_id'], 'edit');
 
         $payload = $validated['collection'] ?? null;
 

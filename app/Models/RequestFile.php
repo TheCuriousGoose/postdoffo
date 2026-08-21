@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Storage;
  * RequestFileController::show(), which re-checks workspace access.
  *
  * @property int $id
- * @property int $request_id
+ * @property string $request_id
  * @property string $filename
  * @property string $path
  * @property string|null $mime_type
@@ -64,7 +64,7 @@ class RequestFile extends Model
      * @param  Builder<self>  $query
      */
     #[Scope]
-    protected function forRequest(Builder $query, int $requestId): void
+    protected function forRequest(Builder $query, string $requestId): void
     {
         $query->where('request_id', $requestId);
     }

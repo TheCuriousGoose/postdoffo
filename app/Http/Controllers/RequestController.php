@@ -65,7 +65,7 @@ class RequestController extends Controller
         if (array_key_exists('collection_id', $data) && $data['collection_id'] !== $apiRequest->collection_id) {
             // exists:collections,id alone doesn't scope by workspace, so without this
             // a crafted request could move a request into another workspace's tree.
-            $target = Collection::forWorkspace($apiRequest->collection->workspace_id)->find((int) $data['collection_id']);
+            $target = Collection::forWorkspace($apiRequest->collection->workspace_id)->find($data['collection_id']);
             abort_unless($target !== null, 422, 'Target folder not found in this workspace.');
         }
 
@@ -94,7 +94,7 @@ class RequestController extends Controller
 
         $data = $request->validate([
             'ordered_ids' => ['required', 'array', 'min:1'],
-            'ordered_ids.*' => ['integer'],
+            'ordered_ids.*' => ['string', 'uuid'],
         ]);
 
         $validIds = ApiRequest::forCollection($collection->id)
@@ -290,7 +290,7 @@ class RequestController extends Controller
             // even runs, so "required"/"present" would reject it either way.
             'url' => ['sometimes', 'nullable', 'string'],
             'order' => ['sometimes', 'integer', 'min:0'],
-            'collection_id' => ['sometimes', 'integer', 'exists:collections,id'],
+            'collection_id' => ['sometimes', 'string', 'uuid', 'exists:collections,id'],
             'headers' => ['sometimes', 'nullable', 'array'],
             'query_params' => ['sometimes', 'nullable', 'array'],
             'body' => ['sometimes', 'nullable', 'array'],

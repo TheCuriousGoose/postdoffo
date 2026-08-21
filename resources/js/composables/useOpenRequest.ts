@@ -13,7 +13,7 @@ import type { ApiRequest } from '@/types/workspace';
 export function useOpenRequest() {
     const store = useWorkspaceStore();
 
-    async function openRequest(request: { id: number }): Promise<void> {
+    async function openRequest(request: { id: string }): Promise<void> {
         if (store.tabs.some((tab) => tab.requestId === request.id)) {
             store.setActiveTab(request.id);
 

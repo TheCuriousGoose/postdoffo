@@ -31,9 +31,9 @@ class UpdateCollection extends BaseTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'collection_id' => $schema->integer()->required(),
+            'collection_id' => $schema->string()->required(),
             'name' => $schema->string()->max(255),
-            'parent_id' => $schema->integer()->nullable()->description('Move under this collection. Pass null to move it back to the top level.'),
+            'parent_id' => $schema->string()->nullable()->description('Move under this collection. Pass null to move it back to the top level.'),
             'headers' => Schemas::keyValueList($schema, 'Replaces the inherited header list entirely.'),
             'auth_type' => Schemas::authType($schema),
             'auth' => Schemas::auth($schema),
@@ -44,21 +44,21 @@ class UpdateCollection extends BaseTool
     public function handle(Request $request): ResponseFactory
     {
         $validated = $request->validate([
-            'collection_id' => ['required', 'integer'],
+            'collection_id' => ['required', 'string', 'uuid'],
             'name' => ['sometimes', 'string', 'max:255'],
-            'parent_id' => ['sometimes', 'nullable', 'integer'],
+            'parent_id' => ['sometimes', 'nullable', 'string', 'uuid'],
             'headers' => ['sometimes', 'nullable', 'array'],
             'auth_type' => ['sometimes', 'nullable', Rule::enum(AuthType::class)],
             'auth' => ['sometimes', 'nullable', 'array'],
             'variables' => ['sometimes', 'nullable', 'array'],
         ]);
 
-        $collection = $this->collection((int) $validated['collection_id'], 'edit');
+        $collection = $this->collection($validated['collection_id'], 'edit');
 
         unset($validated['collection_id']);
 
         if (array_key_exists('parent_id', $validated) && $validated['parent_id'] !== null) {
-            $parent = $this->collection((int) $validated['parent_id'], 'edit');
+            $parent = $this->collection($validated['parent_id'], 'edit');
 
             if ($parent->workspace_id !== $collection->workspace_id) {
                 throw ValidationException::withMessages([

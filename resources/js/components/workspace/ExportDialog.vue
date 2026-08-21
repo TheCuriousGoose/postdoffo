@@ -19,7 +19,7 @@ type ExportFormat = 'postman' | 'openapi';
 
 const props = defineProps<{
     open: boolean;
-    collectionId: number;
+    collectionId: string;
     collectionName: string;
 }>();
 

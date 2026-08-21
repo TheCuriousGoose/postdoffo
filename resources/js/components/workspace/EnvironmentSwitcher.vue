@@ -25,7 +25,7 @@ import type { Environment } from '@/types/workspace';
  * editing can't disagree about which environment they mean.
  */
 const props = defineProps<{
-    workspaceId: number;
+    workspaceId: string;
     environments: Environment[];
 }>();
 

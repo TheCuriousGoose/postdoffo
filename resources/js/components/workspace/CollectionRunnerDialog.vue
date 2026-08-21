@@ -59,7 +59,7 @@ const fileInput = ref<HTMLInputElement | null>(null);
 
 type RunResult = {
     iteration: number;
-    requestId: number;
+    requestId: string;
     name: string;
     method: HttpMethod;
     status: number | null;

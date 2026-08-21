@@ -9,6 +9,7 @@ use App\Models\Workspace;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Seeds a workspace with a large, realistic tree of collections/folders and
@@ -55,7 +56,7 @@ class SeedPerformanceData extends Command
     private function resolveWorkspace(): Workspace
     {
         if ($id = $this->option('workspace')) {
-            return Workspace::findOrFail((int) $id);
+            return Workspace::findOrFail($id);
         }
 
         $owner = User::first() ?? User::factory()->create([
@@ -85,7 +86,7 @@ class SeedPerformanceData extends Command
      * the sidebar has to render something shaped like a real, sprawling
      * workspace rather than one flat list.
      *
-     * @return list<int>
+     * @return list<string>
      */
     private function seedCollections(Workspace $workspace, int $count): array
     {
@@ -103,7 +104,13 @@ class SeedPerformanceData extends Command
             $isRoot = $i < $rootCount;
             $parentId = $isRoot ? null : fake()->randomElement($parents);
 
-            $id = DB::table('collections')->insertGetId([
+            // insertGetId() relies on an auto-increment id, which collections.id no
+            // longer is — the uuid has to be generated here and inserted explicitly,
+            // the same way HasUuids would if this went through Eloquent.
+            $id = (string) Str::orderedUuid();
+
+            DB::table('collections')->insert([
+                'id' => $id,
                 'workspace_id' => $workspace->id,
                 'parent_id' => $parentId,
                 'name' => $this->fakeWords(1, 3).($isRoot ? ' API' : ''),
@@ -129,7 +136,7 @@ class SeedPerformanceData extends Command
     }
 
     /**
-     * @param  list<int>  $collectionIds
+     * @param  list<string>  $collectionIds
      */
     private function seedRequests(array $collectionIds, int $count): void
     {
@@ -161,7 +168,7 @@ class SeedPerformanceData extends Command
     }
 
     /**
-     * @param  list<int>  $collectionIds
+     * @param  list<string>  $collectionIds
      * @param  list<HttpMethod>  $methods
      * @return array<string, mixed>
      */
@@ -173,6 +180,9 @@ class SeedPerformanceData extends Command
             : fake()->randomElement([BodyType::None, BodyType::Json, BodyType::Json, BodyType::UrlEncoded]);
 
         return [
+            // Same reason as seedCollections(): requests.id isn't auto-increment
+            // anymore, so a raw DB::table() insert has to supply the uuid itself.
+            'id' => (string) Str::orderedUuid(),
             'collection_id' => fake()->randomElement($collectionIds),
             'name' => $this->fakeWords(2, 4),
             'method' => $method->value,

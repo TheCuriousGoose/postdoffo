@@ -7,6 +7,7 @@ use Database\Factories\CollectionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,9 +15,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
- * @property int $id
- * @property int $workspace_id
- * @property int|null $parent_id
+ * @property string $id
+ * @property string $workspace_id
+ * @property string|null $parent_id
  * @property string $name
  * @property int $order
  * @property array<string, string>|null $variables
@@ -30,7 +31,7 @@ use Illuminate\Support\Carbon;
 class Collection extends Model
 {
     /** @use HasFactory<CollectionFactory> */
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     protected function casts(): array
     {
@@ -89,7 +90,7 @@ class Collection extends Model
      * @param  Builder<self>  $query
      */
     #[Scope]
-    protected function forWorkspace(Builder $query, int $workspaceId): void
+    protected function forWorkspace(Builder $query, string $workspaceId): void
     {
         $query->where('workspace_id', $workspaceId);
     }

@@ -30,7 +30,7 @@ class GetRequestAsCurl extends BaseTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'request_id' => $schema->integer()->required(),
+            'request_id' => $schema->string()->required(),
             'environment_id' => $schema->integer()->description('Resolve variables against this environment. Defaults to the workspace\'s active one.'),
         ];
     }
@@ -38,11 +38,11 @@ class GetRequestAsCurl extends BaseTool
     public function handle(Request $request, PrepareRequestAction $action, CurlCommandGenerator $generator): ResponseFactory
     {
         $validated = $request->validate([
-            'request_id' => ['required', 'integer'],
+            'request_id' => ['required', 'string', 'uuid'],
             'environment_id' => ['sometimes', 'integer'],
         ]);
 
-        $apiRequest = $this->apiRequest((int) $validated['request_id'], 'view');
+        $apiRequest = $this->apiRequest($validated['request_id'], 'view');
 
         $environment = isset($validated['environment_id'])
             ? $this->environmentIn($apiRequest->collection->workspace, (int) $validated['environment_id'])

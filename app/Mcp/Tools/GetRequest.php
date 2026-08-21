@@ -28,17 +28,17 @@ class GetRequest extends BaseTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'request_id' => $schema->integer()->required(),
+            'request_id' => $schema->string()->required(),
         ];
     }
 
     public function handle(Request $request): ResponseFactory
     {
         $validated = $request->validate([
-            'request_id' => ['required', 'integer'],
+            'request_id' => ['required', 'string', 'uuid'],
         ]);
 
-        $apiRequest = $this->apiRequest((int) $validated['request_id'], 'view');
+        $apiRequest = $this->apiRequest($validated['request_id'], 'view');
 
         return $this->json([
             'request' => Presenter::request($apiRequest),

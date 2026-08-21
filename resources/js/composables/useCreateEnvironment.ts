@@ -13,7 +13,7 @@ import { promptDialog } from '@/lib/dialogs';
  */
 export function useCreateEnvironment() {
     async function createEnvironment(
-        workspaceId: number,
+        workspaceId: string,
     ): Promise<number | null> {
         const name = await promptDialog({
             title: 'New environment',

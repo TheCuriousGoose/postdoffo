@@ -14,7 +14,7 @@ use Illuminate\Support\Carbon;
  * One stored cookie, belonging to a single user within a single workspace.
  *
  * @property int $id
- * @property int $workspace_id
+ * @property string $workspace_id
  * @property int $user_id
  * @property string $domain
  * @property string $path
@@ -50,7 +50,7 @@ class RequestCookie extends Model
      * @param  Builder<self>  $query
      */
     #[Scope]
-    protected function forJar(Builder $query, int $workspaceId, int $userId): void
+    protected function forJar(Builder $query, string $workspaceId, int $userId): void
     {
         $query->where('workspace_id', $workspaceId)->where('user_id', $userId);
     }

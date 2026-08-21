@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 /**
  * @property int $id
- * @property int $workspace_id
+ * @property string $workspace_id
  * @property string $email
  * @property WorkspaceRole $role
  * @property string $token

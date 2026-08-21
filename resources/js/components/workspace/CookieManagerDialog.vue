@@ -26,7 +26,7 @@ import type { RequestCookie } from '@/types/workspace';
  * out from a request that keeps coming back 401.
  */
 const props = defineProps<{
-    workspaceId: number;
+    workspaceId: string;
 }>();
 
 const open = ref(false);

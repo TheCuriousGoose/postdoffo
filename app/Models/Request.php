@@ -9,6 +9,7 @@ use Database\Factories\RequestFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,8 +17,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
- * @property int $id
- * @property int $collection_id
+ * @property string $id
+ * @property string $collection_id
  * @property string $name
  * @property HttpMethod $method
  * @property string $url
@@ -41,7 +42,7 @@ use Illuminate\Support\Carbon;
 class Request extends Model
 {
     /** @use HasFactory<RequestFactory> */
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     protected function casts(): array
     {
@@ -95,7 +96,7 @@ class Request extends Model
      * @param  Builder<self>  $query
      */
     #[Scope]
-    protected function forCollection(Builder $query, int $collectionId): void
+    protected function forCollection(Builder $query, string $collectionId): void
     {
         $query->where('collection_id', $collectionId);
     }

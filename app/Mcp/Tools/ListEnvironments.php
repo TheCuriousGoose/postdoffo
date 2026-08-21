@@ -27,17 +27,17 @@ class ListEnvironments extends BaseTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'workspace_id' => $schema->integer()->required(),
+            'workspace_id' => $schema->string()->required(),
         ];
     }
 
     public function handle(Request $request): ResponseFactory
     {
         $validated = $request->validate([
-            'workspace_id' => ['required', 'integer'],
+            'workspace_id' => ['required', 'string', 'uuid'],
         ]);
 
-        $workspace = $this->workspace((int) $validated['workspace_id'], 'view');
+        $workspace = $this->workspace($validated['workspace_id'], 'view');
 
         return $this->json([
             'environments' => $workspace->environments()

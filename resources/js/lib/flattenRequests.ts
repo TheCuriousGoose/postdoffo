@@ -1,7 +1,7 @@
 import type { CollectionNode, HttpMethod } from '@/types/workspace';
 
 export type RunnableRequest = {
-    id: number;
+    id: string;
     name: string;
     method: HttpMethod;
 };

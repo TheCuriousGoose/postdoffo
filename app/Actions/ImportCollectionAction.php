@@ -151,10 +151,10 @@ class ImportCollectionAction
 
     /**
      * Translate a Postman `auth` block into our (auth_type, auth) pair.
-     * Supports bearer, basic, apikey, and explicit noauth (-> AuthType::None,
-     * which cancels inheritance). Anything else — including a missing/absent
-     * `auth` key, which means "no opinion, inherit from the parent" — yields
-     * [null, null].
+     * Supports bearer, basic, apikey, oauth1, and explicit noauth (->
+     * AuthType::None, which cancels inheritance). Anything else — including a
+     * missing/absent `auth` key, which means "no opinion, inherit from the
+     * parent" — yields [null, null].
      *
      * @return array{0: AuthType|null, 1: array<string, mixed>|null}
      */
@@ -182,6 +182,13 @@ class ImportCollectionAction
                     'in' => ($fields['in'] ?? 'header') === 'query' ? 'query' : 'header',
                 ]]
                 : [null, null],
+            'oauth1' => [AuthType::OAuth1, [
+                'consumerKey' => (string) ($fields['consumerKey'] ?? ''),
+                'consumerSecret' => (string) ($fields['consumerSecret'] ?? ''),
+                'accessToken' => (string) ($fields['token'] ?? ''),
+                'tokenSecret' => (string) ($fields['tokenSecret'] ?? ''),
+                'signatureMethod' => ($fields['signatureMethod'] ?? 'HMAC-SHA1') === 'PLAINTEXT' ? 'PLAINTEXT' : 'HMAC-SHA1',
+            ]],
             default => [null, null],
         };
     }

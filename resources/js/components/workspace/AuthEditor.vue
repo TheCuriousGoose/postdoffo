@@ -26,6 +26,7 @@ const authTypeLabels: Record<AuthType, string> = {
     bearer: 'Bearer Token',
     basic: 'Basic Auth',
     apikey: 'API Key',
+    oauth1: 'OAuth 1.0',
     none: 'No Auth',
 };
 
@@ -40,6 +41,7 @@ const typeOptions: { value: string; label: string }[] = [
     { value: 'bearer', label: 'Bearer Token' },
     { value: 'basic', label: 'Basic Auth' },
     { value: 'apikey', label: 'API Key' },
+    { value: 'oauth1', label: 'OAuth 1.0' },
 ];
 
 const selected = computed(() => props.authType ?? 'inherit');
@@ -68,6 +70,14 @@ function setType(value: string) {
             key: props.auth?.key ?? '',
             value: props.auth?.value ?? '',
             in: props.auth?.in ?? 'header',
+        });
+    } else if (value === 'oauth1') {
+        emit('update:auth', {
+            consumerKey: props.auth?.consumerKey ?? '',
+            consumerSecret: props.auth?.consumerSecret ?? '',
+            accessToken: props.auth?.accessToken ?? '',
+            tokenSecret: props.auth?.tokenSecret ?? '',
+            signatureMethod: props.auth?.signatureMethod ?? 'HMAC-SHA1',
         });
     }
 }
@@ -221,6 +231,87 @@ function setField(patch: Partial<NonNullable<RequestAuth>>) {
                     <SelectContent>
                         <SelectItem value="header">Header</SelectItem>
                         <SelectItem value="query">Query Params</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+        </div>
+
+        <div v-else-if="selected === 'oauth1'" class="grid max-w-sm gap-3">
+            <div class="grid gap-2">
+                <Label for="auth-consumer-key">Consumer Key</Label>
+                <VariableHighlightInput
+                    id="auth-consumer-key"
+                    :model-value="auth?.consumerKey ?? ''"
+                    :variables="variables"
+                    class="font-mono text-sm"
+                    @update:model-value="(v) => setField({ consumerKey: v })"
+                />
+            </div>
+            <div class="grid gap-2">
+                <Label for="auth-consumer-secret">Consumer Secret</Label>
+                <Input
+                    id="auth-consumer-secret"
+                    type="password"
+                    :model-value="auth?.consumerSecret ?? ''"
+                    autocomplete="off"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-bwignore="true"
+                    data-form-type="other"
+                    class="font-mono text-sm"
+                    @update:model-value="
+                        (v) => setField({ consumerSecret: String(v) })
+                    "
+                />
+            </div>
+            <div class="grid gap-2">
+                <Label for="auth-access-token">Access Token</Label>
+                <VariableHighlightInput
+                    id="auth-access-token"
+                    :model-value="auth?.accessToken ?? ''"
+                    :variables="variables"
+                    placeholder="Optional for two-legged OAuth"
+                    class="font-mono text-sm"
+                    @update:model-value="(v) => setField({ accessToken: v })"
+                />
+            </div>
+            <div class="grid gap-2">
+                <Label for="auth-token-secret">Token Secret</Label>
+                <Input
+                    id="auth-token-secret"
+                    type="password"
+                    :model-value="auth?.tokenSecret ?? ''"
+                    autocomplete="off"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-bwignore="true"
+                    data-form-type="other"
+                    class="font-mono text-sm"
+                    @update:model-value="
+                        (v) => setField({ tokenSecret: String(v) })
+                    "
+                />
+            </div>
+            <div class="grid gap-2">
+                <Label>Signature Method</Label>
+                <Select
+                    :model-value="auth?.signatureMethod ?? 'HMAC-SHA1'"
+                    @update:model-value="
+                        (v) =>
+                            setField({
+                                signatureMethod:
+                                    v === 'PLAINTEXT'
+                                        ? 'PLAINTEXT'
+                                        : 'HMAC-SHA1',
+                            })
+                    "
+                >
+                    <SelectTrigger class="w-40">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="HMAC-SHA1">HMAC-SHA1</SelectItem>
+                        <SelectItem value="PLAINTEXT">PLAINTEXT</SelectItem>
                     </SelectContent>
                 </Select>
             </div>

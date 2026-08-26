@@ -77,6 +77,11 @@ final class Schemas
             'key' => $schema->string()->description('For auth_type "apikey": the header or query parameter name.'),
             'value' => $schema->string()->description('For auth_type "apikey": the value.'),
             'in' => $schema->string()->enum(['header', 'query'])->description('For auth_type "apikey". Defaults to "header".'),
+            'consumerKey' => $schema->string()->description('For auth_type "oauth1".'),
+            'consumerSecret' => $schema->string()->description('For auth_type "oauth1".'),
+            'accessToken' => $schema->string()->description('For auth_type "oauth1". Omit for two-legged OAuth.'),
+            'tokenSecret' => $schema->string()->description('For auth_type "oauth1". Omit for two-legged OAuth.'),
+            'signatureMethod' => $schema->string()->enum(['HMAC-SHA1', 'PLAINTEXT'])->description('For auth_type "oauth1". Defaults to "HMAC-SHA1".'),
         ])->description('Credentials for the chosen auth_type.');
     }
 

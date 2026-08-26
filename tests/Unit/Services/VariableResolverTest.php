@@ -2,9 +2,11 @@
 
 namespace Tests\Unit\Services;
 
+use App\Enums\AuthType;
 use App\Models\Collection;
 use App\Models\Environment;
 use App\Models\EnvironmentVariable;
+use App\Models\Request;
 use App\Models\Workspace;
 use App\Models\WorkspaceVariable;
 use App\Services\VariableResolver;
@@ -146,6 +148,82 @@ class VariableResolverTest extends TestCase
         $variables = $resolver->resolve(null, $environment, [], $workspace);
 
         $this->assertSame('env-token', $variables['token']);
+    }
+
+    public function test_oauth1_produces_a_verifiable_hmac_sha1_signature(): void
+    {
+        $resolver = new VariableResolver;
+
+        $request = Request::factory()->make([
+            'auth_type' => AuthType::OAuth1,
+            'auth' => [
+                'consumerKey' => 'consumer-key',
+                'consumerSecret' => 'consumer-secret',
+                'accessToken' => 'access-token',
+                'tokenSecret' => 'token-secret',
+                'signatureMethod' => 'HMAC-SHA1',
+            ],
+        ]);
+
+        $auth = $resolver->resolveAuth($request, [], 'GET', 'https://api.example.com/resource?foo=bar');
+
+        $this->assertNotNull($auth);
+        $this->assertSame('header', $auth['location']);
+        $this->assertSame('Authorization', $auth['key']);
+        $this->assertStringStartsWith('OAuth ', $auth['value']);
+        $this->assertMatchesRegularExpression('/oauth_consumer_key="consumer-key"/', $auth['value']);
+        $this->assertMatchesRegularExpression('/oauth_token="access-token"/', $auth['value']);
+        $this->assertMatchesRegularExpression('/oauth_signature_method="HMAC-SHA1"/', $auth['value']);
+
+        preg_match('/oauth_signature="([^"]+)"/', $auth['value'], $sigMatch);
+        preg_match('/oauth_nonce="([^"]+)"/', $auth['value'], $nonceMatch);
+        preg_match('/oauth_timestamp="([^"]+)"/', $auth['value'], $timestampMatch);
+
+        $params = [
+            'foo' => 'bar',
+            'oauth_consumer_key' => 'consumer-key',
+            'oauth_token' => 'access-token',
+            'oauth_signature_method' => 'HMAC-SHA1',
+            'oauth_timestamp' => $timestampMatch[1],
+            'oauth_nonce' => $nonceMatch[1],
+            'oauth_version' => '1.0',
+        ];
+
+        $pairs = [];
+
+        foreach ($params as $key => $value) {
+            $pairs[] = rawurlencode($key).'='.rawurlencode($value);
+        }
+
+        sort($pairs);
+
+        $baseString = 'GET&'.rawurlencode('https://api.example.com/resource').'&'.rawurlencode(implode('&', $pairs));
+        $signingKey = rawurlencode('consumer-secret').'&'.rawurlencode('token-secret');
+        $expected = base64_encode(hash_hmac('sha1', $baseString, $signingKey, true));
+
+        $this->assertSame($expected, urldecode($sigMatch[1]));
+    }
+
+    public function test_oauth1_plaintext_uses_the_signing_key_directly(): void
+    {
+        $resolver = new VariableResolver;
+
+        $request = Request::factory()->make([
+            'auth_type' => AuthType::OAuth1,
+            'auth' => [
+                'consumerKey' => 'consumer-key',
+                'consumerSecret' => 'consumer-secret',
+                'accessToken' => '',
+                'tokenSecret' => '',
+                'signatureMethod' => 'PLAINTEXT',
+            ],
+        ]);
+
+        $auth = $resolver->resolveAuth($request, [], 'POST', 'https://api.example.com/resource');
+
+        preg_match('/oauth_signature="([^"]+)"/', $auth['value'], $sigMatch);
+
+        $this->assertSame(rawurlencode('consumer-secret').'%26', $sigMatch[1]);
     }
 
     public function test_interpolate_array_walks_nested_structures(): void

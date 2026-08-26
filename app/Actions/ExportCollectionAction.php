@@ -213,6 +213,17 @@ class ExportCollectionAction
                     ['key' => 'in', 'value' => (string) ($auth['in'] ?? 'header'), 'type' => 'string'],
                 ],
             ],
+            AuthType::OAuth1 => [
+                'type' => 'oauth1',
+                'oauth1' => [
+                    ['key' => 'consumerKey', 'value' => (string) ($auth['consumerKey'] ?? ''), 'type' => 'string'],
+                    ['key' => 'consumerSecret', 'value' => (string) ($auth['consumerSecret'] ?? ''), 'type' => 'string'],
+                    ['key' => 'token', 'value' => (string) ($auth['accessToken'] ?? ''), 'type' => 'string'],
+                    ['key' => 'tokenSecret', 'value' => (string) ($auth['tokenSecret'] ?? ''), 'type' => 'string'],
+                    ['key' => 'signatureMethod', 'value' => (string) ($auth['signatureMethod'] ?? 'HMAC-SHA1'), 'type' => 'string'],
+                    ['key' => 'addParamsToHeader', 'value' => true, 'type' => 'boolean'],
+                ],
+            ],
             default => null,
         };
     }

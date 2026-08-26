@@ -43,7 +43,9 @@ export type RequestCookie = {
     http_only: boolean;
 };
 
-export type AuthType = 'bearer' | 'basic' | 'apikey' | 'none';
+export type AuthType = 'bearer' | 'basic' | 'apikey' | 'oauth1' | 'none';
+
+export type OAuth1SignatureMethod = 'HMAC-SHA1' | 'PLAINTEXT';
 
 export type RequestAuth = {
     token?: string;
@@ -52,6 +54,11 @@ export type RequestAuth = {
     key?: string;
     value?: string;
     in?: 'header' | 'query';
+    consumerKey?: string;
+    consumerSecret?: string;
+    accessToken?: string;
+    tokenSecret?: string;
+    signatureMethod?: OAuth1SignatureMethod;
 } | null;
 
 export type RequestBody = {

@@ -8,4 +8,5 @@ enum AuthType: string
     case Bearer = 'bearer';
     case Basic = 'basic';
     case ApiKey = 'apikey';
+    case OAuth1 = 'oauth1';
 }

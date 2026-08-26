@@ -174,7 +174,16 @@ class RequestExecutorService
      */
     private function buildOutgoingRequest(Request $request, array $variables, array $headerOverrides): OutgoingRequestData
     {
-        $auth = $this->variableResolver->resolveAuth($request, $variables);
+        // OAuth1 signing needs the method/URL/body params the request will actually
+        // send, so those are interpolated up front and fed in here — separately from
+        // the interpolation pass below, which covers everything else in the request.
+        $interpolatedUrl = $this->variableResolver->interpolate($request->url, $variables);
+        $body = is_array($request->body) ? $request->body : [];
+        $bodyParamsForSigning = $request->body_type === BodyType::UrlEncoded
+            ? $this->variableResolver->interpolateArray($this->keyValueListToMap($body['fields'] ?? null), $variables)
+            : [];
+
+        $auth = $this->variableResolver->resolveAuth($request, $variables, $request->method->value, $interpolatedUrl, $bodyParamsForSigning);
 
         $headers = $this->variableResolver->resolveHeaders($request->collection);
 
